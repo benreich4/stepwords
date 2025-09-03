@@ -8,7 +8,6 @@ import React, { useState, useEffect, useRef } from "react";
  * - Tab/Shift+Tab still move between words without submitting
  * - Enter/Submit keeps only correct letters (green) and erases others
  */
-
 const PUZZLE = [
   { answer: "inonit", clue: "Part of a prank" },
   { answer: "sitinon", clue: "Audit" },
@@ -17,7 +16,6 @@ const PUZZLE = [
   { answer: "minidonuts", clue: "Little dippers?" },
   { answer: "dismounting", clue: "Getting off one's high horse?" },
 ];
-
 
 // const PUZZLE = [
 //   { answer: "ten", clue: "Perfect score or half a score" },
@@ -39,10 +37,10 @@ const clean = (s) => (s || "").toLowerCase().replace(/[^a-z]/g, "");
 function LetterBox({ char = "", state = "empty", isCursor = false, onClick }) {
   // state: empty | good
   const base =
-    "w-10 h-10 sm:w-12 sm:h-12 rounded-md border flex items-center justify-center text-sm sm:text-base font-bold uppercase select-none transition-colors";
+    "w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-md border flex items-center justify-center text-base md:text-lg font-bold uppercase select-none transition-colors";
   const cls = state === "good"
     ? "bg-green-600 border-green-500 text-white"
-    : "bg-gray-900 border-gray-600 text-gray-200"; // single darker style for all empties
+    : "bg-gray-900 border-gray-700 text-gray-200"; // single darker style for empties
   const ring = isCursor ? " outline outline-2 outline-sky-400" : "";
   return (
     <button type="button" onClick={onClick} className={`${base} ${cls}${ring}`}>{char}</button>
@@ -56,6 +54,7 @@ export default function Stepwords() {
   const [cursor, setCursor] = useState(0); // col index
   const [message, setMessage] = useState("");
   const keyTargetRef = useRef(null);
+  const mobileInputRef = useRef(null);
 
   const answer = PUZZLE[level].answer.toUpperCase();
   const clue = PUZZLE[level].clue;
@@ -177,50 +176,37 @@ export default function Stepwords() {
     }
 
     // Arrow navigation
-    if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      stepCursorInRow(-1);
-      return;
-    }
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      stepCursorInRow(1);
-      return;
-    }
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (level > 0) moveLevel(-1);
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (level < PUZZLE.length - 1) moveLevel(1);
-      return;
-    }
+    if (e.key === "ArrowLeft") { e.preventDefault(); stepCursorInRow(-1); return; }
+    if (e.key === "ArrowRight") { e.preventDefault(); stepCursorInRow(1); return; }
+    if (e.key === "ArrowUp") { e.preventDefault(); if (level > 0) moveLevel(-1); return; }
+    if (e.key === "ArrowDown") { e.preventDefault(); if (level < PUZZLE.length - 1) moveLevel(1); return; }
 
-    // typing
+    // Desktop typing fallback
     if (/^[a-z]$/i.test(e.key)) {
       e.preventDefault();
-      const ch = clean(e.key).toUpperCase();
-      // if current cell is locked, jump to nearest unlocked at/after cursor
-      if (isLocked(level, cursor)) {
-        const nextPos = nearestUnlockedInRow(level, cursor);
-        if (nextPos === -1) return; // row fully locked
-        setCursor(nextPos);
-      }
-      const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
-      const next = (cur.slice(0, cursor) + ch + cur.slice(cursor + 1)).slice(0, len).trimEnd();
-      setGuessAt(level, next);
-      // advance to next available (skip locked)
-      let advance = cursor;
-      for (let t = 0; t < len; t++) {
-        advance = advance + 1;
-        if (advance >= len) break;
-        if (!isLocked(level, advance)) { setCursor(advance); break; }
-      }
-      setMessage("");
+      typeChar(clean(e.key).toUpperCase());
       return;
     }
+  }
+
+  function typeChar(ch) {
+    const len = rowLen(level);
+    if (isLocked(level, cursor)) {
+      const nextPos = nearestUnlockedInRow(level, cursor);
+      if (nextPos === -1) return;
+      setCursor(nextPos);
+    }
+    const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
+    const next = (cur.slice(0, cursor) + ch + cur.slice(cursor + 1)).slice(0, len).trimEnd();
+    setGuessAt(level, next);
+    // advance to next available (skip locked)
+    let advance = cursor;
+    for (let t = 0; t < len; t++) {
+      advance = advance + 1;
+      if (advance >= len) break;
+      if (!isLocked(level, advance)) { setCursor(advance); break; }
+    }
+    setMessage("");
   }
 
   function letterState(rowIdx, colIdx) {
@@ -234,10 +220,29 @@ export default function Stepwords() {
 
       <div className="mb-4 text-gray-300"><span className="font-semibold">Clue:</span> {clue}</div>
 
-      {/* Hidden focus target to capture typing */}
+      {/* Hidden but focusable input to trigger mobile keyboards */}
+      <input
+        ref={mobileInputRef}
+        className="absolute opacity-0 pointer-events-none -z-10 h-0 w-0"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        inputMode="text"
+        value=""
+        onChange={(e) => {
+          const v = e.target.value || "";
+          const ch = clean(v).slice(-1);
+          if (ch) typeChar(ch.toUpperCase());
+          e.target.value = ""; // reset so next key is captured
+        }}
+        onKeyDown={onKeyDown}
+        aria-hidden
+      />
+
+      {/* Also capture desktop keydown for reliability */}
       <button ref={keyTargetRef} onKeyDown={onKeyDown} className="sr-only" aria-hidden />
 
-      <div className="flex flex-col items-start gap-2">
+      <div className="flex flex-col items-start gap-1.5 sm:gap-2">
         {PUZZLE.map((p, i) => {
           const len = p.answer.length;
           const showVal = (guesses[i] || "").toUpperCase();
@@ -254,6 +259,8 @@ export default function Stepwords() {
                       if (!locks[i][col]) {
                         setLevel(i);
                         setCursor(col);
+                        // Focus the hidden input to open mobile keyboard
+                        mobileInputRef.current?.focus();
                         keyTargetRef.current?.focus();
                       }
                     }}
