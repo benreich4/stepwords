@@ -20,12 +20,15 @@ import React, { useState, useEffect, useRef } from "react";
 // ];
 
 const PUZZLE = [
-  { answer: "inonit", clue: "Part of a prank" },
-  { answer: "sitinon", clue: "Audit" },
-  { answer: "unionist", clue: "Lincoln, for one" },
-  { answer: "munitions", clue: "Arms" },
-  { answer: "minidonuts", clue: "Little dippers?" },
-  { answer: "dismounting", clue: "Getting off one's high horse?" },
+  { answer: "ton", clue: "Colossal amount (3)" },
+  { answer: "into", clue: "A fan of (4)" },
+  { answer: "notin", clue: "Away at the moment (3,2)" },
+  { answer: "inonit", clue: "Part of a prank (2,2,2)" },
+  { answer: "sitinon", clue: "Audit (3,2,2)" },
+  { answer: "unionist", clue: "Lincoln, for one (8)" },
+  { answer: "munitions", clue: "Arms (9)" },
+  { answer: "minidonuts", clue: "Little dippers? (10)" },
+  { answer: "dismounting", clue: "Getting off one's high horse? (11)" },
 ];
 
 const clean = (s) => (s || "").toLowerCase().replace(/[^a-z]/g, "");
