@@ -1,0 +1,18 @@
+{
+  "id": "3",
+  "title": "Extra Credit",
+  "rows": [
+	  { "answer": "ate", "clue": "Downed (3)" },
+	  { "answer": "date", "clue": "Go out with (4)" },
+	  { "answer": "trade", "clue": "Swap (5)" },
+	  { "answer": "ratted", "clue": "	Snitched on, with \"out\" (6)" },
+	  { "answer": "treated", "clue": "Dealt with, as an injury (7)" },
+	  { "answer": "iterated", "clue": "Took another step with the goal of improvement (8)" },
+	  { "answer": "extradite", "clue": "Obtain, as a suspect, from another state (9)" },
+	  { "answer": "extricated", "clue": "Freed (10)" },
+	  { "answer": "extracredit", "clue": "Grade booster (5,6)" }
+	]
+}
+
+
+
