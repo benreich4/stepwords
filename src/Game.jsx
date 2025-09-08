@@ -255,29 +255,40 @@ export default function Game({ puzzle }) {
           <span className="font-semibold">Clue:</span> {clue}
         </div>
       </div>
-      <div className="w-full px-3 py-2 flex items-center gap-2 sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-10">
+      <div className="w-full px-3 py-2 sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-10
+                      flex items-center gap-2">
+        {/* Left side: revealed + note */}
+        <div className="flex items-center gap-3 min-w-0">
+          {revealedLetters.size > 0 && (
+            <div className="text-[11px] text-gray-400 truncate">
+              Revealed: {[...revealedLetters].join(", ")}
+            </div>
+          )}
+          <div className="text-[11px] text-gray-500 hidden xs:block truncate">
+            Hint reveals all positions of the tapped letter.
+          </div>
+        </div>
+
+        {/* Spacer pushes the button to the right */}
+        <div className="ml-auto" />
+
+        {/* Right side: Hint button */}
         <button
           onClick={() => setHintArmed((v) => !v)}
           className={
             "px-3 py-1.5 rounded-md text-xs border " +
-            (hintArmed ? "border-sky-500 text-sky-300 bg-sky-900/30"
-                       : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
+            (hintArmed
+              ? "border-sky-500 text-sky-300 bg-sky-900/30"
+              : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
           }
           aria-pressed={hintArmed}
         >
-          {hintArmed ? "Tap a square to reveal all instances of that letter" : "Hint"}
+          {hintArmed
+            ? "Tap a square to reveal all instances of that letter"
+            : "Hint"}
         </button>
-
-        {revealedLetters.size > 0 && (
-          <div className="text-[11px] text-gray-400">
-            Revealed: {[...revealedLetters].join(", ")}
-          </div>
-        )}
-
-        <div className="ml-auto text-[11px] text-gray-500">
-          Hint reveals all positions of the tapped letter.
-        </div>
       </div>
+
 
       {/* hidden input to capture typing & mobile keyboard */}
       <input
@@ -310,8 +321,14 @@ export default function Game({ puzzle }) {
                     state={locks[i][col] ? "good" : "empty"}
                     isCursor={i === level && col === cursor}
                     onClick={() => {
-                      // Reveal this letter everywhere across ALL words
-                      applyHintGlobal(i, col);
+                      if (hintArmed) {
+                        applyHintGlobal(i, col);
+                        setHintArmed(false);   // ✅ immediately disarm
+                      } else {
+                        setLevel(i);
+                        setCursor(col);
+                        inputRef.current?.focus();
+                      }
                     }}
                   />
                 ))}
