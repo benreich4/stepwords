@@ -274,14 +274,9 @@ export default function Game({ puzzle }) {
                     state={isBlocked(i, col) ? "good" : "empty"}
                     isCursor={i === level && col === cursor}
                     onClick={() => {
-                      if (hintArmed && locks[i][col]) {
-                        const letter = rows[i].answer.toUpperCase()[col];
-                        revealByLetter(letter);
-                        return;
-                      }
-                      if (!isBlocked(i, col)) {
-                        setLevel(i); setCursor(col); inputRef.current?.focus();
-                      }
+                      setLevel(i);               // jump to that row
+                      setCursor(col);            // place caret at that column
+                      inputRef.current?.focus(); // keep mobile keyboard up
                     }}
                   />
                 ))}
