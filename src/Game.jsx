@@ -189,19 +189,33 @@ export default function Game({ puzzle }) {
     if (e.key === "Enter") { e.preventDefault(); submitRow(level); return; }
     if (e.key === "Backspace") {
       e.preventDefault();
+
       const len = rowLen(level);
       const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
 
-      // Clear current square
-      const updated =
-        cur.slice(0, cursor) + " " + cur.slice(cursor + 1);
+      // If current cell is locked (green), move left to the nearest unlocked cell
+      let delCol = cursor;
+      if (isLocked(level, delCol)) {
+        let found = -1;
+        for (let c = delCol - 1; c >= 0; c--) {
+          if (!isLocked(level, c)) { found = c; break; }
+        }
+        if (found === -1) {
+          // nothing to delete on this row
+          return;
+        }
+        delCol = found;
+      }
 
+      // Clear the target cell
+      const updated = cur.slice(0, delCol) + " " + cur.slice(delCol + 1);
       setGuessAt(level, updated.trimEnd());
 
-      // Move cursor left (but not before 0)
-      setCursor(Math.max(0, cursor - 1));
+      // Move cursor one left from the deleted cell (but not below 0)
+      setCursor(Math.max(0, delCol - 1));
       return;
     }
+
 
     if (e.key === "ArrowLeft") { e.preventDefault(); stepCursorInRow(-1); return; }
     if (e.key === "ArrowRight") { e.preventDefault(); stepCursorInRow(1); return; }
