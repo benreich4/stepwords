@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchManifest } from "../lib/puzzles.js";
+import { formatLongDate } from "../lib/date.js"
 
 export default function Home() {
   const [puzzles, setPuzzles] = useState([]);
@@ -24,7 +25,7 @@ export default function Home() {
         {puzzles.map((p) => (
           <li key={p.id}>
             <Link className="text-sky-400 hover:underline" to={`/${p.id}`}>
-              #{p.id} — {p.date || "Unknown date"} by {p.author || "Unknown"}
+              #{p.id} — {formatLongDate(p.date) || "Unknown date"} by {p.author || "Unknown"}
             </Link>
           </li>
         ))}

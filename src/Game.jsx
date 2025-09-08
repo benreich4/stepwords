@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import LetterBox from "./components/LetterBox.jsx";
-import { formatLongDate } from "./utils/date.js"
+import { formatLongDate } from "./lib/date.js"
 export default function Game({ puzzle }) {
   const rows = puzzle.rows; // [{answer, clue}, ...] shortest→longest
   const [level, setLevel] = useState(0);
