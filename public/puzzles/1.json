@@ -1,16 +1,17 @@
 {
+  "id": "1",
   "rows": [
-    { "answer": "ten", "clue": "Perfect score, but only half a perfect hand" },
-    { "answer": "rent", "clue": "Tear in your jeans, or what you pay for them" },
-    { "answer": "inert", "clue": "Not moving at all, except maybe in chemistry class" },
-    { "answer": "orient", "clue": "Adjust your compass, or head toward the East" },
-    { "answer": "protein", "clue": "Egg component that's not about the shell" },
-    { "answer": "pointier", "clue": "Sharper take on a remark?" },
-    { "answer": "priesinto", "clue": "Meddles where it doesn’t belong, like a nosy neighbor" },
-    { "answer": "reposition", "clue": "Move again, or market yourself anew" },
-    { "answer": "preposition", "clue": "Word that can show you where you’re at (literally)" },
-    { "answer": "prepositions", "clue": "They might be found before a noun, or before trouble" },
-    { "answer": "superposition", "clue": "State of being in two states at once (quantumly speaking)" },
+    { "answer": "ten", "clue": "Perfect score, or half a score" },
+    { "answer": "rent", "clue": "Flat fee?" },
+    { "answer": "inert", "clue": "Immobile" },
+    { "answer": "orient", "clue": "Get situated " },
+    { "answer": "protein", "clue": "___ shake" },
+    { "answer": "pointier", "clue": "More elven, earwise" },
+    { "answer": "priesinto", "clue": "Snoops around" },
+    { "answer": "reposition", "clue": "Put back in place." },
+    { "answer": "preposition", "clue": "In or on, e.g." },
+    { "answer": "prepositions", "clue": "In and on, e.g." },
+    { "answer": "superposition", "clue": "In two states at once in quantum mechanics" },
     { "answer": "presupposition", "clue": "Assumption made before you even know you’ve made it" }
   ]
 }
