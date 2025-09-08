@@ -16,9 +16,9 @@ export default function Game({ puzzle }) {
 
   useEffect(() => {
     inputRef.current?.focus();
-    setCursor(0);
     setMessage("");
   }, [level]);
+
 
   const answer = rows[level].answer.toUpperCase();
   const clue = rows[level].clue;
@@ -52,7 +52,7 @@ export default function Game({ puzzle }) {
   }
 
   function moveLevel(delta) {
-    setLevel(l => {
+    setLevel((l) => {
       const next = Math.max(0, Math.min(rows.length - 1, l + delta));
       const len = rowLen(next);
       let target = Math.min(len - 1, cursor);
@@ -100,7 +100,14 @@ export default function Game({ puzzle }) {
     setLockAtRow(i, nextLocks);
 
     if (nextLocks.every(Boolean)) {
-      if (i + 1 < rows.length) { setLevel(i + 1); setMessage("Nice! Next word →"); }
+      if (i + 1 < rows.length) { 
+          setLevel(i + 1); 
+          const nextLen = rows[i + 1].answer.length;
+          const firstOpen = nearestUnlockedInRow(i + 1, 0);
+          setCursor(firstOpen === -1 ? Math.min(cursor, nextLen - 1) : firstOpen);
+
+          setMessage("Nice! Next word →"); 
+        }
       else { setMessage("🎉 You solved all the Stepwords!"); }
     } else {
       setMessage("Kept correct letters. Try filling the rest.");
@@ -128,8 +135,8 @@ export default function Game({ puzzle }) {
 
     if (e.key === "ArrowLeft") { e.preventDefault(); stepCursorInRow(-1); return; }
     if (e.key === "ArrowRight") { e.preventDefault(); stepCursorInRow(1); return; }
-    if (e.key === "ArrowUp") { e.preventDefault(); if (level > 0) moveLevel(-1); return; }
-    if (e.key === "ArrowDown") { e.preventDefault(); if (level < rows.length - 1) moveLevel(1); return; }
+    if (e.key === "ArrowUp")   { e.preventDefault(); if (level > 0) moveLevel(-1); return; }
+    if (e.key === "ArrowDown") { e.preventDefault(); if (level < rows.length - 1) moveLevel(1);  return; }
     if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); typeChar(e.key); return; }
   }
 
