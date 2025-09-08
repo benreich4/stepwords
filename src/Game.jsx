@@ -3,6 +3,11 @@ import LetterBox from "./components/LetterBox.jsx";
 import { formatLongDate } from "./lib/date.js"
 export default function Game({ puzzle }) {
   const rows = puzzle.rows; // [{answer, clue}, ...] shortest→longest
+  const stepIdx = computeStepIndices(rows);
+  const [lockColors, setLockColors] = useState(
+    () => rows.map(r => Array(r.answer.length).fill(null))
+  );
+  const isLocked = (r, c) => Boolean(lockColors[r]?.[c]);
   const [level, setLevel] = useState(0);
   const [guesses, setGuesses] = useState(() => rows.map(() => ""));
   const [locks, setLocks] = useState(() => rows.map(r => Array(r.answer.length).fill(false)));
@@ -14,6 +19,31 @@ export default function Game({ puzzle }) {
   const [hintArmed, setHintArmed] = useState(false);
   const [revealedLetters, setRevealedLetters] = useState(new Set()); // letters we've revealed across the grid
   
+  // color order tokens
+  const COLOR_ORDER = ["G","B","P","R","O","Y","N","K","W"];
+
+  function letterCounts(s) {
+    const m = new Map();
+    for (const ch of s) m.set(ch, (m.get(ch) || 0) + 1);
+    return m;
+  }
+  function computeStepIndices(rows) {
+    const out = [];
+    for (let i = 0; i < rows.length; i++) {
+      if (i === 0) { out.push(-1); continue; }
+      const prev = rows[i-1].answer.toUpperCase();
+      const cur  = rows[i].answer.toUpperCase();
+      const pc = letterCounts(prev), cc = letterCounts(cur);
+      let stepLetter = null;
+      for (const [ch, cnt] of cc.entries()) {
+        const diff = cnt - (pc.get(ch) || 0);
+        if (diff > 0) { stepLetter = ch; break; }
+      }
+      out.push(stepLetter ? cur.lastIndexOf(stepLetter) : -1);
+    }
+    return out;
+  }
+
   function applyHintGlobal(row, col) {
     // The letter to reveal is the *correct* letter at (row,col)
     const letter = rows[row].answer.toUpperCase()[col];
@@ -71,7 +101,6 @@ export default function Game({ puzzle }) {
   }
 
   const rowLen = (r) => rows[r].answer.length;
-  const isLocked = (r, c) => Boolean(locks[r]?.[c]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -149,31 +178,41 @@ export default function Game({ puzzle }) {
     setMessage("");
   }
 
-
   function submitRow(i) {
     const ans = rows[i].answer.toUpperCase();
     const len = ans.length;
     const cur = (guesses[i] || "").toUpperCase().padEnd(len, " ").slice(0, len);
 
-    const keep = Array(len).fill(" ");
-    const nextLocks = locks[i].slice();
+    const nextGuess = Array.from(cur);
+    const nextColors = lockColors[i].slice();
+
+    const stepColor = COLOR_ORDER[Math.min(i, COLOR_ORDER.length - 1)];
+    const sPos = stepIdx[i];
+
     for (let k = 0; k < len; k++) {
-      if (cur[k] === ans[k] && cur[k] !== " ") { keep[k] = cur[k]; nextLocks[k] = true; }
-      else { keep[k] = " "; nextLocks[k] = false; }
+      if (cur[k] === ans[k] && cur[k] !== " ") {
+        nextColors[k] = (k === sPos && i >= 1) ? stepColor : "G";
+      } else {
+        nextGuess[k] = " ";
+        nextColors[k] = null;
+      }
     }
-    setGuessAt(i, keep.join("").trimEnd());
-    setLockAtRow(i, nextLocks);
 
-    if (nextLocks.every(Boolean)) {
-      if (i + 1 < rows.length) { 
-          setLevel(i + 1); 
-          const nextLen = rows[i + 1].answer.length;
-          const firstOpen = nearestUnlockedInRow(i + 1, 0);
-          setCursor(firstOpen === -1 ? Math.min(cursor, nextLen - 1) : firstOpen);
+    setGuessAt(i, nextGuess.join("").trimEnd());
+    setLockColors(prev => prev.map((row, idx) => (idx === i ? nextColors : row)));
 
-          setMessage("Nice! Next word →"); 
-        }
-      else { setMessage("🎉 You solved all the Stepwords!"); }
+    const solved = nextColors.every(Boolean);
+    if (solved) {
+      if (i + 1 < rows.length) {
+        const nextRow = i + 1;
+        setLevel(nextRow);
+        const firstOpen = nearestUnlockedInRow(nextRow, 0);
+        setCursor(firstOpen === -1 ? 0 : firstOpen);
+        setMessage("Nice! Next word →");
+        requestAnimationFrame(() => inputRef.current?.focus());
+      } else {
+        setMessage("🎉 You solved all the Stepwords!");
+      }
     } else {
       setMessage("Kept correct letters. Try filling the rest.");
     }
@@ -189,33 +228,19 @@ export default function Game({ puzzle }) {
     if (e.key === "Enter") { e.preventDefault(); submitRow(level); return; }
     if (e.key === "Backspace") {
       e.preventDefault();
-
       const len = rowLen(level);
       const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
 
-      // If current cell is locked (green), move left to the nearest unlocked cell
-      let delCol = cursor;
-      if (isLocked(level, delCol)) {
-        let found = -1;
-        for (let c = delCol - 1; c >= 0; c--) {
-          if (!isLocked(level, c)) { found = c; break; }
-        }
-        if (found === -1) {
-          // nothing to delete on this row
-          return;
-        }
-        delCol = found;
-      }
+      // Clear current square
+      const updated =
+        cur.slice(0, cursor) + " " + cur.slice(cursor + 1);
 
-      // Clear the target cell
-      const updated = cur.slice(0, delCol) + " " + cur.slice(delCol + 1);
       setGuessAt(level, updated.trimEnd());
 
-      // Move cursor one left from the deleted cell (but not below 0)
-      setCursor(Math.max(0, delCol - 1));
+      // Move cursor left (but not before 0)
+      setCursor(Math.max(0, cursor - 1));
       return;
     }
-
 
     if (e.key === "ArrowLeft") { e.preventDefault(); stepCursorInRow(-1); return; }
     if (e.key === "ArrowRight") { e.preventDefault(); stepCursorInRow(1); return; }
@@ -269,40 +294,29 @@ export default function Game({ puzzle }) {
           <span className="font-semibold">Clue:</span> {clue}
         </div>
       </div>
-      <div className="w-full px-3 py-2 sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-10
-                      flex items-center gap-2">
-        {/* Left side: revealed + note */}
-        <div className="flex items-center gap-3 min-w-0">
-          {revealedLetters.size > 0 && (
-            <div className="text-[11px] text-gray-400 truncate">
-              Revealed: {[...revealedLetters].join(", ")}
-            </div>
-          )}
-          <div className="text-[11px] text-gray-500 hidden xs:block truncate">
-            Hint reveals all positions of the tapped letter.
-          </div>
-        </div>
-
-        {/* Spacer pushes the button to the right */}
-        <div className="ml-auto" />
-
-        {/* Right side: Hint button */}
+      <div className="w-full px-3 py-2 flex items-center gap-2 sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-10">
         <button
           onClick={() => setHintArmed((v) => !v)}
           className={
             "px-3 py-1.5 rounded-md text-xs border " +
-            (hintArmed
-              ? "border-sky-500 text-sky-300 bg-sky-900/30"
-              : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
+            (hintArmed ? "border-sky-500 text-sky-300 bg-sky-900/30"
+                       : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
           }
           aria-pressed={hintArmed}
         >
-          {hintArmed
-            ? "Tap a square to reveal all instances of that letter"
-            : "Hint"}
+          {hintArmed ? "Tap a square to reveal all instances of that letter" : "Hint"}
         </button>
-      </div>
 
+        {revealedLetters.size > 0 && (
+          <div className="text-[11px] text-gray-400">
+            Revealed: {[...revealedLetters].join(", ")}
+          </div>
+        )}
+
+        <div className="ml-auto text-[11px] text-gray-500">
+          Hint reveals all positions of the tapped letter.
+        </div>
+      </div>
 
       {/* hidden input to capture typing & mobile keyboard */}
       <input
@@ -322,7 +336,7 @@ export default function Game({ puzzle }) {
       />
 
       <div className="w-full flex flex-col items-start gap-1 select-none px-0">
-        {rows.map((r, i) => {
+       {rows.map((r, i) => {
           const len = r.answer.length;
           const showVal = (guesses[i] || "").toUpperCase();
           return (
@@ -332,17 +346,11 @@ export default function Game({ puzzle }) {
                   <LetterBox
                     key={col}
                     char={showVal[col] || ""}
-                    state={locks[i][col] ? "good" : "empty"}
+                    state={lockColors[i][col]}          // null or 'G'|'B'|...
                     isCursor={i === level && col === cursor}
                     onClick={() => {
-                      if (hintArmed) {
-                        applyHintGlobal(i, col);
-                        setHintArmed(false);   // ✅ immediately disarm
-                      } else {
-                        setLevel(i);
-                        setCursor(col);
-                        inputRef.current?.focus();
-                      }
+                      if (hintArmed) { applyHintGlobal(i, col); setHintArmed(false); }
+                      else { setLevel(i); setCursor(col); inputRef.current?.focus(); }
                     }}
                   />
                 ))}
