@@ -115,6 +115,11 @@ export default function Game({ puzzle }) {
   }
 
   function onKeyDown(e) {
+    // ✅ Let browser/system shortcuts work (Cmd/Ctrl combos, F5, etc.)
+    if (e.metaKey || e.ctrlKey) return;              // Cmd+R/Cmd+L/Cmd+F, Ctrl+R/Ctrl+F...
+    if (e.key === "F5") return;                      // Refresh
+    if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return; // history nav
+
     if (e.key === "Tab") { e.preventDefault(); moveLevel(e.shiftKey ? -1 : 1); return; }
     if (e.key === "Enter") { e.preventDefault(); submitRow(level); return; }
     if (e.key === "Backspace") {
@@ -150,9 +155,10 @@ export default function Game({ puzzle }) {
   return (
     <div className="w-screen min-h-screen overflow-y-auto bg-black pt-3 pb-[22vh]">
       <div className="px-3">
-        <div className="text-xs text-gray-400 mb-2">
-          {puzzle.date} — by {puzzle.author}, edited by Ben Reich
+        <div className="text-lg font-semibold text-gray-200 mb-2">
+          {puzzle.date} — by {puzzle.author}
         </div>
+
         <div className="mb-3 text-sm text-gray-300">
           <span className="font-semibold">Clue:</span> {clue}
         </div>
