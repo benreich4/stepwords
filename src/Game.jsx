@@ -13,26 +13,62 @@ export default function Game({ puzzle }) {
   // Hint system: arm once, then reveal by tapping any confirmed letter (green)
   const [hintArmed, setHintArmed] = useState(false);
   const [revealedLetters, setRevealedLetters] = useState(new Set()); // letters we've revealed across the grid
+  
+  function applyHintGlobal(row, col) {
+    // The letter to reveal is the *correct* letter at (row,col)
+    const letter = rows[row].answer.toUpperCase()[col];
+    if (!letter) return;
 
-  function revealByLetter(letter) {
-    const L = (letter || "").toUpperCase();
-    if (!L) return;
-    if (revealedLetters.has(L)) {
-      setMessage(`'${L}' already revealed.`);
-    } else {
-      const next = new Set(revealedLetters);
-      next.add(L);
-      setRevealedLetters(next);
-      setMessage(`Revealed all '${L}' positions.`);
+    // Clone state so we can batch-update all rows
+    const nextLocks = locks.map((r) => r.slice());
+    const nextGuesses = guesses.map((g, i) => {
+      const ans = rows[i].answer.toUpperCase();
+      const len = ans.length;
+      const cur = (g || "").toUpperCase().padEnd(len, " ").slice(0, len).split("");
+
+      for (let k = 0; k < len; k++) {
+        if (ans[k] === letter) {
+          cur[k] = letter;       // reveal the correct letter
+          nextLocks[i][k] = true; // lock it green
+        }
+      }
+      return cur.join("").trimEnd();
+    });
+
+    setGuesses(nextGuesses);
+    setLocks(nextLocks);
+
+    // If the current row is now solved, auto-advance & place cursor
+    if (nextLocks[level].every(Boolean)) {
+      if (level + 1 < rows.length) {
+        const nextRow = level + 1;
+        setLevel(nextRow);
+        const firstOpen = nearestUnlockedInRow(nextRow, 0);
+        setCursor(firstOpen === -1 ? 0 : firstOpen);
+        requestAnimationFrame(() => inputRef.current?.focus());
+        setMessage("Nice! Next word →");
+      } else {
+        setMessage("🎉 You solved all the Stepwords!");
+      }
+      return;
     }
-    setHintArmed(false); // auto-disarm after one reveal
+
+    // Otherwise, keep focus on the same row; move to next available cell to the right
+    const len = rows[row].answer.length;
+    let target = col;
+    for (let k = col + 1; k < len; k++) {
+      if (!nextLocks[row][k]) { target = k; break; }
+    }
+    setLevel(row);
+    setCursor(target);
+    requestAnimationFrame(() => inputRef.current?.focus());
   }
+
 
   function tileHasHint(rowIndex, colIndex) {
     const L = rows[rowIndex].answer.toUpperCase()[colIndex];
     return revealedLetters.has(L);
   }
-
 
   const rowLen = (r) => rows[r].answer.length;
   const isLocked = (r, c) => Boolean(locks[r]?.[c]);
@@ -229,7 +265,7 @@ export default function Game({ puzzle }) {
           }
           aria-pressed={hintArmed}
         >
-          {hintArmed ? "Tap a GREEN letter…" : "Hint"}
+          {hintArmed ? "Tap a square to reveal all instances of that letter" : "Hint"}
         </button>
 
         {revealedLetters.size > 0 && (
@@ -270,13 +306,12 @@ export default function Game({ puzzle }) {
                 {Array.from({ length: len }).map((_, col) => (
                   <LetterBox
                     key={col}
-                    char={tileForceReveal(i, col) ? rows[i].answer.toUpperCase()[col] : (showVal[col] || "")}
-                    state={isBlocked(i, col) ? "good" : "empty"}
+                    char={showVal[col] || ""}
+                    state={locks[i][col] ? "good" : "empty"}
                     isCursor={i === level && col === cursor}
                     onClick={() => {
-                      setLevel(i);               // jump to that row
-                      setCursor(col);            // place caret at that column
-                      inputRef.current?.focus(); // keep mobile keyboard up
+                      // Reveal this letter everywhere across ALL words
+                      applyHintGlobal(i, col);
                     }}
                   />
                 ))}
