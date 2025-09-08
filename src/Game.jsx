@@ -112,14 +112,20 @@ export default function Game({ puzzle }) {
     if (e.key === "Enter") { e.preventDefault(); submitRow(level); return; }
     if (e.key === "Backspace") {
       e.preventDefault();
-      if (cursor > 0) {
-        const idx = cursor - 1;
-        const cur = (guesses[level] || "").toUpperCase();
-        const del = cur.slice(0, idx) + cur.slice(idx + 1);
-        setGuessAt(level, del); setCursor(idx);
-      }
+      const len = rowLen(level);
+      const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
+
+      // Clear current square
+      const updated =
+        cur.slice(0, cursor) + " " + cur.slice(cursor + 1);
+
+      setGuessAt(level, updated.trimEnd());
+
+      // Move cursor left (but not before 0)
+      setCursor(Math.max(0, cursor - 1));
       return;
     }
+
     if (e.key === "ArrowLeft") { e.preventDefault(); stepCursorInRow(-1); return; }
     if (e.key === "ArrowRight") { e.preventDefault(); stepCursorInRow(1); return; }
     if (e.key === "ArrowUp") { e.preventDefault(); if (level > 0) moveLevel(-1); return; }
