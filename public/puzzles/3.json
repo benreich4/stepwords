@@ -1,6 +1,5 @@
 {
   "id": "3",
-  "title": "Extra Credit",
   "rows": [
 	  { "answer": "ate", "clue": "Downed (3)" },
 	  { "answer": "date", "clue": "Go out with (4)" },
@@ -13,6 +12,3 @@
 	  { "answer": "extracredit", "clue": "Grade booster (5,6)" }
 	]
 }
-
-
-

@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Game from "../Game.jsx";
+import { loadPuzzleById } from "../lib/puzzles.js";
 
 export default function PuzzlePage() {
   const { puzzleId } = useParams();
@@ -8,18 +9,22 @@ export default function PuzzlePage() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
+    let mounted = true;
     setErr("");
     setData(null);
-    fetch(`/puzzles/${puzzleId}.json`)
-      .then(r => {
-        if (!r.ok) throw new Error(`Puzzle ${puzzleId} not found`);
-        return r.json();
-      })
-      .then(json => {
+
+    loadPuzzleById(puzzleId)
+      .then((json) => {
+        if (!mounted) return;
         setData(json);
-        document.title = `Stepword Puzzles – #${json.id}`;
+        document.title = `Stepword Puzzles – #${json.id}${json.date ? ` (${json.date})` : ""}`;
       })
-      .catch(e => setErr(e.message));
+      .catch((e) => {
+        if (!mounted) return;
+        setErr(e.message);
+      });
+
+    return () => { mounted = false; };
   }, [puzzleId]);
 
   if (err) {

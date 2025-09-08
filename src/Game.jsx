@@ -137,7 +137,9 @@ export default function Game({ puzzle }) {
   return (
     <div className="w-screen min-h-screen overflow-y-auto bg-black pt-3 pb-[22vh]">
       <div className="px-3">
-        <div className="text-xs text-gray-400 mb-2">{puzzle.title}</div>
+        <div className="text-xs text-gray-400 mb-2">
+          {puzzle.date} — by {puzzle.author}, edited by Ben Reich
+        </div>
         <div className="mb-3 text-sm text-gray-300">
           <span className="font-semibold">Clue:</span> {clue}
         </div>
