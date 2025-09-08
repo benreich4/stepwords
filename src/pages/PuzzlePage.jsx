@@ -17,7 +17,7 @@ export default function PuzzlePage() {
       .then((json) => {
         if (!mounted) return;
         setData(json);
-        document.title = `Stepword Puzzles – #${json.id}${json.date ? ` (${json.date})` : ""}`;
+        document.title = `Stepword Puzzle – #${json.id}${json.date ? ` (${json.date})` : ""}`;
       })
       .catch((e) => {
         if (!mounted) return;

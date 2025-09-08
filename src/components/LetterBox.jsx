@@ -1,8 +1,14 @@
-export default function LetterBox({ char = "", state = "empty", isCursor = false, onClick }) {
+export default function LetterBox({
+  char = "",
+  state = "empty", // "empty" | "good"
+  isCursor = false,
+  onClick,
+}) {
   const base =
     "relative inline-flex items-center justify-center border rounded-[6px] select-none uppercase font-bold leading-none " +
-    "w-[6.2vw] aspect-square text-[3.4vw] min-w-[18px] min-h-[18px] " + // 15 across
+    "w-[6.2vw] aspect-square text-[3.4vw] min-w-[18px] min-h-[18px] " +
     "sm:w-8 sm:text-sm md:w-10 md:text-base";
+
   const cls =
     state === "good"
       ? "bg-green-600 border-green-500 text-white"

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import LetterBox from "./components/LetterBox.jsx";
-
+import { formatLongDate } from "./utils/date.js"
 export default function Game({ puzzle }) {
   const rows = puzzle.rows; // [{answer, clue}, ...] shortest→longest
   const [level, setLevel] = useState(0);
@@ -10,6 +10,29 @@ export default function Game({ puzzle }) {
   const [message, setMessage] = useState("");
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
+  // Hint system: arm once, then reveal by tapping any confirmed letter (green)
+  const [hintArmed, setHintArmed] = useState(false);
+  const [revealedLetters, setRevealedLetters] = useState(new Set()); // letters we've revealed across the grid
+
+  function revealByLetter(letter) {
+    const L = (letter || "").toUpperCase();
+    if (!L) return;
+    if (revealedLetters.has(L)) {
+      setMessage(`'${L}' already revealed.`);
+    } else {
+      const next = new Set(revealedLetters);
+      next.add(L);
+      setRevealedLetters(next);
+      setMessage(`Revealed all '${L}' positions.`);
+    }
+    setHintArmed(false); // auto-disarm after one reveal
+  }
+
+  function tileHasHint(rowIndex, colIndex) {
+    const L = rows[rowIndex].answer.toUpperCase()[colIndex];
+    return revealedLetters.has(L);
+  }
+
 
   const rowLen = (r) => rows[r].answer.length;
   const isLocked = (r, c) => Boolean(locks[r]?.[c]);
@@ -32,11 +55,11 @@ export default function Game({ puzzle }) {
 
   function nearestUnlockedInRow(row, col) {
     const len = rowLen(row);
-    if (!isLocked(row, col)) return col;
+    if (!isBlocked(row, col)) return col;
     for (let d = 1; d < len; d++) {
       const r = col + d, l = col - d;
-      if (r < len && !isLocked(row, r)) return r;
-      if (l >= 0 && !isLocked(row, l)) return l;
+      if (r < len && !isBlocked(row, r)) return r;
+      if (l >= 0 && !isBlocked(row, l)) return l;
     }
     return -1;
   }
@@ -47,7 +70,7 @@ export default function Game({ puzzle }) {
     for (let t = 0; t < len; t++) {
       col += dir;
       if (col < 0 || col >= len) break;
-      if (!isLocked(level, col)) { setCursor(col); return; }
+      if (!isBlocked(level, col)) { setCursor(col); return; }
     }
   }
 
@@ -56,7 +79,7 @@ export default function Game({ puzzle }) {
       const next = Math.max(0, Math.min(rows.length - 1, l + delta));
       const len = rowLen(next);
       let target = Math.min(len - 1, cursor);
-      if (isLocked(next, target)) {
+      if (isBlocked(next, target)) {
         const n = nearestUnlockedInRow(next, target);
         target = n === -1 ? 0 : n;
       }
@@ -67,23 +90,29 @@ export default function Game({ puzzle }) {
 
   function typeChar(ch) {
     const len = rowLen(level);
-    if (isLocked(level, cursor)) {
+
+    // If current cell is blocked (locked or hint-revealed), jump to the next available
+    if (isBlocked(level, cursor)) {
       const nextPos = nearestUnlockedInRow(level, cursor);
-      if (nextPos === -1) return;
+      if (nextPos === -1) return; // row fully blocked
       setCursor(nextPos);
     }
+
     const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
     const next = (cur.slice(0, cursor) + ch.toUpperCase() + cur.slice(cursor + 1))
       .slice(0, len).trimEnd();
     setGuessAt(level, next);
+
+    // Advance to the next available (skip blocked)
     let pos = cursor;
     for (let t = 0; t < len; t++) {
-      pos++;
+      pos += 1;
       if (pos >= len) break;
-      if (!isLocked(level, pos)) { setCursor(pos); break; }
+      if (!isBlocked(level, pos)) { setCursor(pos); break; }
     }
     setMessage("");
   }
+
 
   function submitRow(i) {
     const ans = rows[i].answer.toUpperCase();
@@ -152,15 +181,65 @@ export default function Game({ puzzle }) {
     setIme("");
   }
 
+  // A cell is force-revealed green if its answer letter is one of the revealed letters
+  function tileForceReveal(rowIndex, colIndex) {
+    const L = rows[rowIndex].answer.toUpperCase()[colIndex];
+    return revealedLetters.has(L);
+  }
+
+  // Treat both real locks and hint-reveals as "blocked"
+  function isBlocked(rowIndex, colIndex) {
+    return Boolean(locks[rowIndex]?.[colIndex]) || tileForceReveal(rowIndex, colIndex);
+  }
+
+
+
   return (
-    <div className="w-screen min-h-screen overflow-y-auto bg-black pt-3 pb-[22vh]">
-      <div className="px-3">
-        <div className="text-lg font-semibold text-gray-200 mb-2">
-          {puzzle.date} — by {puzzle.author}
+    <div className="w-screen min-h-screen overflow-y-auto bg-black pt-6 pb-[22vh]">
+      <div className="px-3 text-center">
+        {/* Big date */}
+        {puzzle.date && (
+          <div className="text-2xl sm:text-3xl font-bold text-gray-100 mb-1">
+            {formatLongDate(puzzle.date)}
+          </div>
+        )}
+        {/* Author byline */}
+        {puzzle.author && (
+          <div className="text-sm text-gray-400 mb-4">
+            By {puzzle.author}
+          </div>
+        )}
+        {/* Puzzle title */}
+        <div className="text-base text-gray-300 italic mb-4">
+          {puzzle.title}
         </div>
 
+        {/* Clue */}
         <div className="mb-3 text-sm text-gray-300">
           <span className="font-semibold">Clue:</span> {clue}
+        </div>
+      </div>
+      <div className="w-full px-3 py-2 flex items-center gap-2 sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-10">
+        <button
+          onClick={() => setHintArmed((v) => !v)}
+          className={
+            "px-3 py-1.5 rounded-md text-xs border " +
+            (hintArmed ? "border-sky-500 text-sky-300 bg-sky-900/30"
+                       : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
+          }
+          aria-pressed={hintArmed}
+        >
+          {hintArmed ? "Tap a GREEN letter…" : "Hint"}
+        </button>
+
+        {revealedLetters.size > 0 && (
+          <div className="text-[11px] text-gray-400">
+            Revealed: {[...revealedLetters].join(", ")}
+          </div>
+        )}
+
+        <div className="ml-auto text-[11px] text-gray-500">
+          Hint reveals all positions of the tapped letter.
         </div>
       </div>
 
@@ -191,11 +270,18 @@ export default function Game({ puzzle }) {
                 {Array.from({ length: len }).map((_, col) => (
                   <LetterBox
                     key={col}
-                    char={showVal[col] || ""}
-                    state={locks[i][col] ? "good" : "empty"}
+                    char={tileForceReveal(i, col) ? rows[i].answer.toUpperCase()[col] : (showVal[col] || "")}
+                    state={isBlocked(i, col) ? "good" : "empty"}
                     isCursor={i === level && col === cursor}
                     onClick={() => {
-                      if (!locks[i][col]) { setLevel(i); setCursor(col); inputRef.current?.focus(); }
+                      if (hintArmed && locks[i][col]) {
+                        const letter = rows[i].answer.toUpperCase()[col];
+                        revealByLetter(letter);
+                        return;
+                      }
+                      if (!isBlocked(i, col)) {
+                        setLevel(i); setCursor(col); inputRef.current?.focus();
+                      }
                     }}
                   />
                 ))}
