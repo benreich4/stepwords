@@ -20,6 +20,8 @@ export default function Game({ puzzle }) {
   const [wasWrong, setWasWrong] = useState(
     () => rows.map(r => Array(r.answer.length).fill(false))
   );
+  // Step reveal: hidden by default; once revealed, cannot be hidden
+  const [stepsRevealed, setStepsRevealed] = useState(false);
 
   // Share mapping: only green and yellow are used
   const TOKEN_TO_EMOJI = { G: "🟩", Y: "🟨" };
@@ -349,18 +351,33 @@ export default function Game({ puzzle }) {
         </div>
       </div>
       <div className="w-full px-3 py-2 flex items-center gap-2 sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-10">
-        <button
-          onClick={() => setHintArmed((v) => !v)}
-          className={
-                "ml-auto px-3 py-1.5 rounded-md text-xs border " +
-                (hintArmed
-                  ? "border-sky-500 text-sky-300 bg-sky-900/30"
-                  : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
-              }
-          aria-pressed={hintArmed}
-        >
-          {hintArmed ? "Reveal letter" : "Hint"}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setHintArmed((v) => !v)}
+            className={
+                  "px-3 py-1.5 rounded-md text-xs border " +
+                  (hintArmed
+                    ? "border-sky-500 text-sky-300 bg-sky-900/30"
+                    : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
+                }
+            aria-pressed={hintArmed}
+          >
+            {hintArmed ? "Reveal letter" : "Hint"}
+          </button>
+          <button
+            onClick={() => setStepsRevealed(true)}
+            disabled={stepsRevealed}
+            className={
+              "px-3 py-1.5 rounded-md text-xs border " +
+              (stepsRevealed
+                ? "border-amber-500 text-amber-300 bg-amber-900/30 cursor-default"
+                : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
+            }
+            aria-pressed={stepsRevealed}
+          >
+            {stepsRevealed ? "Steps revealed" : "Reveal steps"}
+          </button>
+        </div>
       </div>
 
       {/* hidden input to capture typing & mobile keyboard */}
@@ -394,7 +411,7 @@ export default function Game({ puzzle }) {
                     char={showVal[col] || ""}
                     state={lockColors[i][col]}                   // color token or null
                     isCursor={i === level && col === cursor}
-                    showStep={i >= 1 && col === stepPos}         // <-- show 🪜 on step squares
+                    showStep={stepsRevealed && i >= 1 && col === stepPos}
                     onClick={() => {
                       if (hintArmed) {
                         applyHintSingle(i, col);  // 👈 reveal just this square
