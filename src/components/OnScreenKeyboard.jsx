@@ -16,14 +16,14 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
   };
 
   const getKeyClass = (key) => {
-    const baseClass = "px-2 py-3 rounded text-sm font-semibold select-none touch-manipulation";
+    const baseClass = "px-2 py-3 rounded font-semibold select-none touch-manipulation";
     
     if (key === 'SUBMIT' || key === 'BACKSPACE') {
-      return `${baseClass} bg-gray-600 text-white hover:bg-gray-500 active:bg-gray-700`;
+      return `${baseClass} bg-gray-600 text-white hover:bg-gray-500 active:bg-gray-700 text-xs`;
     }
     
     const isDisabled = disabledKeys.has(key);
-    return `${baseClass} ${
+    return `${baseClass} text-sm ${
       isDisabled 
         ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
         : "bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-800"
@@ -41,7 +41,7 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
               disabled={disabledKeys.has(key)}
               className={getKeyClass(key)}
               style={{
-                minWidth: key === 'SUBMIT' || key === 'BACKSPACE' ? '60px' : '32px',
+                minWidth: key === 'SUBMIT' ? '70px' : key === 'BACKSPACE' ? '60px' : '32px',
                 height: '40px'
               }}
             >

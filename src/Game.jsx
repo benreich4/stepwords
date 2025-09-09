@@ -302,6 +302,13 @@ export default function Game({ puzzle }) {
         
         // Clear saved state when puzzle is completed
         localStorage.removeItem(puzzleKey);
+        
+        // Mark puzzle as completed
+        const completedPuzzles = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
+        if (!completedPuzzles.includes(puzzle.id)) {
+          completedPuzzles.push(puzzle.id);
+          localStorage.setItem('stepwords-completed', JSON.stringify(completedPuzzles));
+        }
         return;
       }
 

@@ -7,6 +7,24 @@ export default function Home() {
   const [puzzles, setPuzzles] = useState([]);
   const [err, setErr] = useState("");
 
+  // Check if a puzzle is completed
+  const isPuzzleCompleted = (puzzleId) => {
+    const completedPuzzles = localStorage.getItem('stepwords-completed');
+    if (!completedPuzzles) return false;
+    
+    try {
+      const parsed = JSON.parse(completedPuzzles);
+      return parsed.includes(puzzleId);
+    } catch {
+      return false;
+    }
+  };
+
+  // Check if a puzzle has been started (has saved state)
+  const isPuzzleStarted = (puzzleId) => {
+    return localStorage.getItem(`stepwords-${puzzleId}`) !== null;
+  };
+
   useEffect(() => {
     document.title = "Stepword Puzzles";
     fetchManifest()
@@ -22,13 +40,27 @@ export default function Home() {
       <h1 className="text-2xl font-bold mb-3">Stepword Puzzles</h1>
       {err && <div className="text-red-400 mb-2">{err}</div>}
       <ul className="space-y-2">
-        {puzzles.map((p) => (
-          <li key={p.id}>
-            <Link className="text-sky-400 hover:underline" to={`/${p.id}`}>
-              #{p.id} — {formatLongDate(p.date) || "Unknown date"} by {p.author || "Unknown"}
-            </Link>
-          </li>
-        ))}
+        {puzzles.map((p) => {
+          const completed = isPuzzleCompleted(p.id);
+          const started = isPuzzleStarted(p.id);
+          
+          return (
+            <li key={p.id} className="flex items-center gap-2">
+              <div className="w-5 h-5 flex items-center justify-center">
+                {completed ? (
+                  <span className="text-green-400 text-lg">✓</span>
+                ) : started ? (
+                  <div className="w-4 h-4 border-2 border-gray-500 rounded"></div>
+                ) : (
+                  <div className="w-4 h-4 border-2 border-gray-600 rounded"></div>
+                )}
+              </div>
+              <Link className="text-sky-400 hover:underline flex-1" to={`/${p.id}`}>
+                #{p.id} — {formatLongDate(p.date) || "Unknown date"} by {p.author || "Unknown"}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
       {!puzzles.length && !err && (
         <div className="text-gray-400 mt-4">No puzzles found.</div>
