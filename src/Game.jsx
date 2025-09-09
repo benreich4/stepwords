@@ -336,9 +336,10 @@ export default function Game({ puzzle }) {
       />
 
       <div className="w-full flex flex-col items-start gap-1 select-none px-0">
-       {rows.map((r, i) => {
+        {rows.map((r, i) => {
           const len = r.answer.length;
           const showVal = (guesses[i] || "").toUpperCase();
+          const stepPos = stepIdx[i]; // -1 for the first row
           return (
             <div key={i} className="w-full flex flex-row gap-0 px-0">
               <div className="flex gap-0 px-0 mx-0">
@@ -346,8 +347,9 @@ export default function Game({ puzzle }) {
                   <LetterBox
                     key={col}
                     char={showVal[col] || ""}
-                    state={lockColors[i][col]}          // null or 'G'|'B'|...
+                    state={lockColors[i][col]}                   // color token or null
                     isCursor={i === level && col === cursor}
+                    showStep={i >= 1 && col === stepPos}         // <-- show 🪜 on step squares
                     onClick={() => {
                       if (hintArmed) { applyHintGlobal(i, col); setHintArmed(false); }
                       else { setLevel(i); setCursor(col); inputRef.current?.focus(); }
