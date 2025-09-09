@@ -1,8 +1,17 @@
 export default function HowToPlayModal({ onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-6 shadow-2xl">
-        <div className="text-2xl font-bold text-white mb-4">How to Play Stepwords</div>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 px-4 py-4 overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-6 shadow-2xl my-auto">
+        <div className="flex items-start justify-between mb-4">
+          <div className="text-2xl font-bold text-white">How to Play Stepwords</div>
+          <button
+            onClick={onClose}
+            className="ml-4 p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
         
         <div className="space-y-4 text-gray-200">
           <p>
