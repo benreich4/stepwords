@@ -2,36 +2,76 @@ import React, { useEffect, useRef, useState } from "react";
 import LetterGrid from "./components/LetterGrid.jsx";
 import GameToolbar from "./components/GameToolbar.jsx";
 import ShareModal from "./components/ShareModal.jsx";
+import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import { formatLongDate } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 export default function Game({ puzzle }) {
   const rows = puzzle.rows; // [{answer, clue}, ...] shortest→longest
   const stepIdx = computeStepIndices(rows);
-  const [lockColors, setLockColors] = useState(
-    () => rows.map(r => Array(r.answer.length).fill(null))
-  );
+  
+  // Generate a unique key for this puzzle
+  const puzzleKey = `stepwords-${puzzle.id || 'default'}`;
+  
+  // Load saved state or initialize defaults
+  const loadSavedState = () => {
+    try {
+      const saved = localStorage.getItem(puzzleKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          lockColors: parsed.lockColors || rows.map(r => Array(r.answer.length).fill(null)),
+          level: parsed.level || 0,
+          guesses: parsed.guesses || rows.map(() => ""),
+          cursor: parsed.cursor || 0,
+          wasWrong: parsed.wasWrong || rows.map(r => Array(r.answer.length).fill(false)),
+          stepsRevealed: parsed.stepsRevealed || false,
+          hintCount: parsed.hintCount || 0,
+          guessCount: parsed.guessCount || 0,
+          wrongGuessCount: parsed.wrongGuessCount || 0,
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to load saved game state:', e);
+    }
+    
+    // Default state
+    return {
+      lockColors: rows.map(r => Array(r.answer.length).fill(null)),
+      level: 0,
+      guesses: rows.map(() => ""),
+      cursor: 0,
+      wasWrong: rows.map(r => Array(r.answer.length).fill(false)),
+      stepsRevealed: false,
+      hintCount: 0,
+      guessCount: 0,
+      wrongGuessCount: 0,
+    };
+  };
+
+  const savedState = loadSavedState();
+  
+  const [lockColors, setLockColors] = useState(savedState.lockColors);
   const isLocked = (r, c) => Boolean(lockColors[r]?.[c]);
-  const [level, setLevel] = useState(0);
-  const [guesses, setGuesses] = useState(() => rows.map(() => ""));
-  const [cursor, setCursor] = useState(0);
+  const [level, setLevel] = useState(savedState.level);
+  const [guesses, setGuesses] = useState(savedState.guesses);
+  const [cursor, setCursor] = useState(savedState.cursor);
   const [message, setMessage] = useState("");
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
   // Hint system: arm once, then reveal by tapping any confirmed letter (green)
   const [hintArmed, setHintArmed] = useState(false);
   // Colors now simplified: 'G' for correct, 'Y' for hinted or previously incorrect
-  const [wasWrong, setWasWrong] = useState(
-    () => rows.map(r => Array(r.answer.length).fill(false))
-  );
+  const [wasWrong, setWasWrong] = useState(savedState.wasWrong);
   // Step reveal: hidden by default; once revealed, cannot be hidden
-  const [stepsRevealed, setStepsRevealed] = useState(false);
+  const [stepsRevealed, setStepsRevealed] = useState(savedState.stepsRevealed);
   // Session stats
-  const [hintCount, setHintCount] = useState(0);
-  const [guessCount, setGuessCount] = useState(0); // number of submits
-  const [wrongGuessCount, setWrongGuessCount] = useState(0);
+  const [hintCount, setHintCount] = useState(savedState.hintCount);
+  const [guessCount, setGuessCount] = useState(savedState.guessCount);
+  const [wrongGuessCount, setWrongGuessCount] = useState(savedState.wrongGuessCount);
 
   const [showShare, setShowShare] = useState(false);
   const [shareText, setShareText] = useState("");
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
   
 
   function applyHintSingle(row, col) {
@@ -83,6 +123,44 @@ export default function Game({ puzzle }) {
     inputRef.current?.focus();
     setMessage("");
   }, [level]);
+
+  // Show how to play modal on first visit
+  useEffect(() => {
+    const hasSeenHowToPlay = localStorage.getItem('stepwords-how-to-play');
+    if (!hasSeenHowToPlay) {
+      setShowHowToPlay(true);
+    }
+  }, []);
+
+  const handleCloseHowToPlay = () => {
+    setShowHowToPlay(false);
+    localStorage.setItem('stepwords-how-to-play', 'true');
+  };
+
+  // Save game state to localStorage
+  const saveGameState = () => {
+    try {
+      const stateToSave = {
+        lockColors,
+        level,
+        guesses,
+        cursor,
+        wasWrong,
+        stepsRevealed,
+        hintCount,
+        guessCount,
+        wrongGuessCount,
+      };
+      localStorage.setItem(puzzleKey, JSON.stringify(stateToSave));
+    } catch (e) {
+      console.warn('Failed to save game state:', e);
+    }
+  };
+
+  // Save state whenever it changes
+  useEffect(() => {
+    saveGameState();
+  }, [lockColors, level, guesses, cursor, wasWrong, stepsRevealed, hintCount, guessCount, wrongGuessCount]);
 
 
   const clue = rows[level].clue;
@@ -200,6 +278,9 @@ export default function Game({ puzzle }) {
         const share = buildEmojiShareGridFrom(rows, colorsAfter);
         setShareText(share);
         setShowShare(true);
+        
+        // Clear saved state when puzzle is completed
+        localStorage.removeItem(puzzleKey);
         return;
       }
 
@@ -307,6 +388,7 @@ export default function Game({ puzzle }) {
         setHintArmed={setHintArmed}
         stepsRevealed={stepsRevealed}
         revealSteps={() => setStepsRevealed(true)}
+        onShowHowToPlay={() => setShowHowToPlay(true)}
       />
 
       {/* hidden input to capture typing & mobile keyboard */}
@@ -368,6 +450,10 @@ export default function Game({ puzzle }) {
           rowsLength={rows.length}
           onClose={() => setShowShare(false)}
         />
+      )}
+
+      {showHowToPlay && (
+        <HowToPlayModal onClose={handleCloseHowToPlay} />
       )}
     </div>
   );
