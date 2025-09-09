@@ -419,9 +419,6 @@ export default function Game({ puzzle }) {
       </div>
       
       <div className="w-full px-3 py-2 flex items-center gap-2 sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-10">
-        <div className="flex-1 text-sm text-gray-300">
-          <span className="font-semibold">Clue:</span> {clue}
-        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setHintArmed((v) => !v)}
@@ -454,6 +451,12 @@ export default function Game({ puzzle }) {
           >
             How to Play
           </button>
+        </div>
+      </div>
+
+      <div className="w-full px-3 py-2 sticky top-[48px] bg-black/80 backdrop-blur border-b border-gray-800 z-10">
+        <div className="text-sm text-gray-300">
+          <span className="font-semibold">Clue:</span> {clue}
         </div>
       </div>
 
