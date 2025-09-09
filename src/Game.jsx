@@ -373,24 +373,15 @@ export default function Game({ puzzle }) {
         <button
           onClick={() => setHintArmed((v) => !v)}
           className={
-            "px-3 py-1.5 rounded-md text-xs border " +
-            (hintArmed ? "border-sky-500 text-sky-300 bg-sky-900/30"
-                       : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
-          }
+                "ml-auto px-3 py-1.5 rounded-md text-xs border " +
+                (hintArmed
+                  ? "border-sky-500 text-sky-300 bg-sky-900/30"
+                  : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
+              }
           aria-pressed={hintArmed}
         >
-          {hintArmed ? "Tap a square to reveal all instances of that letter" : "Hint"}
+          {hintArmed ? "Reveal letter" : "Hint"}
         </button>
-
-        {revealedLetters.size > 0 && (
-          <div className="text-[11px] text-gray-400">
-            Revealed: {[...revealedLetters].join(", ")}
-          </div>
-        )}
-
-        <div className="ml-auto text-[11px] text-gray-500">
-          Reveal letter
-        </div>
       </div>
 
       {/* hidden input to capture typing & mobile keyboard */}
