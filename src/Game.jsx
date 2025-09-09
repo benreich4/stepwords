@@ -22,6 +22,11 @@ export default function Game({ puzzle }) {
   );
   // Step reveal: hidden by default; once revealed, cannot be hidden
   const [stepsRevealed, setStepsRevealed] = useState(false);
+  // Session stats
+  const [hintCount, setHintCount] = useState(0);
+  const [guessCount, setGuessCount] = useState(0); // number of submits
+  const [wrongGuessCount, setWrongGuessCount] = useState(0);
+  const [shareNotice, setShareNotice] = useState("");
 
   // Share mapping: only green and yellow are used
   const TOKEN_TO_EMOJI = { G: "🟩", Y: "🟨" };
@@ -107,6 +112,7 @@ export default function Game({ puzzle }) {
 
     setGuessAt(row, cur.join("").trimEnd());
     setLockColors(prev => prev.map((r, i) => (i === row ? nextRowColors : r)));
+    setHintCount((n) => n + 1);
 
     const solved = nextRowColors.every(Boolean);
     if (solved) {
@@ -219,6 +225,7 @@ export default function Game({ puzzle }) {
     const nextGuess = Array.from(cur);
     const rowColors = lockColors[i].slice();
     const nextWasWrongRow = wasWrong[i].slice();
+    let wrongsThisSubmit = 0;
 
     for (let k = 0; k < len; k++) {
       const guessed = cur[k];
@@ -233,6 +240,7 @@ export default function Game({ puzzle }) {
         // Clear the incorrect guess
         nextGuess[k] = " ";
         // Do not change existing color (keep prior lock if already correct or hinted)
+        wrongsThisSubmit += 1;
       }
     }
 
@@ -244,6 +252,8 @@ export default function Game({ puzzle }) {
 
     setGuessAt(i, nextGuess.join("").trimEnd());
     setWasWrong(wasWrongAfter);
+    setGuessCount((n) => n + 1);
+    if (wrongsThisSubmit > 0) setWrongGuessCount((n) => n + wrongsThisSubmit);
 
     const solvedThisRow = rowColors.every(Boolean);
 
@@ -445,31 +455,63 @@ export default function Game({ puzzle }) {
    
       {showShare && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-md rounded-xl border border-gray-700 bg-gray-900 p-4 shadow-xl">
-            <div className="text-lg font-semibold mb-2">Solved!</div>
-            <pre className="whitespace-pre-wrap text-2xl leading-snug mb-3">
+          <div className="w-full max-w-lg rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-5 shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xl font-semibold text-white">You solved it!</div>
+              {(hintCount === 0 && wrongGuessCount === 0) && (
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-700 text-white border border-emerald-500">Perfect!</span>
+              )}
+            </div>
+
+            <div className="mb-3 grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
+                <div className="text-gray-400">Guesses</div>
+                <div className="text-lg font-semibold text-gray-100">{guessCount}/{rows.length}</div>
+              </div>
+              <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
+                <div className="text-gray-400">Hints</div>
+                <div className="text-lg font-semibold text-gray-100">{hintCount}</div>
+              </div>
+            </div>
+
+            <pre className="whitespace-pre-wrap text-2xl leading-snug mb-4 p-3 rounded-lg border border-gray-700 bg-gray-900/60">
               {shareText}
             </pre>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(shareText);
-                    setMessage("Copied!");
-                  } catch {
-                    setMessage("Copy failed");
-                  }
-                }}
-                className="px-3 py-1.5 rounded-md bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700"
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <a
+                href="https://stepwords.xyz"
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-sky-400 hover:underline"
               >
-                Copy
-              </button>
-              <button
-                onClick={() => setShowShare(false)}
-                className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-200 text-sm hover:bg-gray-800"
-              >
-                Close
-              </button>
+                stepwords.xyz
+              </a>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={async () => {
+                    try {
+                      const composed = `I solved today's Stepword Puzzle!\n\n${shareText}\n\nhttps://stepwords.xyz`;
+                      await navigator.clipboard.writeText(composed);
+                      setShareNotice("Message copied to clipboard");
+                    } catch {
+                      setShareNotice("Copy failed");
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-md bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700"
+                >
+                  Share
+                </button>
+                <button
+                  onClick={() => setShowShare(false)}
+                  className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-200 text-sm hover:bg-gray-800"
+                >
+                  Close
+                </button>
+                {shareNotice && (
+                  <span className="text-xs text-emerald-400">{shareNotice}</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
