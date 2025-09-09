@@ -303,14 +303,22 @@ export default function Game({ puzzle }) {
       const len = rowLen(level);
       const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
 
-      // Clear current square
-      const updated =
-        cur.slice(0, cursor) + " " + cur.slice(cursor + 1);
+      // If current tile is blocked (solved/hinted), jump left to nearest editable
+      if (isBlocked(level, cursor)) {
+        let pos = cursor - 1;
+        while (pos >= 0 && isBlocked(level, pos)) pos--;
+        if (pos >= 0) setCursor(pos);
+        return;
+      }
 
+      // Clear current square (only if editable)
+      const updated = cur.slice(0, cursor) + " " + cur.slice(cursor + 1);
       setGuessAt(level, updated.trimEnd());
 
-      // Move cursor left (but not before 0)
-      setCursor(Math.max(0, cursor - 1));
+      // Move cursor left to previous editable (if any)
+      let pos = cursor - 1;
+      while (pos >= 0 && isBlocked(level, pos)) pos--;
+      setCursor(Math.max(0, pos >= 0 ? pos : 0));
       return;
     }
 
