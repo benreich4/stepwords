@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import LetterBox from "./components/LetterBox.jsx";
-import { formatLongDate } from "./lib/date.js"
+import LetterGrid from "./components/LetterGrid.jsx";
+import GameToolbar from "./components/GameToolbar.jsx";
+import ShareModal from "./components/ShareModal.jsx";
+import { formatLongDate } from "./lib/date.js";
+import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 export default function Game({ puzzle }) {
   const rows = puzzle.rows; // [{answer, clue}, ...] shortest→longest
   const stepIdx = computeStepIndices(rows);
@@ -26,75 +29,10 @@ export default function Game({ puzzle }) {
   const [hintCount, setHintCount] = useState(0);
   const [guessCount, setGuessCount] = useState(0); // number of submits
   const [wrongGuessCount, setWrongGuessCount] = useState(0);
-  const [shareNotice, setShareNotice] = useState("");
-
-  // Share mapping: only green and yellow are used
-  const TOKEN_TO_EMOJI = { G: "🟩", Y: "🟨" };
 
   const [showShare, setShowShare] = useState(false);
   const [shareText, setShareText] = useState("");
-
-  function buildEmojiShareGridFrom(colorsSnapshot) {
-    return rows.map((r, i) => {
-      const len = r.answer.length;
-      return Array.from({ length: len }, (_, c) => {
-        const tok = colorsSnapshot[i]?.[c];
-        if (tok === "G") return TOKEN_TO_EMOJI.G;
-        if (tok === "Y") return TOKEN_TO_EMOJI.Y;
-        return "⬜";
-      }).join("");
-    }).join("\n");
-  }
-
-  function letterCounts(s) {
-    const m = new Map();
-    for (const ch of s) m.set(ch, (m.get(ch) || 0) + 1);
-    return m;
-  }
-
-  // Which letter was added at each step (row index >= 1)
-  function computeStepLetters(rows) {
-    const stepLetters = [null]; // row 0 has no step
-    for (let i = 1; i < rows.length; i++) {
-      const prev = rows[i - 1].answer.toUpperCase();
-      const cur  = rows[i].answer.toUpperCase();
-      const pc = letterCounts(prev), cc = letterCounts(cur);
-      let added = null;
-      for (const [ch, cnt] of cc.entries()) {
-        if (cnt > (pc.get(ch) || 0)) { added = ch; break; }
-      }
-      stepLetters.push(added); // one letter per step
-    }
-    return stepLetters;
-  }
-
-  function isPuzzleSolved(colors, rows) {
-    return rows.every((r, i) => (colors[i] || []).every(Boolean));
-  }
-
-  // final-row multi-color logic removed
-
-  function letterCounts(s) {
-    const m = new Map();
-    for (const ch of s) m.set(ch, (m.get(ch) || 0) + 1);
-    return m;
-  }
-  function computeStepIndices(rows) {
-    const out = [];
-    for (let i = 0; i < rows.length; i++) {
-      if (i === 0) { out.push(-1); continue; }
-      const prev = rows[i-1].answer.toUpperCase();
-      const cur  = rows[i].answer.toUpperCase();
-      const pc = letterCounts(prev), cc = letterCounts(cur);
-      let stepLetter = null;
-      for (const [ch, cnt] of cc.entries()) {
-        const diff = cnt - (pc.get(ch) || 0);
-        if (diff > 0) { stepLetter = ch; break; }
-      }
-      out.push(stepLetter ? cur.lastIndexOf(stepLetter) : -1);
-    }
-    return out;
-  }
+  
 
   function applyHintSingle(row, col) {
     const ans = rows[row].answer.toUpperCase();
@@ -147,14 +85,10 @@ export default function Game({ puzzle }) {
   }, [level]);
 
 
-  const answer = rows[level].answer.toUpperCase();
   const clue = rows[level].clue;
 
   function setGuessAt(i, next) {
     setGuesses(prev => prev.map((g, idx) => (idx === i ? next : g)));
-  }
-  function setLockAtRow(i, newLocks) {
-    // no-op: explicit locks removed; lockColors indicate blocked cells now
   }
 
   function nearestUnlockedInRow(row, col) {
@@ -263,7 +197,7 @@ export default function Game({ puzzle }) {
         setLockColors(colorsAfter);
 
         setMessage("🎉 You solved all the Stepwords!");
-        const share = buildEmojiShareGridFrom(colorsAfter);
+        const share = buildEmojiShareGridFrom(rows, colorsAfter);
         setShareText(share);
         setShowShare(true);
         return;
@@ -368,35 +302,12 @@ export default function Game({ puzzle }) {
           <span className="font-semibold">Clue:</span> {clue}
         </div>
       </div>
-      <div className="w-full px-3 py-2 flex items-center gap-2 sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-10">
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setHintArmed((v) => !v)}
-            className={
-                  "px-3 py-1.5 rounded-md text-xs border " +
-                  (hintArmed
-                    ? "border-sky-500 text-sky-300 bg-sky-900/30"
-                    : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
-                }
-            aria-pressed={hintArmed}
-          >
-            {hintArmed ? "Reveal letter" : "Hint"}
-          </button>
-          <button
-            onClick={() => setStepsRevealed(true)}
-            disabled={stepsRevealed}
-            className={
-              "px-3 py-1.5 rounded-md text-xs border " +
-              (stepsRevealed
-                ? "border-amber-500 text-amber-300 bg-amber-900/30 cursor-default"
-                : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
-            }
-            aria-pressed={stepsRevealed}
-          >
-            {stepsRevealed ? "Steps revealed" : "Reveal steps"}
-          </button>
-        </div>
-      </div>
+      <GameToolbar
+        hintArmed={hintArmed}
+        setHintArmed={setHintArmed}
+        stepsRevealed={stepsRevealed}
+        revealSteps={() => setStepsRevealed(true)}
+      />
 
       {/* hidden input to capture typing & mobile keyboard */}
       <input
@@ -415,38 +326,25 @@ export default function Game({ puzzle }) {
         aria-hidden
       />
 
-      <div className="w-full flex flex-col items-start gap-1 select-none px-0">
-        {rows.map((r, i) => {
-          const len = r.answer.length;
-          const showVal = (guesses[i] || "").toUpperCase();
-          const stepPos = stepIdx[i]; // -1 for the first row
-          return (
-            <div key={i} className="w-full flex flex-row gap-0 px-0">
-              <div className="flex gap-0 px-0 mx-0">
-                {Array.from({ length: len }).map((_, col) => (
-                  <LetterBox
-                    key={col}
-                    char={showVal[col] || ""}
-                    state={lockColors[i][col]}                   // color token or null
-                    isCursor={i === level && col === cursor}
-                    showStep={stepsRevealed && i >= 1 && col === stepPos}
-                    onClick={() => {
-                      if (hintArmed) {
-                        applyHintSingle(i, col);  // 👈 reveal just this square
-                        setHintArmed(false);      // disarm after one use
-                      } else {
-                        setLevel(i);
-                        setCursor(col);
-                        inputRef.current?.focus();
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <LetterGrid
+        rows={rows}
+        guesses={guesses}
+        lockColors={lockColors}
+        stepIdx={stepIdx}
+        stepsRevealed={stepsRevealed}
+        level={level}
+        cursor={cursor}
+        onTileClick={(i, col) => {
+          if (hintArmed) {
+            applyHintSingle(i, col);
+            setHintArmed(false);
+          } else {
+            setLevel(i);
+            setCursor(col);
+            inputRef.current?.focus();
+          }
+        }}
+      />
 
       <div className="h-6 mt-3 text-xs text-gray-300 px-3">{message}</div>
 
@@ -462,67 +360,14 @@ export default function Game({ puzzle }) {
       <div className="w-full" style={{ height: "20vh" }} />
    
       {showShare && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-lg rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-xl font-semibold text-white">You solved it!</div>
-              {(hintCount === 0 && wrongGuessCount === 0) && (
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-700 text-white border border-emerald-500">Perfect!</span>
-              )}
-            </div>
-
-            <div className="mb-3 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
-                <div className="text-gray-400">Guesses</div>
-                <div className="text-lg font-semibold text-gray-100">{guessCount}/{rows.length}</div>
-              </div>
-              <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
-                <div className="text-gray-400">Hints</div>
-                <div className="text-lg font-semibold text-gray-100">{hintCount}</div>
-              </div>
-            </div>
-
-            <pre className="whitespace-pre-wrap text-2xl leading-snug mb-4 p-3 rounded-lg border border-gray-700 bg-gray-900/60">
-              {shareText}
-            </pre>
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <a
-                href="https://stepwords.xyz"
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-sky-400 hover:underline"
-              >
-                stepwords.xyz
-              </a>
-              <div className="flex gap-2 items-center">
-                <button
-                  onClick={async () => {
-                    try {
-                      const composed = `I solved today's Stepword Puzzle!\n\n${shareText}\n\nhttps://stepwords.xyz`;
-                      await navigator.clipboard.writeText(composed);
-                      setShareNotice("Message copied to clipboard");
-                    } catch {
-                      setShareNotice("Copy failed");
-                    }
-                  }}
-                  className="px-3 py-1.5 rounded-md bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700"
-                >
-                  Share
-                </button>
-                <button
-                  onClick={() => setShowShare(false)}
-                  className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-200 text-sm hover:bg-gray-800"
-                >
-                  Close
-                </button>
-                {shareNotice && (
-                  <span className="text-xs text-emerald-400">{shareNotice}</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <ShareModal
+          shareText={shareText}
+          hintCount={hintCount}
+          wrongGuessCount={wrongGuessCount}
+          guessCount={guessCount}
+          rowsLength={rows.length}
+          onClose={() => setShowShare(false)}
+        />
       )}
     </div>
   );
