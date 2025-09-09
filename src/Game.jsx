@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import LetterGrid from "./components/LetterGrid.jsx";
-import GameToolbar from "./components/GameToolbar.jsx";
 import ShareModal from "./components/ShareModal.jsx";
 import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import { formatLongDate } from "./lib/date.js";
@@ -359,8 +358,8 @@ export default function Game({ puzzle }) {
 
 
   return (
-    <div className="w-screen min-h-screen overflow-y-auto bg-black pt-6 pb-[22vh]">
-      <div className="px-3 text-center">
+    <div className="w-screen min-h-screen bg-black">
+      <div className="px-3 text-center pt-6">
         {/* Big date */}
         {puzzle.date && (
           <div className="text-2xl sm:text-3xl font-bold text-gray-100 mb-1">
@@ -377,69 +376,98 @@ export default function Game({ puzzle }) {
         <div className="text-base text-gray-300 italic mb-4">
           {puzzle.title}
         </div>
-
-        {/* Clue */}
-        <div className="mb-3 text-sm text-gray-300">
+      </div>
+      
+      <div className="w-full px-3 py-2 flex items-center gap-2 sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-10">
+        <div className="flex-1 text-sm text-gray-300">
           <span className="font-semibold">Clue:</span> {clue}
         </div>
-      </div>
-      <GameToolbar
-        hintArmed={hintArmed}
-        setHintArmed={setHintArmed}
-        stepsRevealed={stepsRevealed}
-        revealSteps={() => setStepsRevealed(true)}
-        onShowHowToPlay={() => setShowHowToPlay(true)}
-      />
-
-      {/* hidden input to capture typing & mobile keyboard */}
-      <input
-        ref={inputRef}
-        onKeyDown={onKeyDown}
-        onChange={onTextInput}
-        value={ime}
-        onBlur={() => setTimeout(() => inputRef.current?.focus(), 0)}
-        inputMode="latin"
-        enterKeyHint="done"
-        autoCapitalize="none"
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck={false}
-        className="absolute opacity-0 pointer-events-none -left-[9999px] w-px h-px"
-        aria-hidden
-      />
-
-      <LetterGrid
-        rows={rows}
-        guesses={guesses}
-        lockColors={lockColors}
-        stepIdx={stepIdx}
-        stepsRevealed={stepsRevealed}
-        level={level}
-        cursor={cursor}
-        onTileClick={(i, col) => {
-          if (hintArmed) {
-            applyHintSingle(i, col);
-            setHintArmed(false);
-          } else {
-            setLevel(i);
-            setCursor(col);
-            inputRef.current?.focus();
-          }
-        }}
-      />
-
-      <div className="h-6 mt-3 text-xs text-gray-300 px-3">{message}</div>
-
-      <div className="mt-2 px-3 w-full">
-        <button
-          onClick={() => submitRow(level)}
-          className="w-full max-w-sm px-3 py-2 rounded-md bg-green-600 text-white text-sm font-semibold shadow hover:bg-green-700"
-        >
-          Submit
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setHintArmed((v) => !v)}
+            className={
+              "px-3 py-1.5 rounded-md text-xs border " +
+              (hintArmed
+                ? "border-sky-500 text-sky-300 bg-sky-900/30"
+                : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
+            }
+            aria-pressed={hintArmed}
+          >
+            {hintArmed ? "Reveal letter" : "Hint"}
+          </button>
+          <button
+            onClick={() => setStepsRevealed(true)}
+            disabled={stepsRevealed}
+            className={
+              "px-3 py-1.5 rounded-md text-xs border " +
+              (stepsRevealed
+                ? "border-amber-500 text-amber-300 bg-amber-900/30 cursor-default"
+                : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
+            }
+            aria-pressed={stepsRevealed}
+          >
+            {stepsRevealed ? "Steps revealed" : "Reveal steps"}
+          </button>
+          <button
+            onClick={() => setShowHowToPlay(true)}
+            className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
+          >
+            How to Play
+          </button>
+        </div>
       </div>
 
-      <div className="w-full" style={{ height: "20vh" }} />
+      <div className="overflow-y-auto pb-[22vh]">
+        {/* hidden input to capture typing & mobile keyboard */}
+        <input
+          ref={inputRef}
+          onKeyDown={onKeyDown}
+          onChange={onTextInput}
+          value={ime}
+          onBlur={() => setTimeout(() => inputRef.current?.focus(), 0)}
+          inputMode="latin"
+          enterKeyHint="done"
+          autoCapitalize="none"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          className="absolute opacity-0 pointer-events-none -left-[9999px] w-px h-px"
+          aria-hidden
+        />
+
+        <LetterGrid
+          rows={rows}
+          guesses={guesses}
+          lockColors={lockColors}
+          stepIdx={stepIdx}
+          stepsRevealed={stepsRevealed}
+          level={level}
+          cursor={cursor}
+          onTileClick={(i, col) => {
+            if (hintArmed) {
+              applyHintSingle(i, col);
+              setHintArmed(false);
+            } else {
+              setLevel(i);
+              setCursor(col);
+              inputRef.current?.focus();
+            }
+          }}
+        />
+
+        <div className="h-6 mt-3 text-xs text-gray-300 px-3">{message}</div>
+
+        <div className="mt-2 px-3 w-full">
+          <button
+            onClick={() => submitRow(level)}
+            className="w-full max-w-sm px-3 py-2 rounded-md bg-green-600 text-white text-sm font-semibold shadow hover:bg-green-700"
+          >
+            Submit
+          </button>
+        </div>
+
+        <div className="w-full" style={{ height: "20vh" }} />
+      </div>
    
       {showShare && (
         <ShareModal
