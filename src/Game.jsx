@@ -206,7 +206,7 @@ export default function Game({ puzzle }) {
 
   function moveLevel(delta) {
     setLevel((l) => {
-      const next = Math.max(0, Math.min(rows.length - 1, l + delta));
+      const next = (l + delta + rows.length) % (rows.length)
       const len = rowLen(next);
       let target = Math.min(len - 1, cursor);
       if (isBlocked(next, target)) {
