@@ -108,55 +108,56 @@ export default function Game({ puzzle }) {
     return out;
   }
 
-  function applyHintGlobal(row, col) {
-    // The letter to reveal is the *correct* letter at (row,col)
-    const letter = rows[row].answer.toUpperCase()[col];
-    if (!letter) return;
+  function applyHintSingle(row, col) {
+    const ans = rows[row].answer.toUpperCase();
+    const len = ans.length;
+    const correct = ans[col];
+    if (!correct) return;
 
-    // Clone state so we can batch-update all rows
-    const nextLocks = locks.map((r) => r.slice());
-    const nextGuesses = guesses.map((g, i) => {
-      const ans = rows[i].answer.toUpperCase();
-      const len = ans.length;
-      const cur = (g || "").toUpperCase().padEnd(len, " ").slice(0, len).split("");
+    // Already locked? nothing to do.
+    if (lockColors[row]?.[col]) return;
 
-      for (let k = 0; k < len; k++) {
-        if (ans[k] === letter) {
-          cur[k] = letter;       // reveal the correct letter
-          nextLocks[i][k] = true; // lock it green
-        }
-      }
-      return cur.join("").trimEnd();
-    });
+    // Update guess at (row,col)
+    const cur = (guesses[row] || "").toUpperCase().padEnd(len, " ").slice(0, len).split("");
+    cur[col] = correct;
 
-    setGuesses(nextGuesses);
-    setLocks(nextLocks);
+    // Color: step color if this is the step position on this row, else green
+    const stepColor = COLOR_ORDER[Math.min(row, COLOR_ORDER.length - 1)];
+    const isStepPos = row >= 1 && col === stepIdx[row];
+    const token = isStepPos ? stepColor : "G";
 
-    // If the current row is now solved, auto-advance & place cursor
-    if (nextLocks[level].every(Boolean)) {
-      if (level + 1 < rows.length) {
-        const nextRow = level + 1;
+    const nextRowColors = lockColors[row].slice();
+    nextRowColors[col] = token;
+
+    setGuessAt(row, cur.join("").trimEnd());
+    setLockColors(prev => prev.map((r, i) => (i === row ? nextRowColors : r)));
+
+    // If row is now solved, advance; else move caret to next open cell
+    const solved = nextRowColors.every(Boolean);
+    if (solved) {
+      if (row + 1 < rows.length) {
+        const nextRow = row + 1;
         setLevel(nextRow);
         const firstOpen = nearestUnlockedInRow(nextRow, 0);
         setCursor(firstOpen === -1 ? 0 : firstOpen);
-        requestAnimationFrame(() => inputRef.current?.focus());
         setMessage("Nice! Next word →");
       } else {
         setMessage("🎉 You solved all the Stepwords!");
       }
+      requestAnimationFrame(() => inputRef.current?.focus());
       return;
     }
 
-    // Otherwise, keep focus on the same row; move to next available cell to the right
-    const len = rows[row].answer.length;
+    // Move to the next available cell to the right (stay on same row)
     let target = col;
     for (let k = col + 1; k < len; k++) {
-      if (!nextLocks[row][k]) { target = k; break; }
+      if (!nextRowColors[k]) { target = k; break; }
     }
     setLevel(row);
     setCursor(target);
     requestAnimationFrame(() => inputRef.current?.focus());
   }
+
 
 
   function tileHasHint(rowIndex, colIndex) {
@@ -388,7 +389,7 @@ export default function Game({ puzzle }) {
         )}
 
         <div className="ml-auto text-[11px] text-gray-500">
-          Hint reveals all positions of the tapped letter.
+          Reveal letter
         </div>
       </div>
 
@@ -425,8 +426,14 @@ export default function Game({ puzzle }) {
                     isCursor={i === level && col === cursor}
                     showStep={i >= 1 && col === stepPos}         // <-- show 🪜 on step squares
                     onClick={() => {
-                      if (hintArmed) { applyHintGlobal(i, col); setHintArmed(false); }
-                      else { setLevel(i); setCursor(col); inputRef.current?.focus(); }
+                      if (hintArmed) {
+                        applyHintSingle(i, col);  // 👈 reveal just this square
+                        setHintArmed(false);      // disarm after one use
+                      } else {
+                        setLevel(i);
+                        setCursor(col);
+                        inputRef.current?.focus();
+                      }
                     }}
                   />
                 ))}
