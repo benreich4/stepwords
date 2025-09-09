@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import LetterGrid from "./components/LetterGrid.jsx";
 import ShareModal from "./components/ShareModal.jsx";
 import HowToPlayModal from "./components/HowToPlayModal.jsx";
+import OnScreenKeyboard from "./components/OnScreenKeyboard.jsx";
 import { formatLongDate } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 export default function Game({ puzzle }) {
@@ -57,6 +58,7 @@ export default function Game({ puzzle }) {
   const [message, setMessage] = useState("");
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
   // Hint system: arm once, then reveal by tapping any confirmed letter (green)
   const [hintArmed, setHintArmed] = useState(false);
   // Colors now simplified: 'G' for correct, 'Y' for hinted or previously incorrect
@@ -119,9 +121,29 @@ export default function Game({ puzzle }) {
   const rowLen = (r) => rows[r].answer.length;
 
   useEffect(() => {
-    inputRef.current?.focus();
     setMessage("");
   }, [level]);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      // Only consider it mobile if it's actually a mobile device, not just small screen
+      const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(isMobileDevice);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Focus input on desktop
+  useEffect(() => {
+    console.log('Focus effect:', { isMobile, hasInput: !!inputRef.current });
+    if (!isMobile && inputRef.current) {
+      inputRef.current.focus();
+      console.log('Input focused');
+    }
+  }, [level, isMobile]);
 
   // Show how to play modal on first visit
   useEffect(() => {
@@ -304,51 +326,69 @@ export default function Game({ puzzle }) {
     setMessage("Kept correct letters. Try filling the rest.");
   }
 
+  // Keyboard event handlers (desktop)
   function onKeyDown(e) {
-    // ✅ Let browser/system shortcuts work (Cmd/Ctrl combos, F5, etc.)
-    if (e.metaKey || e.ctrlKey) return;              // Cmd+R/Cmd+L/Cmd+F, Ctrl+R/Ctrl+F...
-    if (e.key === "F5") return;                      // Refresh
-    if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return; // history nav
+    console.log('Key pressed:', e.key, 'isMobile:', isMobile);
+    if (isMobile) return; // Only handle keyboard on desktop
+    
+    // Let browser/system shortcuts work (Cmd/Ctrl combos, F5, etc.)
+    if (e.metaKey || e.ctrlKey) return;
+    if (e.key === "F5") return;
+    if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
 
     if (e.key === "Tab") { e.preventDefault(); moveLevel(e.shiftKey ? -1 : 1); return; }
     if (e.key === "Enter") { e.preventDefault(); submitRow(level); return; }
     if (e.key === "Backspace") {
       e.preventDefault();
-      const len = rowLen(level);
-      const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
-
-      // If current tile is blocked (solved/hinted), jump left to nearest editable
-      if (isBlocked(level, cursor)) {
-        let pos = cursor - 1;
-        while (pos >= 0 && isBlocked(level, pos)) pos--;
-        if (pos >= 0) setCursor(pos);
-        return;
-      }
-
-      // Clear current square (only if editable)
-      const updated = cur.slice(0, cursor) + " " + cur.slice(cursor + 1);
-      setGuessAt(level, updated.trimEnd());
-
-      // Move cursor left to previous editable (if any)
-      let pos = cursor - 1;
-      while (pos >= 0 && isBlocked(level, pos)) pos--;
-      setCursor(Math.max(0, pos >= 0 ? pos : 0));
+      handleBackspace();
       return;
     }
 
     if (e.key === "ArrowLeft") { e.preventDefault(); stepCursorInRow(-1); return; }
     if (e.key === "ArrowRight") { e.preventDefault(); stepCursorInRow(1); return; }
-    if (e.key === "ArrowUp")   { e.preventDefault(); if (level > 0) moveLevel(-1); return; }
-    if (e.key === "ArrowDown") { e.preventDefault(); if (level < rows.length - 1) moveLevel(1);  return; }
+    if (e.key === "ArrowUp") { e.preventDefault(); if (level > 0) moveLevel(-1); return; }
+    if (e.key === "ArrowDown") { e.preventDefault(); if (level < rows.length - 1) moveLevel(1); return; }
     if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); typeChar(e.key); return; }
   }
 
   function onTextInput(e) {
+    if (isMobile) return; // Only handle on desktop
     const v = e.target.value || "";
     const letters = v.match(/[a-zA-Z]/g);
     if (letters && letters.length) typeChar(letters[letters.length - 1]);
     setIme("");
   }
+
+  // On-screen keyboard handlers (mobile)
+  const handleKeyPress = (key) => {
+    typeChar(key);
+  };
+
+  const handleEnter = () => {
+    submitRow(level);
+  };
+
+  const handleBackspace = () => {
+    const len = rowLen(level);
+    const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
+
+    // If current tile is blocked (solved/hinted), jump left to nearest editable
+    if (isBlocked(level, cursor)) {
+      let pos = cursor - 1;
+      while (pos >= 0 && isBlocked(level, pos)) pos--;
+      if (pos >= 0) setCursor(pos);
+      return;
+    }
+
+    // Clear current square (only if editable)
+    const updated = cur.slice(0, cursor) + " " + cur.slice(cursor + 1);
+    setGuessAt(level, updated.trimEnd());
+
+    // Move cursor left to previous editable (if any)
+    let pos = cursor - 1;
+    while (pos >= 0 && isBlocked(level, pos)) pos--;
+    setCursor(Math.max(0, pos >= 0 ? pos : 0));
+  };
 
   // Treat both real locks and hint-reveals as "blocked"
   function isBlocked(rowIndex, colIndex) {
@@ -358,7 +398,7 @@ export default function Game({ puzzle }) {
 
 
   return (
-    <div className="w-screen min-h-screen bg-black">
+    <div className="w-screen h-screen bg-black flex flex-col">
       <div className="px-3 text-center pt-6">
         {/* Big date */}
         {puzzle.date && (
@@ -417,21 +457,34 @@ export default function Game({ puzzle }) {
         </div>
       </div>
 
-      <div className="overflow-y-auto pb-[22vh]">
-        {/* hidden input to capture typing & mobile keyboard */}
+      <div 
+        className="flex-1 overflow-y-auto"
+        onClick={() => {
+          console.log('Click handler:', { isMobile, hasInput: !!inputRef.current });
+          if (!isMobile && inputRef.current) {
+            inputRef.current.focus();
+            console.log('Input focused from click');
+          }
+        }}
+      >
+        {/* Hidden input for keyboard capture */}
         <input
           ref={inputRef}
           onKeyDown={onKeyDown}
           onChange={onTextInput}
           value={ime}
-          onBlur={() => setTimeout(() => inputRef.current?.focus(), 0)}
-          inputMode="latin"
+          onBlur={() => {
+            if (!isMobile) {
+              setTimeout(() => inputRef.current?.focus(), 0);
+            }
+          }}
+          inputMode={isMobile ? "none" : "latin"}
           enterKeyHint="done"
           autoCapitalize="none"
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          className="absolute opacity-0 pointer-events-none -left-[9999px] w-px h-px"
+          className="absolute opacity-0 -left-[9999px] w-px h-px"
           aria-hidden
         />
 
@@ -450,23 +503,21 @@ export default function Game({ puzzle }) {
             } else {
               setLevel(i);
               setCursor(col);
-              inputRef.current?.focus();
+              if (!isMobile) {
+                inputRef.current?.focus();
+              }
             }
           }}
         />
 
         <div className="h-6 mt-3 text-xs text-gray-300 px-3">{message}</div>
 
-        <div className="mt-2 px-3 w-full">
-          <button
-            onClick={() => submitRow(level)}
-            className="w-full max-w-sm px-3 py-2 rounded-md bg-green-600 text-white text-sm font-semibold shadow hover:bg-green-700"
-          >
-            Submit
-          </button>
-        </div>
-
-        <div className="w-full" style={{ height: "20vh" }} />
+        {/* On-screen keyboard */}
+        <OnScreenKeyboard
+          onKeyPress={handleKeyPress}
+          onEnter={handleEnter}
+          onBackspace={handleBackspace}
+        />
       </div>
    
       {showShare && (
