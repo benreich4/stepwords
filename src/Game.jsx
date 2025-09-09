@@ -20,7 +20,7 @@ export default function Game({ puzzle }) {
   const [revealedLetters, setRevealedLetters] = useState(new Set()); // letters we've revealed across the grid
   
   // color order tokens
-  const COLOR_ORDER = ["G","B","P","R","O","Y","N","K","W"];
+  const COLOR_ORDER = ["G","B","P","R","O","Y","N","K","W","B","P","R","O","Y","N","K","W"];
 
   function letterCounts(s) {
     const m = new Map();
