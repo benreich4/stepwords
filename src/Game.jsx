@@ -17,10 +17,42 @@ export default function Game({ puzzle }) {
   const [ime, setIme] = useState("");
   // Hint system: arm once, then reveal by tapping any confirmed letter (green)
   const [hintArmed, setHintArmed] = useState(false);
+  const [hintMarks, setHintMarks] = useState(
+    () => rows.map(r => Array(r.answer.length).fill(false))
+  );
   const [revealedLetters, setRevealedLetters] = useState(new Set()); // letters we've revealed across the grid
-  
+
   // color order tokens
   const COLOR_ORDER = ["G","B","P","R","O","Y","N","K","W","B","P","R","O","Y","N","K","W"];
+  // Map your color tokens to square emojis
+  const TOKEN_TO_EMOJI = { G: "🟩", B: "🟦", P: "🟪", R: "🟥", O: "🟧", Y: "🟨", N: "🟫", K: "⬛", W: "⬜" };
+
+  const [showShare, setShowShare] = useState(false);
+  const [shareText, setShareText] = useState("");
+
+  // Map whatever is in lockColors[row][col] to a color token
+  function tokenAt(row, col) {
+    const val = lockColors[row]?.[col];
+    if (typeof val === "string") return val;       // already a token
+    if (val === true) {                            // legacy boolean => derive token
+      const isStep = row >= 1 && col === stepIdx[row];
+      return isStep
+        ? COLOR_ORDER[Math.min(row, COLOR_ORDER.length - 1)]
+        : "G";
+    }
+    return null;                                   // unsolved
+  }
+
+  function buildEmojiShareGridFrom(colorsSnapshot) {
+    return rows.map((r, i) => {
+      const len = r.answer.length;
+      return Array.from({ length: len }, (_, c) => {
+        if (hintMarks[i]?.[c]) return "💡";
+        const tok = colorsSnapshot[i]?.[c] || "G";
+        return TOKEN_TO_EMOJI[tok] || "🟩";
+      }).join("");
+    }).join("\n");
+  }
 
   function letterCounts(s) {
     const m = new Map();
@@ -42,6 +74,10 @@ export default function Game({ puzzle }) {
       stepLetters.push(added); // one letter per step
     }
     return stepLetters;
+  }
+
+  function isPuzzleSolved(colors, rows) {
+    return rows.every((r, i) => (colors[i] || []).every(Boolean));
   }
 
   /**
@@ -114,14 +150,11 @@ export default function Game({ puzzle }) {
     const correct = ans[col];
     if (!correct) return;
 
-    // Already locked? nothing to do.
     if (lockColors[row]?.[col]) return;
 
-    // Update guess at (row,col)
     const cur = (guesses[row] || "").toUpperCase().padEnd(len, " ").slice(0, len).split("");
     cur[col] = correct;
 
-    // Color: step color if this is the step position on this row, else green
     const stepColor = COLOR_ORDER[Math.min(row, COLOR_ORDER.length - 1)];
     const isStepPos = row >= 1 && col === stepIdx[row];
     const token = isStepPos ? stepColor : "G";
@@ -132,7 +165,13 @@ export default function Game({ puzzle }) {
     setGuessAt(row, cur.join("").trimEnd());
     setLockColors(prev => prev.map((r, i) => (i === row ? nextRowColors : r)));
 
-    // If row is now solved, advance; else move caret to next open cell
+    // ✅ record the hint usage on that exact square
+    setHintMarks(prev =>
+      prev.map((r, i) =>
+        i === row ? r.map((v, j) => (j === col ? true : v)) : r
+      )
+    );
+
     const solved = nextRowColors.every(Boolean);
     if (solved) {
       if (row + 1 < rows.length) {
@@ -148,7 +187,6 @@ export default function Game({ puzzle }) {
       return;
     }
 
-    // Move to the next available cell to the right (stay on same row)
     let target = col;
     for (let k = col + 1; k < len; k++) {
       if (!nextRowColors[k]) { target = k; break; }
@@ -157,7 +195,6 @@ export default function Game({ puzzle }) {
     setCursor(target);
     requestAnimationFrame(() => inputRef.current?.focus());
   }
-
 
 
   function tileHasHint(rowIndex, colIndex) {
@@ -249,34 +286,47 @@ export default function Game({ puzzle }) {
     const cur = (guesses[i] || "").toUpperCase().padEnd(len, " ").slice(0, len);
 
     const nextGuess = Array.from(cur);
-    const nextColors = lockColors[i].slice();
+    const rowColors = lockColors[i].slice();
 
     const stepColor = COLOR_ORDER[Math.min(i, COLOR_ORDER.length - 1)];
     const sPos = stepIdx[i];
 
     for (let k = 0; k < len; k++) {
       if (cur[k] === ans[k] && cur[k] !== " ") {
-        nextColors[k] = (k === sPos && i >= 1) ? stepColor : "G";
+        rowColors[k] = (i >= 1 && k === sPos) ? stepColor : "G";
       } else {
         nextGuess[k] = " ";
-        nextColors[k] = null;
+        rowColors[k] = null;
       }
     }
 
+    // Snapshot colors *after* this row submit
+    const colorsAfter = lockColors.map(r => r.slice());
+    colorsAfter[i] = rowColors;
+
     setGuessAt(i, nextGuess.join("").trimEnd());
-    setLockColors(prev => prev.map((row, idx) => (idx === i ? nextColors : row)));
 
-    const solved = nextColors.every(Boolean);
+    const solvedThisRow = rowColors.every(Boolean);
 
-    if (solved) {
-      // If this is the LAST row, repaint with “first appearance” colors
-      if (i === rows.length - 1) {
-        const finalTokens = computeFinalRowTokens(rows); // array of tokens for the final word
-        setLockColors(prev => prev.map((row, idx) =>
-          idx === i ? finalTokens.slice() : row
-        ));
+    if (solvedThisRow) {
+      // ✅ Only consider the puzzle solved if *every* row is fully colored
+      if (isPuzzleSolved(colorsAfter, rows)) {
+        // Repaint the final row with first-appearance tokens before sharing
+        const last = rows.length - 1;
+        const finalTokens = computeFinalRowTokens(rows);
+        colorsAfter[last] = finalTokens.slice();
+
+        setLockColors(colorsAfter);
+
+        setMessage("🎉 You solved all the Stepwords!");
+        const share = buildEmojiShareGridFrom(colorsAfter); // uses your hint marks + tokens
+        setShareText(share);
+        setShowShare(true);
+        return;
       }
 
+      // Not fully solved yet → advance if there’s a next row
+      setLockColors(colorsAfter);
       if (i + 1 < rows.length) {
         const nextRow = i + 1;
         setLevel(nextRow);
@@ -285,12 +335,15 @@ export default function Game({ puzzle }) {
         setMessage("Nice! Next word →");
         requestAnimationFrame(() => inputRef.current?.focus());
       } else {
-        setMessage("🎉 You solved all the Stepwords!");
+        // Last row solved but earlier rows aren’t → encourage finishing the rest
+        setMessage("This row is done. Finish the others to complete the puzzle!");
       }
-    } else {
-      setMessage("Kept correct letters. Try filling the rest.");
+      return;
     }
 
+    // Row not solved → commit and prompt to keep going
+    setLockColors(colorsAfter);
+    setMessage("Kept correct letters. Try filling the rest.");
   }
 
   function onKeyDown(e) {
@@ -446,6 +499,38 @@ export default function Game({ puzzle }) {
       </div>
 
       <div className="w-full" style={{ height: "20vh" }} />
+   
+      {showShare && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-xl border border-gray-700 bg-gray-900 p-4 shadow-xl">
+            <div className="text-lg font-semibold mb-2">Solved!</div>
+            <pre className="whitespace-pre-wrap text-2xl leading-snug mb-3">
+              {shareText}
+            </pre>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(shareText);
+                    setMessage("Copied!");
+                  } catch {
+                    setMessage("Copy failed");
+                  }
+                }}
+                className="px-3 py-1.5 rounded-md bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700"
+              >
+                Copy
+              </button>
+              <button
+                onClick={() => setShowShare(false)}
+                className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-200 text-sm hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
