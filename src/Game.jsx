@@ -10,46 +10,31 @@ export default function Game({ puzzle }) {
   const isLocked = (r, c) => Boolean(lockColors[r]?.[c]);
   const [level, setLevel] = useState(0);
   const [guesses, setGuesses] = useState(() => rows.map(() => ""));
-  const [locks, setLocks] = useState(() => rows.map(r => Array(r.answer.length).fill(false)));
   const [cursor, setCursor] = useState(0);
   const [message, setMessage] = useState("");
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
   // Hint system: arm once, then reveal by tapping any confirmed letter (green)
   const [hintArmed, setHintArmed] = useState(false);
-  const [hintMarks, setHintMarks] = useState(
+  // Colors now simplified: 'G' for correct, 'Y' for hinted or previously incorrect
+  const [wasWrong, setWasWrong] = useState(
     () => rows.map(r => Array(r.answer.length).fill(false))
   );
-  const [revealedLetters, setRevealedLetters] = useState(new Set()); // letters we've revealed across the grid
 
-  // color order tokens
-  const COLOR_ORDER = ["G","B","P","R","O","Y","N","K","W","B","P","R","O","Y","N","K","W"];
-  // Map your color tokens to square emojis
-  const TOKEN_TO_EMOJI = { G: "🟩", B: "🟦", P: "🟪", R: "🟥", O: "🟧", Y: "🟨", N: "🟫", K: "⬛", W: "⬜" };
+  // Share mapping: only green and yellow are used
+  const TOKEN_TO_EMOJI = { G: "🟩", Y: "🟨" };
 
   const [showShare, setShowShare] = useState(false);
   const [shareText, setShareText] = useState("");
-
-  // Map whatever is in lockColors[row][col] to a color token
-  function tokenAt(row, col) {
-    const val = lockColors[row]?.[col];
-    if (typeof val === "string") return val;       // already a token
-    if (val === true) {                            // legacy boolean => derive token
-      const isStep = row >= 1 && col === stepIdx[row];
-      return isStep
-        ? COLOR_ORDER[Math.min(row, COLOR_ORDER.length - 1)]
-        : "G";
-    }
-    return null;                                   // unsolved
-  }
 
   function buildEmojiShareGridFrom(colorsSnapshot) {
     return rows.map((r, i) => {
       const len = r.answer.length;
       return Array.from({ length: len }, (_, c) => {
-        if (hintMarks[i]?.[c]) return "💡";
-        const tok = colorsSnapshot[i]?.[c] || "G";
-        return TOKEN_TO_EMOJI[tok] || "🟩";
+        const tok = colorsSnapshot[i]?.[c];
+        if (tok === "G") return TOKEN_TO_EMOJI.G;
+        if (tok === "Y") return TOKEN_TO_EMOJI.Y;
+        return "⬜";
       }).join("");
     }).join("\n");
   }
@@ -80,47 +65,7 @@ export default function Game({ puzzle }) {
     return rows.every((r, i) => (colors[i] || []).every(Boolean));
   }
 
-  /**
-   * Compute color tokens for the FINAL row, based on when each letter INSTANCE
-   * first appeared (base word -> G; each added instance -> that step’s color).
-   * Returns an array of tokens (e.g., ['G','G','B','P',...]) length = final word length.
-   */
-  function computeFinalRowTokens(rows) {
-    const n = rows.length;
-    if (n === 0) return [];
-    const base = rows[0].answer.toUpperCase();
-    const finalAns = rows[n - 1].answer.toUpperCase();
-
-    // Count how many instances each letter already had in the base word
-    const baseCount = letterCounts(base);
-
-    // Collect which steps added which letter (by row index)
-    const stepLetters = computeStepLetters(rows);
-    const stepBuckets = new Map(); // letter -> [rowIndex, rowIndex, ...] ascending
-    for (let i = 1; i < stepLetters.length; i++) {
-      const ch = stepLetters[i];
-      if (!ch) continue;
-      if (!stepBuckets.has(ch)) stepBuckets.set(ch, []);
-      stepBuckets.get(ch).push(i);
-    }
-
-    // Assign a color to each position in the final word
-    const tokens = [];
-    for (const ch of finalAns) {
-      if ((baseCount.get(ch) || 0) > 0) {
-        // This instance existed from the start -> green
-        tokens.push("G");
-        baseCount.set(ch, baseCount.get(ch) - 1);
-      } else {
-        // Take the earliest step that added this letter
-        const arr = stepBuckets.get(ch) || [];
-        const stepIdx = arr.shift(); // row index that added this instance
-        const token = COLOR_ORDER[Math.min(stepIdx ?? 0, COLOR_ORDER.length - 1)];
-        tokens.push(token || "G"); // fallback to green if anything odd
-      }
-    }
-    return tokens;
-  }
+  // final-row multi-color logic removed
 
   function letterCounts(s) {
     const m = new Map();
@@ -154,23 +99,12 @@ export default function Game({ puzzle }) {
 
     const cur = (guesses[row] || "").toUpperCase().padEnd(len, " ").slice(0, len).split("");
     cur[col] = correct;
-
-    const stepColor = COLOR_ORDER[Math.min(row, COLOR_ORDER.length - 1)];
-    const isStepPos = row >= 1 && col === stepIdx[row];
-    const token = isStepPos ? stepColor : "G";
-
     const nextRowColors = lockColors[row].slice();
-    nextRowColors[col] = token;
+    // Hinted squares are shown in yellow even if correct
+    nextRowColors[col] = "Y";
 
     setGuessAt(row, cur.join("").trimEnd());
     setLockColors(prev => prev.map((r, i) => (i === row ? nextRowColors : r)));
-
-    // ✅ record the hint usage on that exact square
-    setHintMarks(prev =>
-      prev.map((r, i) =>
-        i === row ? r.map((v, j) => (j === col ? true : v)) : r
-      )
-    );
 
     const solved = nextRowColors.every(Boolean);
     if (solved) {
@@ -197,11 +131,6 @@ export default function Game({ puzzle }) {
   }
 
 
-  function tileHasHint(rowIndex, colIndex) {
-    const L = rows[rowIndex].answer.toUpperCase()[colIndex];
-    return revealedLetters.has(L);
-  }
-
   const rowLen = (r) => rows[r].answer.length;
 
   useEffect(() => {
@@ -217,7 +146,7 @@ export default function Game({ puzzle }) {
     setGuesses(prev => prev.map((g, idx) => (idx === i ? next : g)));
   }
   function setLockAtRow(i, newLocks) {
-    setLocks(prev => prev.map((row, idx) => (idx === i ? newLocks : row)));
+    // no-op: explicit locks removed; lockColors indicate blocked cells now
   }
 
   function nearestUnlockedInRow(row, col) {
@@ -287,39 +216,42 @@ export default function Game({ puzzle }) {
 
     const nextGuess = Array.from(cur);
     const rowColors = lockColors[i].slice();
-
-    const stepColor = COLOR_ORDER[Math.min(i, COLOR_ORDER.length - 1)];
-    const sPos = stepIdx[i];
+    const nextWasWrongRow = wasWrong[i].slice();
 
     for (let k = 0; k < len; k++) {
-      if (cur[k] === ans[k] && cur[k] !== " ") {
-        rowColors[k] = (i >= 1 && k === sPos) ? stepColor : "G";
-      } else {
+      const guessed = cur[k];
+      const correct = ans[k];
+      const prior = rowColors[k]; // may be 'Y' if hinted earlier, or 'G' if already correct
+      if (guessed === correct && guessed !== " ") {
+        // Preserve yellow if hinted; otherwise yellow if was previously wrong; else green
+        rowColors[k] = prior === "Y" ? "Y" : (nextWasWrongRow[k] ? "Y" : "G");
+      } else if (guessed !== " ") {
+        // Record that this position has been guessed incorrectly at least once
+        nextWasWrongRow[k] = true;
+        // Clear the incorrect guess
         nextGuess[k] = " ";
-        rowColors[k] = null;
+        // Do not change existing color (keep prior lock if already correct or hinted)
       }
     }
 
     // Snapshot colors *after* this row submit
     const colorsAfter = lockColors.map(r => r.slice());
     colorsAfter[i] = rowColors;
+    const wasWrongAfter = wasWrong.map(r => r.slice());
+    wasWrongAfter[i] = nextWasWrongRow;
 
     setGuessAt(i, nextGuess.join("").trimEnd());
+    setWasWrong(wasWrongAfter);
 
     const solvedThisRow = rowColors.every(Boolean);
 
     if (solvedThisRow) {
       // ✅ Only consider the puzzle solved if *every* row is fully colored
       if (isPuzzleSolved(colorsAfter, rows)) {
-        // Repaint the final row with first-appearance tokens before sharing
-        const last = rows.length - 1;
-        const finalTokens = computeFinalRowTokens(rows);
-        colorsAfter[last] = finalTokens.slice();
-
         setLockColors(colorsAfter);
 
         setMessage("🎉 You solved all the Stepwords!");
-        const share = buildEmojiShareGridFrom(colorsAfter); // uses your hint marks + tokens
+        const share = buildEmojiShareGridFrom(colorsAfter);
         setShareText(share);
         setShowShare(true);
         return;
@@ -384,15 +316,9 @@ export default function Game({ puzzle }) {
     setIme("");
   }
 
-  // A cell is force-revealed green if its answer letter is one of the revealed letters
-  function tileForceReveal(rowIndex, colIndex) {
-    const L = rows[rowIndex].answer.toUpperCase()[colIndex];
-    return revealedLetters.has(L);
-  }
-
   // Treat both real locks and hint-reveals as "blocked"
   function isBlocked(rowIndex, colIndex) {
-    return Boolean(locks[rowIndex]?.[colIndex]) || tileForceReveal(rowIndex, colIndex);
+    return isLocked(rowIndex, colIndex);
   }
 
 

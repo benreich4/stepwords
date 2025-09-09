@@ -1,23 +1,16 @@
 export default function LetterBox({
   char = "",
-  state = null,          // null or 'G'|'B'|'P'|'R'|'O'|'Y'|'N'|'K'|'W'
+  state = null,          // null or 'G' | 'Y'
   isCursor = false,
   onClick,
   showStep = false,      // <-- NEW
 }) {
   const COLOR_CLASSES = {
     G: "bg-green-600 border-green-500 text-white",
-    B: "bg-sky-600 border-sky-500 text-white",
-    P: "bg-fuchsia-600 border-fuchsia-500 text-white",
-    R: "bg-red-600 border-red-500 text-white",
-    O: "bg-orange-600 border-orange-500 text-white",
     Y: "bg-yellow-400 border-yellow-400 text-black",
-    N: "bg-amber-900 border-amber-800 text-white",
-    K: "bg-black border-gray-700 text-gray-100",
-    W: "bg-white border-gray-300 text-gray-900",
   };
   const EMPTY_CLASSES = "bg-gray-900 border-gray-700 text-gray-200";
-  const stateClass = state ? COLOR_CLASSES[state] : EMPTY_CLASSES;
+  const stateClass = state ? (COLOR_CLASSES[state] || EMPTY_CLASSES) : EMPTY_CLASSES;
 
   const base =
     "relative inline-flex items-center justify-center border rounded-[6px] " +
