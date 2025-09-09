@@ -27,6 +27,70 @@ export default function Game({ puzzle }) {
     for (const ch of s) m.set(ch, (m.get(ch) || 0) + 1);
     return m;
   }
+
+  // Which letter was added at each step (row index >= 1)
+  function computeStepLetters(rows) {
+    const stepLetters = [null]; // row 0 has no step
+    for (let i = 1; i < rows.length; i++) {
+      const prev = rows[i - 1].answer.toUpperCase();
+      const cur  = rows[i].answer.toUpperCase();
+      const pc = letterCounts(prev), cc = letterCounts(cur);
+      let added = null;
+      for (const [ch, cnt] of cc.entries()) {
+        if (cnt > (pc.get(ch) || 0)) { added = ch; break; }
+      }
+      stepLetters.push(added); // one letter per step
+    }
+    return stepLetters;
+  }
+
+  /**
+   * Compute color tokens for the FINAL row, based on when each letter INSTANCE
+   * first appeared (base word -> G; each added instance -> that step’s color).
+   * Returns an array of tokens (e.g., ['G','G','B','P',...]) length = final word length.
+   */
+  function computeFinalRowTokens(rows) {
+    const n = rows.length;
+    if (n === 0) return [];
+    const base = rows[0].answer.toUpperCase();
+    const finalAns = rows[n - 1].answer.toUpperCase();
+
+    // Count how many instances each letter already had in the base word
+    const baseCount = letterCounts(base);
+
+    // Collect which steps added which letter (by row index)
+    const stepLetters = computeStepLetters(rows);
+    const stepBuckets = new Map(); // letter -> [rowIndex, rowIndex, ...] ascending
+    for (let i = 1; i < stepLetters.length; i++) {
+      const ch = stepLetters[i];
+      if (!ch) continue;
+      if (!stepBuckets.has(ch)) stepBuckets.set(ch, []);
+      stepBuckets.get(ch).push(i);
+    }
+
+    // Assign a color to each position in the final word
+    const tokens = [];
+    for (const ch of finalAns) {
+      if ((baseCount.get(ch) || 0) > 0) {
+        // This instance existed from the start -> green
+        tokens.push("G");
+        baseCount.set(ch, baseCount.get(ch) - 1);
+      } else {
+        // Take the earliest step that added this letter
+        const arr = stepBuckets.get(ch) || [];
+        const stepIdx = arr.shift(); // row index that added this instance
+        const token = COLOR_ORDER[Math.min(stepIdx ?? 0, COLOR_ORDER.length - 1)];
+        tokens.push(token || "G"); // fallback to green if anything odd
+      }
+    }
+    return tokens;
+  }
+
+  function letterCounts(s) {
+    const m = new Map();
+    for (const ch of s) m.set(ch, (m.get(ch) || 0) + 1);
+    return m;
+  }
   function computeStepIndices(rows) {
     const out = [];
     for (let i = 0; i < rows.length; i++) {
@@ -202,7 +266,16 @@ export default function Game({ puzzle }) {
     setLockColors(prev => prev.map((row, idx) => (idx === i ? nextColors : row)));
 
     const solved = nextColors.every(Boolean);
+
     if (solved) {
+      // If this is the LAST row, repaint with “first appearance” colors
+      if (i === rows.length - 1) {
+        const finalTokens = computeFinalRowTokens(rows); // array of tokens for the final word
+        setLockColors(prev => prev.map((row, idx) =>
+          idx === i ? finalTokens.slice() : row
+        ));
+      }
+
       if (i + 1 < rows.length) {
         const nextRow = i + 1;
         setLevel(nextRow);
@@ -216,6 +289,7 @@ export default function Game({ puzzle }) {
     } else {
       setMessage("Kept correct letters. Try filling the rest.");
     }
+
   }
 
   function onKeyDown(e) {
