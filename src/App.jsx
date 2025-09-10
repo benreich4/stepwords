@@ -9,6 +9,11 @@ export default function App() {
       <main className="w-full">
         <Outlet />
       </main>
+      
+      {/* Copyright notice */}
+      <footer className="w-full px-3 py-2 text-center text-xs text-gray-500 border-t border-gray-800">
+        © 2025 Stepwords™. All rights reserved.
+      </footer>
     </div>
   );
 }

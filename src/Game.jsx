@@ -488,6 +488,7 @@ export default function Game({ puzzle }) {
 
 
   return (
+    <>
     <div className="w-screen h-screen bg-black flex flex-col">
       <div className="px-3 text-center pt-4">
         {/* Smaller date on mobile */}
@@ -678,5 +679,7 @@ export default function Game({ puzzle }) {
         <HowToPlayModal onClose={handleCloseHowToPlay} />
       )}
     </div>
+
+    </>
   );
 }
