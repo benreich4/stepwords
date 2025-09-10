@@ -26,23 +26,27 @@ export default function HowToPlayModal({ onClose }) {
           <div className="bg-gray-800 rounded-lg p-4 my-4">
             <div className="text-sm text-gray-400 mb-3">Example puzzle:</div>
             <div className="flex flex-col items-start gap-1">
-              {["ROW", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"].map((word, i) => (
-                <div key={i} className="flex gap-0">
-                  {word.split("").map((letter, j) => (
-                    <div
-                      key={j}
-                      className="relative inline-flex items-center justify-center border rounded-[6px] select-none uppercase font-bold leading-none w-8 h-8 text-sm bg-green-600 border-green-500 text-white"
-                    >
-                      <span>{letter}</span>
-                      {i >= 1 && j === word.length - 1 && (
-                        <span className="pointer-events-none absolute bottom-[1px] right-[1px] select-none text-[10px] leading-none" aria-hidden>
-                          🪜
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))}
+              {["ROW", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"].map((word, i) => {
+                // Calculate step position: new letter is always at the end
+                const stepPosition = word.length - 1;
+                return (
+                  <div key={i} className="flex gap-0">
+                    {word.split("").map((letter, j) => (
+                      <div
+                        key={j}
+                        className="relative inline-flex items-center justify-center border rounded-[6px] select-none uppercase font-bold leading-none w-8 h-8 text-sm bg-green-600 border-green-500 text-white"
+                      >
+                        <span>{letter}</span>
+                        {i >= 1 && j === stepPosition && (
+                          <span className="pointer-events-none absolute bottom-[1px] right-[1px] select-none text-[10px] leading-none" aria-hidden>
+                            🪜
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
             <div className="text-xs text-gray-500 mt-3">
               Notice how each word contains all letters from the previous word, plus one new letter! 
@@ -56,12 +60,12 @@ export default function HowToPlayModal({ onClose }) {
               <li>Type letters to guess words</li>
               <li>Press <kbd className="bg-gray-700 px-1 rounded">Enter</kbd> to submit</li>
               <li>Correct letters turn <span className="text-green-400">green</span></li>
-              <li>Use <strong className="text-sky-400">Hints</strong> dropdown for help:
+              <li>Use <strong className="text-sky-400">Hints</strong> for help:
                 <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
-                  <li><strong className="text-amber-400">Reveal step locations</strong> - Show where new letters were added</li>
-                  <li><strong className="text-blue-400">Reveal first letters</strong> - Show the first letter of each word</li>
-                  <li><strong className="text-purple-400">Filter keyboard</strong> - Hide letters not used in the puzzle</li>
-                  <li><strong className="text-green-400">Reveal step letters</strong> - Show the new letter added to each word</li>
+                  <li><strong className="text-amber-400">Step locations</strong> - Show 🪜 icons</li>
+                  <li><strong className="text-blue-400">First letters</strong> - Reveal starting letters</li>
+                  <li><strong className="text-purple-400">Filter keyboard</strong> - Hide unused letters</li>
+                  <li><strong className="text-green-400">Step letters</strong> - Show new letters added</li>
                 </ul>
               </li>
             </ul>

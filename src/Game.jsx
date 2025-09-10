@@ -510,12 +510,7 @@ export default function Game({ puzzle }) {
       
       <div className="w-full px-3 py-2 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowHowToPlay(true)}
-            className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
-          >
-            How to Play
-          </button>
+          {/* Empty left side */}
         </div>
         
         <div className="flex items-center gap-2">
@@ -592,6 +587,12 @@ export default function Game({ puzzle }) {
               </div>
             )}
           </div>
+          <button
+            onClick={() => setShowHowToPlay(true)}
+            className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
+          >
+            How to Play
+          </button>
         </div>
       </div>
 
