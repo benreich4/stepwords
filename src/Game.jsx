@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import LetterGrid from "./components/LetterGrid.jsx";
 import ShareModal from "./components/ShareModal.jsx";
 import HowToPlayModal from "./components/HowToPlayModal.jsx";
@@ -24,7 +24,11 @@ export default function Game({ puzzle }) {
           guesses: parsed.guesses || rows.map(() => ""),
           cursor: parsed.cursor || 0,
           wasWrong: parsed.wasWrong || rows.map(r => Array(r.answer.length).fill(false)),
-          stepsRevealed: parsed.stepsRevealed || false,
+          hintsUsed: parsed.hintsUsed || {
+            stepLocations: false,
+            initialLetters: false,
+            stepLetters: false
+          },
           hintCount: parsed.hintCount || 0,
           guessCount: parsed.guessCount || 0,
           wrongGuessCount: parsed.wrongGuessCount || 0,
@@ -41,7 +45,11 @@ export default function Game({ puzzle }) {
       guesses: rows.map(() => ""),
       cursor: 0,
       wasWrong: rows.map(r => Array(r.answer.length).fill(false)),
-      stepsRevealed: false,
+      hintsUsed: {
+        stepLocations: false,
+        initialLetters: false,
+        stepLetters: false
+      },
       hintCount: 0,
       guessCount: 0,
       wrongGuessCount: 0,
@@ -59,12 +67,15 @@ export default function Game({ puzzle }) {
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
   const [isMobile, setIsMobile] = useState(false);
-  // Hint system: arm once, then reveal by tapping any confirmed letter (green)
-  const [hintArmed, setHintArmed] = useState(false);
+  // New hint system: 3 types of hints
+  const [hintsUsed, setHintsUsed] = useState(savedState.hintsUsed || {
+    stepLocations: false,
+    initialLetters: false,
+    stepLetters: false,
+    filterKeyboard: false
+  });
   // Colors now simplified: 'G' for correct, 'Y' for hinted or previously incorrect
   const [wasWrong, setWasWrong] = useState(savedState.wasWrong);
-  // Step reveal: hidden by default; once revealed, cannot be hidden
-  const [stepsRevealed, setStepsRevealed] = useState(savedState.stepsRevealed);
   // Session stats
   const [hintCount, setHintCount] = useState(savedState.hintCount);
   const [guessCount, setGuessCount] = useState(savedState.guessCount);
@@ -73,48 +84,106 @@ export default function Game({ puzzle }) {
   const [showShare, setShowShare] = useState(false);
   const [shareText, setShareText] = useState("");
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showHintsDropdown, setShowHintsDropdown] = useState(false);
   
 
-  function applyHintSingle(row, col) {
-    const ans = rows[row].answer.toUpperCase();
-    const len = ans.length;
-    const correct = ans[col];
-    if (!correct) return;
+  // Function to get letters used in all answers
+  const lettersUsedInAnswers = useMemo(() => {
+    if (!puzzle || !puzzle.rows) {
+      return [];
+    }
+    const allLetters = new Set();
+    puzzle.rows.forEach(row => {
+      row.answer.toUpperCase().split('').forEach(letter => {
+        allLetters.add(letter);
+      });
+    });
+    return Array.from(allLetters).sort();
+  }, [puzzle]);
 
-    if (lockColors[row]?.[col]) return;
-
-    const cur = (guesses[row] || "").toUpperCase().padEnd(len, " ").slice(0, len).split("");
-    cur[col] = correct;
-    const nextRowColors = lockColors[row].slice();
-    // Hinted squares are shown in yellow even if correct
-    nextRowColors[col] = "Y";
-
-    setGuessAt(row, cur.join("").trimEnd());
-    setLockColors(prev => prev.map((r, i) => (i === row ? nextRowColors : r)));
-    setHintCount((n) => n + 1);
-
-    const solved = nextRowColors.every(Boolean);
-    if (solved) {
-      if (row + 1 < rows.length) {
-        const nextRow = row + 1;
-        setLevel(nextRow);
-        const firstOpen = nearestUnlockedInRow(nextRow, 0);
-        setCursor(firstOpen === -1 ? 0 : firstOpen);
-        setMessage("Nice! Next word →");
-      } else {
-        setMessage("🎉 You solved all the Stepwords!");
+  // New hint functions
+  function useHint(hintType) {
+    if (hintsUsed[hintType]) return; // Already used
+    
+    const newHintsUsed = { ...hintsUsed, [hintType]: true };
+    
+    // If using step letters, also enable step locations
+    if (hintType === 'stepLetters') {
+      newHintsUsed.stepLocations = true;
+    }
+    
+    setHintsUsed(newHintsUsed);
+    setHintCount(prev => prev + 1);
+    
+    // Apply the hint effects
+    if (hintType === 'initialLetters') {
+      applyInitialLettersHint();
+    } else if (hintType === 'stepLetters') {
+      applyStepLettersHint();
+    }
+  }
+  
+  function applyInitialLettersHint() {
+    const newLockColors = lockColors.map((rowColors, rowIndex) => {
+      const newRowColors = [...rowColors];
+      // Reveal first letter of each word
+      if (newRowColors[0] === null) {
+        newRowColors[0] = "Y"; // Yellow for hinted
       }
-      requestAnimationFrame(() => inputRef.current?.focus());
-      return;
-    }
-
-    let target = col;
-    for (let k = col + 1; k < len; k++) {
-      if (!nextRowColors[k]) { target = k; break; }
-    }
-    setLevel(row);
-    setCursor(target);
-    requestAnimationFrame(() => inputRef.current?.focus());
+      return newRowColors;
+    });
+    
+    // Update all guesses at once
+    const newGuesses = guesses.map((guess, rowIndex) => {
+      const ans = rows[rowIndex].answer.toUpperCase();
+      const currentGuess = (guess || "").toUpperCase();
+      
+      if (newLockColors[rowIndex][0] === "Y") {
+        return ans[0] + currentGuess.slice(1);
+      }
+      
+      return currentGuess;
+    });
+    
+    setLockColors(newLockColors);
+    setGuesses(newGuesses);
+  }
+  
+  function applyStepLettersHint() {
+    const newLockColors = lockColors.map((rowColors, rowIndex) => {
+      const newRowColors = [...rowColors];
+      const stepCol = stepIdx[rowIndex]; // This is a single number, not an array
+      
+      // Reveal step letter (the new letter added) - skip first row (stepCol === -1)
+      if (stepCol !== -1 && stepCol !== undefined && newRowColors[stepCol] === null) {
+        newRowColors[stepCol] = "Y"; // Yellow for hinted
+      }
+      return newRowColors;
+    });
+    
+    // Update all guesses at once
+    const newGuesses = guesses.map((guess, rowIndex) => {
+      const stepCol = stepIdx[rowIndex]; // This is a single number, not an array
+      const ans = rows[rowIndex].answer.toUpperCase();
+      const ansLen = ans.length;
+      let newGuess = (guess || "").toUpperCase();
+      
+      // Check if this step column was just revealed (was null before, now Y)
+      if (stepCol !== -1 && stepCol !== undefined && 
+          lockColors[rowIndex][stepCol] === null && newLockColors[rowIndex][stepCol] === "Y") {
+        // Pad the guess to the correct length first
+        newGuess = newGuess.padEnd(ansLen, " ").slice(0, ansLen);
+        // Then insert the step letter at the correct position
+        newGuess = newGuess.slice(0, stepCol) + ans[stepCol] + newGuess.slice(stepCol + 1);
+        // Remove trailing spaces
+        newGuess = newGuess.trimEnd();
+      }
+      
+      return newGuess;
+    });
+    
+    setLockColors(newLockColors);
+    setGuesses(newGuesses);
   }
 
 
@@ -145,6 +214,20 @@ export default function Game({ puzzle }) {
     }
   }, [level, isMobile]);
 
+  // Close hints dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showHintsDropdown && !event.target.closest('.hints-dropdown')) {
+        setShowHintsDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showHintsDropdown]);
+
   // Show how to play modal on first visit
   useEffect(() => {
     const hasSeenHowToPlay = localStorage.getItem('stepwords-how-to-play');
@@ -167,7 +250,7 @@ export default function Game({ puzzle }) {
         guesses,
         cursor,
         wasWrong,
-        stepsRevealed,
+        hintsUsed,
         hintCount,
         guessCount,
         wrongGuessCount,
@@ -181,7 +264,7 @@ export default function Game({ puzzle }) {
   // Save state whenever it changes
   useEffect(() => {
     saveGameState();
-  }, [lockColors, level, guesses, cursor, wasWrong, stepsRevealed, hintCount, guessCount, wrongGuessCount]);
+  }, [lockColors, level, guesses, cursor, wasWrong, hintsUsed, hintCount, guessCount, wrongGuessCount]);
 
 
   const clue = rows[level].clue;
@@ -425,39 +508,90 @@ export default function Game({ puzzle }) {
         </div>
       </div>
       
-      <div className="w-full px-3 py-2 flex items-center gap-2 sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-10">
+      <div className="w-full px-3 py-2 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setHintArmed((v) => !v)}
-            className={
-              "px-3 py-1.5 rounded-md text-xs border " +
-              (hintArmed
-                ? "border-sky-500 text-sky-300 bg-sky-900/30"
-                : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
-            }
-            aria-pressed={hintArmed}
-          >
-            {hintArmed ? "Reveal letter" : "Hint"}
-          </button>
-          <button
-            onClick={() => setStepsRevealed(true)}
-            disabled={stepsRevealed}
-            className={
-              "px-3 py-1.5 rounded-md text-xs border " +
-              (stepsRevealed
-                ? "border-amber-500 text-amber-300 bg-amber-900/30 cursor-default"
-                : "border-gray-700 text-gray-300 hover:bg-gray-900/40")
-            }
-            aria-pressed={stepsRevealed}
-          >
-            {stepsRevealed ? "Steps revealed" : "Reveal steps"}
-          </button>
           <button
             onClick={() => setShowHowToPlay(true)}
             className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
           >
             How to Play
           </button>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <div className="relative hints-dropdown">
+            <button
+              onClick={() => setShowHintsDropdown(!showHintsDropdown)}
+              className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
+            >
+              Hints {hintCount > 0 && `(${hintCount})`}
+            </button>
+            
+            {showHintsDropdown && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-gray-800 border border-gray-600 rounded-md shadow-lg">
+                <button
+                  onClick={() => {
+                    useHint('stepLocations');
+                    setShowHintsDropdown(false);
+                  }}
+                  disabled={hintsUsed.stepLocations}
+                  className={
+                    "w-full text-left px-3 py-2 text-xs border-b border-gray-600 " +
+                    (hintsUsed.stepLocations
+                      ? "text-amber-300 bg-amber-900/20 cursor-default"
+                      : "text-gray-300 hover:bg-gray-700")
+                  }
+                >
+                  {hintsUsed.stepLocations ? "✓ Reveal step locations" : "Reveal step locations"}
+                </button>
+                <button
+                  onClick={() => {
+                    useHint('initialLetters');
+                    setShowHintsDropdown(false);
+                  }}
+                  disabled={hintsUsed.initialLetters}
+                  className={
+                    "w-full text-left px-3 py-2 text-xs border-b border-gray-600 " +
+                    (hintsUsed.initialLetters
+                      ? "text-blue-300 bg-blue-900/20 cursor-default"
+                      : "text-gray-300 hover:bg-gray-700")
+                  }
+                >
+                  {hintsUsed.initialLetters ? "✓ Reveal first letters" : "Reveal first letters"}
+                </button>
+                <button
+                  onClick={() => {
+                    useHint('filterKeyboard');
+                    setShowHintsDropdown(false);
+                  }}
+                  disabled={hintsUsed.filterKeyboard}
+                  className={
+                    "w-full text-left px-3 py-2 text-xs border-b border-gray-600 " +
+                    (hintsUsed.filterKeyboard
+                      ? "text-purple-300 bg-purple-900/20 cursor-default"
+                      : "text-gray-300 hover:bg-gray-700")
+                  }
+                >
+                  {hintsUsed.filterKeyboard ? "✓ Filter keyboard" : "Filter keyboard"}
+                </button>
+                <button
+                  onClick={() => {
+                    useHint('stepLetters');
+                    setShowHintsDropdown(false);
+                  }}
+                  disabled={hintsUsed.stepLetters}
+                  className={
+                    "w-full text-left px-3 py-2 text-xs " +
+                    (hintsUsed.stepLetters
+                      ? "text-green-300 bg-green-900/20 cursor-default"
+                      : "text-gray-300 hover:bg-gray-700")
+                  }
+                >
+                  {hintsUsed.stepLetters ? "✓ Reveal step letters" : "Reveal step letters"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -466,6 +600,8 @@ export default function Game({ puzzle }) {
           <span className="font-semibold">Clue:</span> {clue}
         </div>
       </div>
+
+
 
       <div 
         className="flex-1 overflow-y-auto"
@@ -503,19 +639,14 @@ export default function Game({ puzzle }) {
           guesses={guesses}
           lockColors={lockColors}
           stepIdx={stepIdx}
-          stepsRevealed={stepsRevealed}
+          stepsRevealed={hintsUsed.stepLocations}
           level={level}
           cursor={cursor}
           onTileClick={(i, col) => {
-            if (hintArmed) {
-              applyHintSingle(i, col);
-              setHintArmed(false);
-            } else {
-              setLevel(i);
-              setCursor(col);
-              if (!isMobile) {
-                inputRef.current?.focus();
-              }
+            setLevel(i);
+            setCursor(col);
+            if (!isMobile) {
+              inputRef.current?.focus();
             }
           }}
         />
@@ -528,6 +659,7 @@ export default function Game({ puzzle }) {
         onKeyPress={handleKeyPress}
         onEnter={handleEnter}
         onBackspace={handleBackspace}
+        filteredLetters={hintsUsed.filterKeyboard ? lettersUsedInAnswers : null}
       />
    
       {showShare && (

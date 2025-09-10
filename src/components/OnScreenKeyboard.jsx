@@ -1,4 +1,4 @@
-export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, disabledKeys = new Set() }) {
+export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, disabledKeys = new Set(), filteredLetters = null }) {
   const rows = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
     ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
@@ -23,9 +23,13 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
     }
     
     const isDisabled = disabledKeys.has(key);
+    const isFiltered = filteredLetters && !filteredLetters.includes(key);
+    
     return `${baseClass} text-sm ${
       isDisabled 
         ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
+        : isFiltered
+        ? "bg-gray-800 text-gray-500 cursor-not-allowed"
         : "bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-800"
     }`;
   };
@@ -37,8 +41,14 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
           {row.map((key) => (
             <button
               key={key}
-              onClick={() => !disabledKeys.has(key) && handleKeyClick(key)}
-              disabled={disabledKeys.has(key)}
+              onClick={() => {
+                const isDisabled = disabledKeys.has(key);
+                const isFiltered = filteredLetters && !filteredLetters.includes(key);
+                if (!isDisabled && !isFiltered) {
+                  handleKeyClick(key);
+                }
+              }}
+              disabled={disabledKeys.has(key) || (filteredLetters && !filteredLetters.includes(key.toLowerCase()))}
               className={getKeyClass(key)}
               style={{
                 minWidth: key === 'SUBMIT' ? '70px' : key === 'BACKSPACE' ? '60px' : '32px',

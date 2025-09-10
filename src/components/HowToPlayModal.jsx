@@ -56,8 +56,14 @@ export default function HowToPlayModal({ onClose }) {
               <li>Type letters to guess words</li>
               <li>Press <kbd className="bg-gray-700 px-1 rounded">Enter</kbd> to submit</li>
               <li>Correct letters turn <span className="text-green-400">green</span></li>
-              <li>Use <strong className="text-sky-400">Hint</strong> to reveal a letter (turns <span className="text-yellow-400">yellow</span>)</li>
-              <li>Use <strong className="text-amber-400">Reveal steps</strong> to show where new letters were added</li>
+              <li>Use <strong className="text-sky-400">Hints</strong> dropdown for help:
+                <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
+                  <li><strong className="text-amber-400">Reveal step locations</strong> - Show where new letters were added</li>
+                  <li><strong className="text-blue-400">Reveal first letters</strong> - Show the first letter of each word</li>
+                  <li><strong className="text-purple-400">Filter keyboard</strong> - Hide letters not used in the puzzle</li>
+                  <li><strong className="text-green-400">Reveal step letters</strong> - Show the new letter added to each word</li>
+                </ul>
+              </li>
             </ul>
           </div>
         </div>
