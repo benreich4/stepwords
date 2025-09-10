@@ -492,18 +492,18 @@ export default function Game({ puzzle }) {
       <div className="px-3 text-center pt-4">
         {/* Smaller date on mobile */}
         {puzzle.date && (
-          <div className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-100 mb-1">
+          <div className="text-base sm:text-2xl md:text-3xl font-bold text-gray-100 mb-1">
             {formatLongDate(puzzle.date)}
           </div>
         )}
         {/* Author byline */}
         {puzzle.author && (
-          <div className="text-xs sm:text-sm text-gray-400 mb-3">
+          <div className="text-xs sm:text-sm text-gray-400 mb-2">
             By {puzzle.author}
           </div>
         )}
         {/* Puzzle title */}
-        <div className="text-sm sm:text-base text-gray-300 italic mb-3">
+        <div className="text-xs sm:text-base text-gray-300 italic mb-2">
           {puzzle.title}
         </div>
       </div>
