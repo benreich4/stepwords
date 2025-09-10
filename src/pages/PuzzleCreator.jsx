@@ -8,6 +8,7 @@ const PuzzleCreator = () => {
   const [path, setPath] = useState([]);
   const [subWords, setSubWords] = useState([]);
   const [addWords, setAddWords] = useState([]);
+  const [anagrams, setAnagrams] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
@@ -87,14 +88,22 @@ const PuzzleCreator = () => {
     return [...new Set(results)];
   };
 
+  // Find anagrams of the current word
+  const findAnagrams = (word) => {
+    const sorted = word.split('').sort().join('');
+    return wordDict[sorted] || [];
+  };
+
   // Update word options when current word changes
   useEffect(() => {
     if (currentWord && Object.keys(wordDict).length > 0) {
       setSubWords(findSubWords(currentWord));
       setAddWords(findAddWords(currentWord));
+      setAnagrams(findAnagrams(currentWord));
     } else {
       setSubWords([]);
       setAddWords([]);
+      setAnagrams([]);
     }
   }, [currentWord, wordDict]);
 
@@ -189,7 +198,7 @@ const PuzzleCreator = () => {
             <h2 className="text-xl font-semibold mb-4">Current Word: {currentWord}</h2>
             
             {/* Word Options */}
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
               {/* Previous Words (Sub Words) */}
               <div>
                 <h3 className="text-lg font-medium mb-3 flex items-center">
@@ -210,6 +219,34 @@ const PuzzleCreator = () => {
                     ))
                   ) : (
                     <p className="text-gray-400 italic">No previous words found</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Current Word Anagrams */}
+              <div>
+                <h3 className="text-lg font-medium mb-3 flex items-center">
+                  <span className="text-yellow-400 mr-2">↔</span>
+                  Anagrams ({anagrams.length})
+                </h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {anagrams.length > 0 ? (
+                    anagrams.map((word, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleWordSelect(word)}
+                        className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${
+                          word === currentWord 
+                            ? 'bg-yellow-600 border-yellow-500 text-white' 
+                            : 'bg-gray-800 hover:bg-gray-700 border-gray-600 hover:border-yellow-400'
+                        }`}
+                      >
+                        <span className="text-yellow-400 mr-2">↔</span>
+                        {word}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 italic">No anagrams found</p>
                   )}
                 </div>
               </div>
