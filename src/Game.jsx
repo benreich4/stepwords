@@ -604,7 +604,7 @@ export default function Game({ puzzle }) {
 
 
       <div 
-        className="flex-1 overflow-y-auto"
+        className="flex-1 overflow-y-auto pt-2"
         onClick={() => {
           console.log('Click handler:', { isMobile, hasInput: !!inputRef.current });
           if (!isMobile && inputRef.current) {
@@ -614,25 +614,25 @@ export default function Game({ puzzle }) {
         }}
       >
         {/* Hidden input for keyboard capture */}
-        <input
-          ref={inputRef}
-          onKeyDown={onKeyDown}
-          onChange={onTextInput}
-          value={ime}
+      <input
+        ref={inputRef}
+        onKeyDown={onKeyDown}
+        onChange={onTextInput}
+        value={ime}
           onBlur={() => {
             if (!isMobile) {
               setTimeout(() => inputRef.current?.focus(), 0);
             }
           }}
           inputMode={isMobile ? "none" : "latin"}
-          enterKeyHint="done"
-          autoCapitalize="none"
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
+        enterKeyHint="done"
+        autoCapitalize="none"
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
           className="absolute opacity-0 -left-[9999px] w-px h-px"
-          aria-hidden
-        />
+        aria-hidden
+      />
 
         <LetterGrid
           rows={rows}
@@ -643,13 +643,13 @@ export default function Game({ puzzle }) {
           level={level}
           cursor={cursor}
           onTileClick={(i, col) => {
-            setLevel(i);
-            setCursor(col);
+                        setLevel(i);
+                        setCursor(col);
             if (!isMobile) {
-              inputRef.current?.focus();
-            }
-          }}
-        />
+                        inputRef.current?.focus();
+                      }
+                    }}
+                  />
 
         <div className="h-6 mt-3 text-xs text-gray-300 px-3 pb-24">{message}</div>
       </div>
