@@ -37,7 +37,15 @@ export default function Home() {
 
   return (
     <div className="px-3 py-4">
-      <h1 className="text-2xl font-bold mb-3">Stepword Puzzles</h1>
+      <div className="flex justify-between items-center mb-3">
+        <h1 className="text-2xl font-bold">Stepword Puzzles</h1>
+        <Link 
+          to="/create" 
+          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors"
+        >
+          Create Puzzle
+        </Link>
+      </div>
       {err && <div className="text-red-400 mb-2">{err}</div>}
       <ul className="space-y-2">
         {puzzles.map((p) => {
