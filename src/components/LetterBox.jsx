@@ -15,8 +15,8 @@ export default function LetterBox({
   const base =
     "relative inline-flex items-center justify-center border rounded-[6px] " +
     "select-none uppercase font-bold leading-none " +
-    "w-7 aspect-square text-sm min-w-[20px] " +
-    "sm:w-8 sm:text-sm md:w-10 md:text-base";
+    "w-8 aspect-square text-base min-w-[24px] " +
+    "sm:w-9 sm:text-lg md:w-10 md:text-xl";
 
   return (
     <button type="button" onClick={onClick} className={`${base} ${stateClass}`}>

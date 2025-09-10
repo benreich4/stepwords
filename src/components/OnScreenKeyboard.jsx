@@ -31,7 +31,7 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
   };
 
   return (
-    <div className="w-full px-2 py-3 bg-gray-900 border-t border-gray-700">
+    <div className="fixed bottom-0 left-0 right-0 w-full px-2 py-3 bg-gray-900 border-t border-gray-700 z-20">
       {rows.map((row, rowIndex) => (
         <div key={rowIndex} className="flex justify-center gap-1 mb-1">
           {row.map((key) => (

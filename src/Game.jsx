@@ -406,21 +406,21 @@ export default function Game({ puzzle }) {
 
   return (
     <div className="w-screen h-screen bg-black flex flex-col">
-      <div className="px-3 text-center pt-6">
-        {/* Big date */}
+      <div className="px-3 text-center pt-4">
+        {/* Smaller date on mobile */}
         {puzzle.date && (
-          <div className="text-2xl sm:text-3xl font-bold text-gray-100 mb-1">
+          <div className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-100 mb-1">
             {formatLongDate(puzzle.date)}
           </div>
         )}
         {/* Author byline */}
         {puzzle.author && (
-          <div className="text-sm text-gray-400 mb-4">
+          <div className="text-xs sm:text-sm text-gray-400 mb-3">
             By {puzzle.author}
           </div>
         )}
         {/* Puzzle title */}
-        <div className="text-base text-gray-300 italic mb-4">
+        <div className="text-sm sm:text-base text-gray-300 italic mb-3">
           {puzzle.title}
         </div>
       </div>
@@ -520,15 +520,15 @@ export default function Game({ puzzle }) {
           }}
         />
 
-        <div className="h-6 mt-3 text-xs text-gray-300 px-3">{message}</div>
-
-        {/* On-screen keyboard */}
-        <OnScreenKeyboard
-          onKeyPress={handleKeyPress}
-          onEnter={handleEnter}
-          onBackspace={handleBackspace}
-        />
+        <div className="h-6 mt-3 text-xs text-gray-300 px-3 pb-24">{message}</div>
       </div>
+
+      {/* Sticky keyboard at bottom */}
+      <OnScreenKeyboard
+        onKeyPress={handleKeyPress}
+        onEnter={handleEnter}
+        onBackspace={handleBackspace}
+      />
    
       {showShare && (
         <ShareModal
