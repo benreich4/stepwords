@@ -5,6 +5,7 @@ import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import OnScreenKeyboard from "./components/OnScreenKeyboard.jsx";
 import { formatLongDate } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
+import { trackGameCompleted, trackHintUsed, trackPuzzleStarted, trackShare, trackError } from "./lib/analytics.js";
 export default function Game({ puzzle }) {
   const rows = puzzle.rows; // [{answer, clue}, ...] shortest→longest
   const stepIdx = computeStepIndices(rows);
@@ -85,6 +86,7 @@ export default function Game({ puzzle }) {
   const [shareText, setShareText] = useState("");
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showHintsDropdown, setShowHintsDropdown] = useState(false);
+  const [gameStartTime, setGameStartTime] = useState(Date.now());
   
 
   // Function to get letters used in all answers
@@ -114,6 +116,9 @@ export default function Game({ puzzle }) {
     
     setHintsUsed(newHintsUsed);
     setHintCount(prev => prev + 1);
+    
+    // Track hint usage
+    trackHintUsed(hintType, puzzle.id || 'unknown');
     
     // Apply the hint effects
     if (hintType === 'initialLetters') {
@@ -228,13 +233,16 @@ export default function Game({ puzzle }) {
     };
   }, [showHintsDropdown]);
 
-  // Show how to play modal on first visit
+  // Show how to play modal on first visit and track puzzle start
   useEffect(() => {
     const hasSeenHowToPlay = localStorage.getItem('stepwords-how-to-play');
     if (!hasSeenHowToPlay) {
       setShowHowToPlay(true);
     }
-  }, []);
+    
+    // Track puzzle start
+    trackPuzzleStarted(puzzle.id || 'unknown');
+  }, [puzzle.id]);
 
   const handleCloseHowToPlay = () => {
     setShowHowToPlay(false);
@@ -382,6 +390,14 @@ export default function Game({ puzzle }) {
         const share = buildEmojiShareGridFrom(rows, colorsAfter);
         setShareText(share);
         setShowShare(true);
+        
+        // Track game completion
+        trackGameCompleted(puzzle.id || 'unknown', {
+          hintCount,
+          guessCount,
+          wrongGuessCount,
+          completionTime: Date.now() - (gameStartTime || Date.now())
+        });
         
         // Clear saved state when puzzle is completed
         localStorage.removeItem(puzzleKey);
@@ -671,7 +687,15 @@ export default function Game({ puzzle }) {
           wrongGuessCount={wrongGuessCount}
           guessCount={guessCount}
           rowsLength={rows.length}
-          onClose={() => setShowShare(false)}
+          onClose={() => {
+            setShowShare(false);
+            // Track share action
+            trackShare(puzzle.id || 'unknown', {
+              hintCount,
+              guessCount,
+              wrongGuessCount
+            });
+          }}
         />
       )}
 

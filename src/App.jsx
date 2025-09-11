@@ -1,6 +1,19 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
+import { trackPageView } from "./lib/analytics.js";
+import { useEffect } from "react";
 
 export default function App() {
+  const location = useLocation();
+
+  // Track page views
+  useEffect(() => {
+    const pageName = location.pathname === '/' ? 'Home' : 
+                    location.pathname === '/create' ? 'Creator' : 
+                    location.pathname.startsWith('/puzzle/') ? 'Game' : 
+                    'Unknown';
+    trackPageView(pageName);
+  }, [location]);
+
   return (
     <div className="min-h-screen w-screen bg-black text-gray-100">
       <header className="w-full px-3 py-2 border-b border-gray-800">

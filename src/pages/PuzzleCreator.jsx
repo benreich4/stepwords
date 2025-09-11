@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { trackCreatorEvent } from '../lib/analytics.js';
 
 const PuzzleCreator = () => {
   const [currentWord, setCurrentWord] = useState('');
@@ -124,6 +125,9 @@ const PuzzleCreator = () => {
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
+      // Track word search
+      trackCreatorEvent('word_searched', { word: currentWord });
+      
       // Find the word in our dictionary
       const sorted = currentWord.split('').sort().join('');
       if (wordDict[sorted] && wordDict[sorted].includes(currentWord)) {
