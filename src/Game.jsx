@@ -5,7 +5,7 @@ import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import OnScreenKeyboard from "./components/OnScreenKeyboard.jsx";
 import { formatLongDate } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
-import { trackGameCompleted, trackHintUsed, trackPuzzleStarted, trackShare, trackError } from "./lib/analytics.js";
+import { trackGameCompleted, trackHintUsed, trackPuzzleStarted, trackShare } from "./lib/analytics.js";
 export default function Game({ puzzle }) {
   const rows = puzzle.rows; // [{answer, clue}, ...] shortest→longest
   const stepIdx = computeStepIndices(rows);

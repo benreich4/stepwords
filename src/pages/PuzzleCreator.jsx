@@ -1,151 +1,106 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { trackCreatorEvent } from '../lib/analytics.js';
 
-const PuzzleCreator = () => {
-  const [currentWord, setCurrentWord] = useState('');
-  const [wordList, setWordList] = useState([]);
-  const [wordDict, setWordDict] = useState({});
-  const [path, setPath] = useState([]);
-  const [subWords, setSubWords] = useState([]);
-  const [addWords, setAddWords] = useState([]);
-  const [anagrams, setAnagrams] = useState([]);
-  const [loading, setLoading] = useState(true);
+const PuzzleCreatorSimple = () => {
+  const [submissionWords, setSubmissionWords] = useState(['', '', '', '', '']);
+  const [submissionClues, setSubmissionClues] = useState(['', '', '', '', '']);
+  const [submissionAuthor, setSubmissionAuthor] = useState('');
+  const [submissionTitle, setSubmissionTitle] = useState('');
+  const [submissionStatus, setSubmissionStatus] = useState('');
+  const [showSubmissionForm, setShowSubmissionForm] = useState(false);
 
   const navigate = useNavigate();
 
-  // Load word list and build dictionary
-  useEffect(() => {
-    const loadWordList = async () => {
-      try {
-        const response = await fetch('/XwiWordList.txt');
-        const text = await response.text();
-        const lines = text.split('\n');
-        
-        // Filter words with frequency >= 30 and build dictionary
-        const words = lines
-          .map(line => line.split(';'))
-          .filter(parts => parts.length >= 2 && parseInt(parts[1]) >= 30)
-          .map(parts => parts[0].toLowerCase().trim())
-          .filter(word => word.length > 0);
+  const addWordRow = () => {
+    if (submissionWords.length < 15) {
+      setSubmissionWords([...submissionWords, '']);
+      setSubmissionClues([...submissionClues, '']);
+    }
+  };
 
-        // Group by sorted letters
-        const dict = {};
-        words.forEach(word => {
-          const sorted = word.split('').sort().join('');
-          if (!dict[sorted]) {
-            dict[sorted] = [];
-          }
-          if (!dict[sorted].includes(word)) {
-            dict[sorted].push(word);
-          }
+  const removeWordRow = (index) => {
+    if (submissionWords.length > 1) {
+      const newWords = submissionWords.filter((_, i) => i !== index);
+      const newClues = submissionClues.filter((_, i) => i !== index);
+      setSubmissionWords(newWords);
+      setSubmissionClues(newClues);
+    }
+  };
+
+  const updateWord = (index, value) => {
+    const newWords = [...submissionWords];
+    newWords[index] = value;
+    setSubmissionWords(newWords);
+  };
+
+  const updateClue = (index, value) => {
+    const newClues = [...submissionClues];
+    newClues[index] = value;
+    setSubmissionClues(newClues);
+  };
+
+  const submitPuzzle = async () => {
+    setSubmissionStatus('Submitting...');
+
+    // Check that all words and clues are filled
+    const hasEmptyWords = submissionWords.some(word => word.trim() === '');
+    const hasEmptyClues = submissionClues.some(clue => clue.trim() === '');
+    
+    if (hasEmptyWords || hasEmptyClues) {
+      setSubmissionStatus('Please fill in all words and clues');
+      return;
+    }
+
+    if (!submissionAuthor.trim()) {
+      setSubmissionStatus('Please enter your name');
+      return;
+    }
+
+    try {
+      const puzzleData = {
+        title: submissionTitle.trim() || 'Untitled Puzzle',
+        author: submissionAuthor.trim(),
+        date: new Date().toISOString().split('T')[0],
+        words: submissionWords.map(word => word.toLowerCase().trim()),
+        clues: submissionClues.map(clue => clue.trim()),
+        submittedAt: new Date().toISOString()
+      };
+
+      // Try API first, fallback to localStorage
+      try {
+        const response = await fetch('/api/submit-puzzle.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(puzzleData)
         });
 
-        setWordList(words);
-        setWordDict(dict);
-        setLoading(false);
+        if (!response.ok) {
+          throw new Error('API failed');
+        }
       } catch (error) {
-        console.error('Error loading word list:', error);
-        setLoading(false);
+        // Fallback to localStorage
+        const submissions = JSON.parse(localStorage.getItem('puzzleSubmissions') || '[]');
+        submissions.push(puzzleData);
+        localStorage.setItem('puzzleSubmissions', JSON.stringify(submissions));
       }
-    };
 
-    loadWordList();
-  }, []);
-
-  // Word finding functions (converted from Scala)
-  const subOptions = (word) => {
-    if (word.length === 1) return [];
-    return Array.from({ length: word.length }, (_, i) => 
-      word.slice(0, i) + word.slice(i + 1)
-    ).filter((value, index, self) => self.indexOf(value) === index);
-  };
-
-  const addOptions = (word) => {
-    return 'abcdefghijklmnopqrstuvwxyz'.split('').map(c => word + c);
-  };
-
-  const findSubWords = (word) => {
-    const options = subOptions(word);
-    const results = [];
-    options.forEach(option => {
-      const sorted = option.split('').sort().join('');
-      if (wordDict[sorted]) {
-        results.push(...wordDict[sorted]);
-      }
-    });
-    return [...new Set(results)];
-  };
-
-  const findAddWords = (word) => {
-    const options = addOptions(word);
-    const results = [];
-    options.forEach(option => {
-      const sorted = option.split('').sort().join('');
-      if (wordDict[sorted]) {
-        results.push(...wordDict[sorted]);
-      }
-    });
-    return [...new Set(results)];
-  };
-
-  // Find anagrams of the current word
-  const findAnagrams = (word) => {
-    const sorted = word.split('').sort().join('');
-    return wordDict[sorted] || [];
-  };
-
-  // Update word options when current word changes
-  useEffect(() => {
-    if (currentWord && Object.keys(wordDict).length > 0) {
-      setSubWords(findSubWords(currentWord));
-      setAddWords(findAddWords(currentWord));
-      setAnagrams(findAnagrams(currentWord));
-    } else {
-      setSubWords([]);
-      setAddWords([]);
-      setAnagrams([]);
-    }
-  }, [currentWord, wordDict]);
-
-  const handleWordSelect = (word) => {
-    setPath([...path, currentWord]);
-    setCurrentWord(word);
-  };
-
-  const handleBreadcrumbClick = (index) => {
-    const newPath = path.slice(0, index);
-    setPath(newPath);
-    setCurrentWord(newPath[newPath.length - 1] || '');
-  };
-
-  const handleInputChange = (e) => {
-    setCurrentWord(e.target.value.toLowerCase());
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      // Track word search
-      trackCreatorEvent('word_searched', { word: currentWord });
+      setSubmissionStatus('Puzzle submitted successfully! Thank you for your contribution.');
       
-      // Find the word in our dictionary
-      const sorted = currentWord.split('').sort().join('');
-      if (wordDict[sorted] && wordDict[sorted].includes(currentWord)) {
-        setPath([]);
-      }
+      // Reset form
+      setTimeout(() => {
+        setSubmissionWords(['', '', '', '', '']);
+        setSubmissionClues(['', '', '', '', '']);
+        setSubmissionAuthor('');
+        setSubmissionTitle('');
+        setSubmissionStatus('');
+      }, 3000);
+    } catch (error) {
+      console.error('Error submitting puzzle:', error);
+      setSubmissionStatus('Error submitting puzzle. Please try again.');
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading word list...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-black text-white p-4">
@@ -153,134 +108,125 @@ const PuzzleCreator = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Puzzle Creator</h1>
-          <p className="text-gray-400">Find word chains for your Stepwords puzzles</p>
+          <p className="text-gray-400">Create and submit your own Stepwords puzzles</p>
+          <div className="mt-4">
+            <a 
+              href="/explore" 
+              className="text-blue-400 hover:text-blue-300 underline"
+            >
+              Explore word chains →
+            </a>
+          </div>
         </div>
 
-        {/* Breadcrumb Navigation */}
-        {path.length > 0 && (
+        {/* Puzzle Submission Section */}
+        <div className="mt-8 pt-6 border-t border-gray-700">
           <div className="mb-6">
-            <div className="flex items-center space-x-2 text-sm">
-              <span className="text-gray-400">Path:</span>
-              {path.map((word, index) => (
-                <div key={index} className="flex items-center">
-                  <button
-                    onClick={() => handleBreadcrumbClick(index)}
-                    className="text-blue-400 hover:text-blue-300 underline"
-                  >
-                    {word}
-                  </button>
-                  {index < path.length - 1 && (
-                    <span className="mx-2 text-gray-400">→</span>
-                  )}
-                </div>
-              ))}
-              <span className="mx-2 text-gray-400">→</span>
-              <span className="text-white font-semibold">{currentWord}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Word Input */}
-        <div className="mb-8">
-          <label htmlFor="word-input" className="block text-sm font-medium mb-2">
-            Enter a word to find related words:
-          </label>
-          <input
-            id="word-input"
-            type="text"
-            value={currentWord}
-            onChange={handleInputChange}
-            onKeyPress={handleKeyPress}
-            placeholder="Type a word..."
-            className="w-full max-w-md px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-          />
-        </div>
-
-        {/* Current Word Display */}
-        {currentWord && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Current Word: {currentWord}</h2>
+            <h2 className="text-2xl font-bold mb-4">Submit a Puzzle</h2>
+            <p className="text-gray-400 mb-4">
+              Create and submit your own Stepwords puzzle for review. Each word must be an anagram of the previous word plus exactly one new letter.
+            </p>
             
-            {/* Word Options */}
-            <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
-              {/* Previous Words (Sub Words) */}
-              <div>
-                <h3 className="text-lg font-medium mb-3 flex items-center">
-                  <span className="text-green-400 mr-2">↓</span>
-                  Previous Words ({subWords.length})
-                </h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {subWords.length > 0 ? (
-                    subWords.map((word, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleWordSelect(word)}
-                        className="w-full text-left px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 hover:border-green-400 transition-colors"
-                      >
-                        <span className="text-green-400 mr-2">↓</span>
-                        {word}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-gray-400 italic">No previous words found</p>
-                  )}
+            <button
+              onClick={() => setShowSubmissionForm(!showSubmissionForm)}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors mb-4"
+            >
+              {showSubmissionForm ? 'Hide Submission Form' : 'Show Submission Form'}
+            </button>
+          </div>
+
+          {showSubmissionForm && (
+            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
+              {/* Puzzle Info */}
+              <div className="mb-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Your Name</label>
+                  <input
+                    type="text"
+                    value={submissionAuthor}
+                    onChange={(e) => setSubmissionAuthor(e.target.value)}
+                    placeholder="e.g., 'John Doe'"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                  />
                 </div>
               </div>
 
-              {/* Current Word Anagrams */}
-              <div>
-                <h3 className="text-lg font-medium mb-3 flex items-center">
-                  <span className="text-yellow-400 mr-2">↔</span>
-                  Anagrams ({anagrams.length})
-                </h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {anagrams.length > 0 ? (
-                    anagrams.map((word, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleWordSelect(word)}
-                        className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${
-                          word === currentWord 
-                            ? 'bg-yellow-600 border-yellow-500 text-white' 
-                            : 'bg-gray-800 hover:bg-gray-700 border-gray-600 hover:border-yellow-400'
-                        }`}
-                      >
-                        <span className="text-yellow-400 mr-2">↔</span>
-                        {word}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-gray-400 italic">No anagrams found</p>
-                  )}
+              {/* Words and Clues */}
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">Words & Clues</h3>
+                  <button
+                    onClick={addWordRow}
+                    disabled={submissionWords.length >= 15}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                  >
+                    + Add Word
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {submissionWords.map((word, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-start">
+                      <div className="md:col-span-2">
+                        <label className="block text-xs text-gray-400 mb-1">Word {index + 1}</label>
+                        <input
+                          type="text"
+                          value={word}
+                          onChange={(e) => updateWord(index, e.target.value)}
+                          placeholder={`${3 + index} letters`}
+                          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                        />
+                      </div>
+                      <div className="md:col-span-9">
+                        <label className="block text-xs text-gray-400 mb-1">Clue</label>
+                        <input
+                          type="text"
+                          value={submissionClues[index]}
+                          onChange={(e) => updateClue(index, e.target.value)}
+                          placeholder="Crossword-style clue"
+                          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                        />
+                      </div>
+                      <div className="md:col-span-1 flex items-end">
+                        {submissionWords.length > 1 && (
+                          <button
+                            onClick={() => removeWordRow(index)}
+                            className="px-2 py-2 bg-red-600 hover:bg-red-700 rounded text-sm transition-colors"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Next Words (Add Words) */}
-              <div>
-                <h3 className="text-lg font-medium mb-3 flex items-center">
-                  <span className="text-blue-400 mr-2">↑</span>
-                  Next Words ({addWords.length})
-                </h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {addWords.length > 0 ? (
-                    addWords.map((word, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleWordSelect(word)}
-                        className="w-full text-left px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 hover:border-blue-400 transition-colors"
-                      >
-                        <span className="text-blue-400 mr-2">↑</span>
-                        {word}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-gray-400 italic">No next words found</p>
-                  )}
-                </div>
+              {/* Submit Button and Status */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={submitPuzzle}
+                  disabled={submissionStatus === 'Submitting...'}
+                  className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors"
+                >
+                  {submissionStatus === 'Submitting...' ? 'Submitting...' : 'Submit Puzzle'}
+                </button>
+                
+                {submissionStatus && (
+                  <div className={`text-sm ${
+                    submissionStatus.includes('successfully') 
+                      ? 'text-green-400' 
+                      : submissionStatus.includes('Error') || submissionStatus.includes('Please')
+                      ? 'text-red-400'
+                      : 'text-yellow-400'
+                  }`}>
+                    {submissionStatus}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Back to Game */}
         <div className="mt-8 pt-6 border-t border-gray-700">
@@ -296,4 +242,4 @@ const PuzzleCreator = () => {
   );
 };
 
-export default PuzzleCreator;
+export default PuzzleCreatorSimple;

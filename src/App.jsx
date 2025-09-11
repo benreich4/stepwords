@@ -7,10 +7,7 @@ export default function App() {
 
   // Track page views
   useEffect(() => {
-    const pageName = location.pathname === '/' ? 'Home' : 
-                    location.pathname === '/create' ? 'Creator' : 
-                    location.pathname.startsWith('/puzzle/') ? 'Game' : 
-                    'Unknown';
+    const pageName = location.pathname.split('/')[1] || 'Home';
     trackPageView(pageName);
   }, [location]);
 

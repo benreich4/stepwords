@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import Home from "./pages/Home.jsx";
 import PuzzlePage from "./pages/PuzzlePage.jsx";
 import PuzzleCreator from "./pages/PuzzleCreator.jsx";
+import Explore from "./pages/Explore.jsx";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -19,6 +20,10 @@ const router = createBrowserRouter([
   {
     path: "/create",
     element: <PuzzleCreator />,
+  },
+  {
+    path: "/explore",
+    element: <Explore />,
   },
 ]);
 
