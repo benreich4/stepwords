@@ -65,8 +65,16 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
       </div>
       
       {/* Copyright notice */}
-      <div className="px-3 py-1 text-center text-xs text-gray-500 border-t border-gray-700">
-        © 2025 Stepwords™. All rights reserved.
+      <div className="px-3 py-1 text-xs text-gray-500 border-t border-gray-700">
+        <div className="flex justify-between items-center">
+          <span>© 2025 Stepwords™. All rights reserved.</span>
+          <a 
+            href="mailto:hello@stepwords.xyz"
+            className="text-sky-400 hover:underline"
+          >
+            hello@stepwords.xyz
+          </a>
+        </div>
       </div>
     </div>
   );

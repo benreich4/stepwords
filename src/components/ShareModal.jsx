@@ -35,6 +35,16 @@ export default function ShareModal({
           {shareText}
         </pre>
 
+        <div className="mb-3 text-center">
+          <p className="text-sm text-gray-300 mb-2">Would love to hear your thoughts and ideas!</p>
+          <a 
+            href="mailto:hello@stepwords.xyz"
+            className="text-sm text-sky-400 hover:underline"
+          >
+            hello@stepwords.xyz
+          </a>
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <a
             href="https://stepwords.xyz"
