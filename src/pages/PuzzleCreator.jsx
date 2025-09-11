@@ -167,6 +167,18 @@ const PuzzleCreatorSimple = () => {
                 <div className="space-y-4">
                   {submissionWords.map((word, index) => (
                     <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-start">
+                      {/* Remove button - only for words beyond required 3-7 letters */}
+                      <div className="md:col-span-1 flex items-end justify-center">
+                        {index >= 5 && (
+                          <button
+                            onClick={() => removeWordRow(index)}
+                            className="w-6 h-6 flex items-center justify-center bg-red-600 hover:bg-red-700 rounded text-white text-sm transition-colors"
+                            title="Remove this word"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
                       <div className="md:col-span-2">
                         <label className="block text-xs text-gray-400 mb-1">Word {index + 1}</label>
                         <input
@@ -186,16 +198,6 @@ const PuzzleCreatorSimple = () => {
                           placeholder="Crossword-style clue"
                           className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
                         />
-                      </div>
-                      <div className="md:col-span-1 flex items-end">
-                        {submissionWords.length > 1 && (
-                          <button
-                            onClick={() => removeWordRow(index)}
-                            className="px-2 py-2 bg-red-600 hover:bg-red-700 rounded text-sm transition-colors"
-                          >
-                            ×
-                          </button>
-                        )}
                       </div>
                     </div>
                   ))}

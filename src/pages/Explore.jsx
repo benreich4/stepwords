@@ -10,6 +10,8 @@ const Explore = () => {
   const [addWords, setAddWords] = useState([]);
   const [anagrams, setAnagrams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [minLength, setMinLength] = useState(10);
+  const [suggesting, setSuggesting] = useState(false);
 
   const navigate = useNavigate();
 
@@ -134,6 +136,100 @@ const Explore = () => {
     }
   };
 
+  // Suggest good starting points based on Scala logic
+  const suggestStartingPoint = () => {
+    if (wordList.length === 0 || Object.keys(wordDict).length === 0) return;
+    
+    setSuggesting(true);
+    
+    // Filter words by minimum length and shuffle
+    const candidates = wordList
+      .filter(word => word.length >= minLength)
+      .sort(() => Math.random() - 0.5); // Shuffle
+    
+    let bestWord = null;
+    let bestChainLength = 0;
+    
+    // Test up to 1000 random candidates to find good starting points
+    const testCount = Math.min(1000, candidates.length);
+    
+    for (let i = 0; i < testCount; i++) {
+      const word = candidates[i];
+      const chainLength = findMaxChainLength(word);
+      
+      // Only accept words that can form chains of length 5 or more
+      if (chainLength >= 5) {
+        bestWord = word;
+        bestChainLength = chainLength;
+        console.log(`Found good word: "${word}" with chain length ${chainLength}`);
+        break; // Use the first word we find with chain >= 5
+      }
+    }
+    
+    if (bestWord) {
+      setCurrentWord(bestWord);
+      setPath([]);
+    } else {
+      // If no word with chain >= 5 found, show a message
+      alert(`No words found with chains of length 5+ for minimum length ${minLength}. Tested ${testCount} candidates. Try lowering the minimum length.`);
+    }
+    
+    setSuggesting(false);
+  };
+
+  // Find the maximum chain length for a given word (implementing Scala dIterator logic)
+  const findMaxChainLength = (startWord) => {
+    if (!startWord || startWord.length < 2) return 1;
+    
+    const queue = [[startWord]]; // Start with the word as a single-element path
+    let maxLength = 1;
+    const visited = new Set();
+    let iterations = 0;
+    
+    while (queue.length > 0 && iterations < 1000) { // Prevent infinite loops
+      iterations++;
+      const currentPath = queue.shift();
+      const currentWord = currentPath[currentPath.length - 1];
+      const pathKey = currentPath.join('|');
+      
+      if (visited.has(pathKey)) continue;
+      visited.add(pathKey);
+      
+      // Find all valid sub-words (words that can be formed by removing one letter)
+      const subOpts = subOptions(currentWord);
+      const validSubWords = [];
+      
+      for (const option of subOpts) {
+        const sorted = option.split('').sort().join('');
+        const words = wordDict[sorted] || [];
+        
+        for (const word of words) {
+          // Avoid cycles - don't use words already in the current path
+          if (!currentPath.includes(word)) {
+            validSubWords.push(word);
+          }
+        }
+      }
+      
+      // Add each valid sub-word as a new path
+      for (const subWord of validSubWords) {
+        const newPath = [...currentPath, subWord];
+        queue.push(newPath);
+        maxLength = Math.max(maxLength, newPath.length);
+      }
+      
+      // Limit search depth to prevent excessive computation
+      if (maxLength >= 15) break;
+    }
+    
+    // Debug: log details for words with good chains
+    if (maxLength >= 3) {
+      console.log(`  "${startWord}" (${startWord.length} letters) -> max chain: ${maxLength}`);
+    }
+    
+    return maxLength;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -162,18 +258,49 @@ const Explore = () => {
           </div>
         </div>
 
-        {/* Word Input */}
+        {/* Word Input and Suggestions */}
         <div className="mb-8">
-          <div className="max-w-md">
+          <div className="max-w-2xl">
             <label className="block text-sm font-medium mb-2">Enter a word to explore:</label>
-            <input
-              type="text"
-              value={currentWord}
-              onChange={handleInputChange}
-              onKeyPress={handleKeyPress}
-              placeholder="Type a word..."
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
-            />
+            <div className="flex gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-xs text-gray-400 mb-1">Word:</label>
+                <input
+                  type="text"
+                  value={currentWord}
+                  onChange={handleInputChange}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type a word..."
+                  className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Min Length:</label>
+                  <input
+                    type="number"
+                    value={minLength}
+                    onChange={(e) => setMinLength(parseInt(e.target.value) || 10)}
+                    min="3"
+                    max="20"
+                    className="w-16 px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none text-center"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">&nbsp;</label>
+                  <button
+                    onClick={suggestStartingPoint}
+                    disabled={suggesting || wordList.length === 0}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium h-10"
+                  >
+                    {suggesting ? 'Finding...' : '🎯 Suggest'}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              The suggest button finds words that can form long chains for better puzzle creation
+            </p>
           </div>
         </div>
 
@@ -294,4 +421,4 @@ const Explore = () => {
   );
 };
 
-export default Explore;
+export default Explore
