@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { trackPageView } from "./lib/analytics.js";
+// Inline analytics - no separate module needed
 import { useEffect } from "react";
 
 export default function App() {
@@ -8,7 +8,14 @@ export default function App() {
   // Track page views
   useEffect(() => {
     const pageName = location.pathname.split('/')[1] || 'Home';
-    trackPageView(pageName);
+    // Track page view
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'page_view', { page_name: pageName });
+      }
+    } catch (error) {
+      // Silently fail
+    }
   }, [location]);
 
   return (

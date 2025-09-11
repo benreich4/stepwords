@@ -5,7 +5,7 @@ import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import OnScreenKeyboard from "./components/OnScreenKeyboard.jsx";
 import { formatLongDate } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
-import { trackGameCompleted, trackHintUsed, trackPuzzleStarted, trackShare } from "./lib/analytics.js";
+// Inline analytics - no separate module needed
 export default function Game({ puzzle }) {
   const rows = puzzle.rows; // [{answer, clue}, ...] shortest→longest
   const stepIdx = computeStepIndices(rows);
@@ -118,7 +118,16 @@ export default function Game({ puzzle }) {
     setHintCount(prev => prev + 1);
     
     // Track hint usage
-    trackHintUsed(hintType, puzzle.id || 'unknown');
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'hint_used', { 
+          hint_type: hintType, 
+          puzzle_id: puzzle.id || 'unknown' 
+        });
+      }
+    } catch (error) {
+      // Silently fail
+    }
     
     // Apply the hint effects
     if (hintType === 'initialLetters') {
@@ -241,7 +250,15 @@ export default function Game({ puzzle }) {
     }
     
     // Track puzzle start
-    trackPuzzleStarted(puzzle.id || 'unknown');
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'puzzle_started', { 
+          puzzle_id: puzzle.id || 'unknown' 
+        });
+      }
+    } catch (error) {
+      // Silently fail
+    }
   }, [puzzle.id]);
 
   const handleCloseHowToPlay = () => {
@@ -392,12 +409,19 @@ export default function Game({ puzzle }) {
         setShowShare(true);
         
         // Track game completion
-        trackGameCompleted(puzzle.id || 'unknown', {
-          hintCount,
-          guessCount,
-          wrongGuessCount,
-          completionTime: Date.now() - (gameStartTime || Date.now())
-        });
+        try {
+          if (window.gtag && typeof window.gtag === 'function') {
+            window.gtag('event', 'game_completed', {
+              puzzle_id: puzzle.id || 'unknown',
+              hints_used: hintCount,
+              total_guesses: guessCount,
+              wrong_guesses: wrongGuessCount,
+              completion_time: Date.now() - (gameStartTime || Date.now())
+            });
+          }
+        } catch (error) {
+          // Silently fail
+        }
         
         // Clear saved state when puzzle is completed
         localStorage.removeItem(puzzleKey);
@@ -690,11 +714,17 @@ export default function Game({ puzzle }) {
           onClose={() => {
             setShowShare(false);
             // Track share action
-            trackShare(puzzle.id || 'unknown', {
-              hintCount,
-              guessCount,
-              wrongGuessCount
-            });
+            try {
+              if (window.gtag && typeof window.gtag === 'function') {
+                window.gtag('event', 'puzzle_shared', {
+                  puzzle_id: puzzle.id || 'unknown',
+                  hints_used: hintCount,
+                  total_guesses: guessCount
+                });
+              }
+            } catch (error) {
+              // Silently fail
+            }
           }}
         />
       )}
