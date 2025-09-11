@@ -21,6 +21,7 @@ export default function HowToPlayModal({ onClose }) {
           
           <p>
             Each word has a <strong className="text-white">crossword-style clue</strong> to help you figure it out.
+            Every clue includes the length of each word in the answer (e.g. <span className="text-gray-400"> Audit (3,2,2)</span> is a clue for <span className="text-gray-400">sit in on</span>).
           </p>
           
           <div className="bg-gray-800 rounded-lg p-4 my-4">
