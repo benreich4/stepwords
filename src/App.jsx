@@ -21,7 +21,11 @@ export default function App() {
   return (
     <div className="min-h-screen w-screen bg-black text-gray-100">
       <header className="w-full px-3 py-2 border-b border-gray-800">
-        <Link to="/" className="text-lg font-semibold">Stepword Puzzles – by Ben Reich</Link>
+        <div className="flex justify-end">
+          <Link to="/archives" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
+            Archives
+          </Link>
+        </div>
       </header>
       <main className="w-full">
         <Outlet />

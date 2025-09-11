@@ -1,78 +1,68 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchManifest } from "../lib/puzzles.js";
-import { formatLongDate } from "../lib/date.js"
+import { fetchManifest, loadPuzzleById } from "../lib/puzzles.js";
+import Game from "../Game.jsx";
 
 export default function Home() {
-  const [puzzles, setPuzzles] = useState([]);
+  const [puzzle, setPuzzle] = useState(null);
   const [err, setErr] = useState("");
-
-  // Check if a puzzle is completed
-  const isPuzzleCompleted = (puzzleId) => {
-    const completedPuzzles = localStorage.getItem('stepwords-completed');
-    if (!completedPuzzles) return false;
-    
-    try {
-      const parsed = JSON.parse(completedPuzzles);
-      return parsed.includes(puzzleId);
-    } catch {
-      return false;
-    }
-  };
-
-  // Check if a puzzle has been started (has saved state)
-  const isPuzzleStarted = (puzzleId) => {
-    return localStorage.getItem(`stepwords-${puzzleId}`) !== null;
-  };
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     document.title = "Stepword Puzzles";
+    
     fetchManifest()
       .then((list) => {
-        // optional: sort by date desc if you like
-        setPuzzles(list);
+        if (list.length === 0) {
+          setErr("No puzzles available");
+          setLoading(false);
+          return;
+        }
+        
+        // Sort by date desc and get the most recent puzzle
+        const sortedPuzzles = list.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const mostRecent = sortedPuzzles[0];
+        
+        // Load the most recent puzzle
+        return loadPuzzleById(mostRecent.id);
       })
-      .catch((e) => setErr(e.message));
+      .then((puzzleData) => {
+        if (puzzleData) {
+          setPuzzle(puzzleData);
+          // Set document title with day of week
+          const date = new Date(puzzleData.date);
+          const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+          document.title = `Stepword Puzzle – ${dayOfWeek}, ${puzzleData.date}`;
+        }
+        setLoading(false);
+      })
+      .catch((e) => {
+        setErr(e.message);
+        setLoading(false);
+      });
   }, []);
 
-  return (
-    <div className="px-3 py-4">
-      <div className="flex justify-between items-center mb-3">
-        <h1 className="text-2xl font-bold">Stepword Puzzles</h1>
-        <Link 
-          to="/create" 
-          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors"
-        >
-          Create Puzzle
-        </Link>
+  if (loading) {
+    return <div className="px-3 py-4 text-gray-400">Loading most recent puzzle…</div>;
+  }
+
+  if (err) {
+    return (
+      <div className="px-3 py-4">
+        <div className="text-red-400 mb-2">{err}</div>
+        <Link to="/archives" className="text-sky-400 hover:underline">← View Archives</Link>
       </div>
-      {err && <div className="text-red-400 mb-2">{err}</div>}
-      <ul className="space-y-2">
-        {puzzles.map((p) => {
-          const completed = isPuzzleCompleted(p.id);
-          const started = isPuzzleStarted(p.id);
-          
-          return (
-            <li key={p.id} className="flex items-center gap-2">
-              <div className="w-5 h-5 flex items-center justify-center">
-                {completed ? (
-                  <span className="text-green-400 text-lg">✓</span>
-                ) : started ? (
-                  <div className="w-4 h-4 border-2 border-gray-500 rounded"></div>
-                ) : (
-                  <div className="w-4 h-4 border-2 border-gray-600 rounded"></div>
-                )}
-              </div>
-              <Link className="text-sky-400 hover:underline flex-1" to={`/${p.id}`}>
-                #{p.id} — {formatLongDate(p.date) || "Unknown date"} by {p.author || "Unknown"}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      {!puzzles.length && !err && (
-        <div className="text-gray-400 mt-4">No puzzles found.</div>
-      )}
-    </div>
-  );
+    );
+  }
+
+  if (!puzzle) {
+    return (
+      <div className="px-3 py-4">
+        <div className="text-gray-400 mb-2">No puzzles available</div>
+        <Link to="/archives" className="text-sky-400 hover:underline">← View Archives</Link>
+      </div>
+    );
+  }
+
+  return <Game puzzle={puzzle} />;
 }

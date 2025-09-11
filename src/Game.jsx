@@ -3,7 +3,7 @@ import LetterGrid from "./components/LetterGrid.jsx";
 import ShareModal from "./components/ShareModal.jsx";
 import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import OnScreenKeyboard from "./components/OnScreenKeyboard.jsx";
-import { formatLongDate } from "./lib/date.js";
+import { formatDateWithDayOfWeek } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 // Inline analytics - no separate module needed
 export default function Game({ puzzle }) {
@@ -533,8 +533,8 @@ export default function Game({ puzzle }) {
       <div className="px-3 text-center pt-4">
         {/* Smaller date on mobile */}
         {puzzle.date && (
-          <div className="text-base sm:text-2xl md:text-3xl font-bold text-gray-100 mb-1">
-            {formatLongDate(puzzle.date)}
+          <div className="text-sm sm:text-lg md:text-xl font-bold text-gray-100 mb-1">
+            {formatDateWithDayOfWeek(puzzle.date)}
           </div>
         )}
         {/* Author byline */}

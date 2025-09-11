@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App.jsx";
 import Home from "./pages/Home.jsx";
+import Archives from "./pages/Archives.jsx";
 import PuzzlePage from "./pages/PuzzlePage.jsx";
 import PuzzleCreator from "./pages/PuzzleCreator.jsx";
 import Explore from "./pages/Explore.jsx";
@@ -14,6 +15,7 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <Home /> },
+      { path: "/archives", element: <Archives /> },
       { path: "/:puzzleId", element: <PuzzlePage /> },
     ],
   },

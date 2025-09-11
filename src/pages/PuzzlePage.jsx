@@ -2,6 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Game from "../Game.jsx";
 import { loadPuzzleById } from "../lib/puzzles.js";
+import { formatDateWithDayOfWeek } from "../lib/date.js";
 
 export default function PuzzlePage() {
   const { puzzleId } = useParams();
@@ -17,7 +18,8 @@ export default function PuzzlePage() {
       .then((json) => {
         if (!mounted) return;
         setData(json);
-        document.title = `Stepword Puzzle – #${json.id}${json.date ? ` (${json.date})` : ""}`;
+        const dateStr = json.date ? formatDateWithDayOfWeek(json.date) : "";
+        document.title = `Stepword Puzzle – #${json.id}${dateStr ? ` (${dateStr})` : ""}`;
       })
       .catch((e) => {
         if (!mounted) return;
