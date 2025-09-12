@@ -467,7 +467,7 @@ export default function Game({ puzzle }) {
     if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
 
     if (e.key === "Tab") { e.preventDefault(); moveLevel(e.shiftKey ? -1 : 1); return; }
-    if (e.key === "Enter") { e.preventDefault(); submitRow(level); return; }
+    if (e.key === "Enter") { e.preventDefault(); handleEnter(); return; }
     if (e.key === "Backspace") {
       e.preventDefault();
       handleBackspace();
@@ -495,6 +495,20 @@ export default function Game({ puzzle }) {
   };
 
   const handleEnter = () => {
+    const len = rowLen(level);
+    const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
+    // Prevent submit unless all non-blocked positions are filled
+    let allFilled = true;
+    for (let col = 0; col < len; col++) {
+      if (!isBlocked(level, col) && cur[col] === " ") {
+        allFilled = false;
+        break;
+      }
+    }
+    if (!allFilled) {
+      setMessage("Complete the word to submit");
+      return; // ignore Enter if incomplete
+    }
     submitRow(level);
   };
 
@@ -693,7 +707,7 @@ export default function Game({ puzzle }) {
                     }}
                   />
 
-        <div className="h-6 mt-3 text-xs text-gray-300 px-3 pb-24">{message}</div>
+        <div className="text-xs text-gray-300 px-3 mt-1 mb-2">{message}</div>
       </div>
 
       {/* Sticky keyboard at bottom */}

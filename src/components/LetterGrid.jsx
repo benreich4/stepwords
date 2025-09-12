@@ -13,7 +13,7 @@ export default function LetterGrid({
   // Find the longest word length in the puzzle
   const maxWordLength = Math.max(...rows.map(row => row.answer.length));
   return (
-    <div className="w-full flex flex-col items-start gap-1 select-none pl-2 pr-0 pb-12">
+    <div className="w-full flex flex-col items-start gap-1 select-none pl-2 pr-0 pb-0">
       {rows.map((r, i) => {
         const len = r.answer.length;
         const showVal = (guesses[i] || "").toUpperCase();
