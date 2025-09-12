@@ -20,9 +20,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-screen bg-black text-gray-100">
-      <header className="w-full px-3 py-2 border-b border-gray-800">
+      <header className="w-full px-2 py-1 border-b border-gray-800">
         <div className="flex justify-end">
-          <Link to="/archives" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
+          <Link to="/archives" className="text-xs text-gray-400 hover:text-gray-200 transition-colors">
             Archives
           </Link>
         </div>
