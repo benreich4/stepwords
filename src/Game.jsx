@@ -30,6 +30,8 @@ export default function Game({ puzzle }) {
             initialLetters: false,
             stepLetters: false
           },
+          rowsInitialHintUsed: parsed.rowsInitialHintUsed || rows.map(() => false),
+          rowsStepHintUsed: parsed.rowsStepHintUsed || rows.map(() => false),
           hintCount: parsed.hintCount || 0,
           guessCount: parsed.guessCount || 0,
           wrongGuessCount: parsed.wrongGuessCount || 0,
@@ -51,6 +53,8 @@ export default function Game({ puzzle }) {
         initialLetters: false,
         stepLetters: false
       },
+      rowsInitialHintUsed: rows.map(() => false),
+      rowsStepHintUsed: rows.map(() => false),
       hintCount: 0,
       guessCount: 0,
       wrongGuessCount: 0,
@@ -68,13 +72,34 @@ export default function Game({ puzzle }) {
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  // Settings (persisted)
+  const [settings, setSettings] = useState(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}');
+      return { hardMode: s.hardMode !== false };
+    } catch {
+      return { hardMode: true };
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode })); } catch {}
+  }, [settings]);
+  const [showSettings, setShowSettings] = useState(false);
+  // Lock Easy mode per-puzzle once enabled
+  const [easyLocked, setEasyLocked] = useState(() => {
+    try { return Boolean(localStorage.getItem(`${puzzleKey}-easy-locked`)); } catch { return false; }
+  });
+  const [easyThisPuzzle, setEasyThisPuzzle] = useState(() => {
+    try { return Boolean(localStorage.getItem(`${puzzleKey}-easy-locked`)); } catch { return false; }
+  });
   // New hint system: 3 types of hints
   const [hintsUsed, setHintsUsed] = useState(savedState.hintsUsed || {
-    stepLocations: false,
     initialLetters: false,
     stepLetters: false,
     filterKeyboard: false
   });
+  const [rowsInitialHintUsed, setRowsInitialHintUsed] = useState(savedState.rowsInitialHintUsed || rows.map(() => false));
+  const [rowsStepHintUsed, setRowsStepHintUsed] = useState(savedState.rowsStepHintUsed || rows.map(() => false));
   // Colors now simplified: 'G' for correct, 'Y' for hinted or previously incorrect
   const [wasWrong, setWasWrong] = useState(savedState.wasWrong);
   // Session stats
@@ -105,42 +130,61 @@ export default function Game({ puzzle }) {
 
   // New hint functions
   function useHint(hintType) {
-    if (hintsUsed[hintType]) return; // Already used
-    
-    const newHintsUsed = { ...hintsUsed, [hintType]: true };
-    
-    // If using step letters, also enable step locations
-    if (hintType === 'stepLetters') {
-      newHintsUsed.stepLocations = true;
-    }
-    
-    setHintsUsed(newHintsUsed);
-    setHintCount(prev => prev + 1);
-    
-    // Track hint usage
-    try {
-      if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'hint_used', { 
-          hint_type: hintType, 
-          puzzle_id: puzzle.id || 'unknown' 
-        });
-      }
-    } catch (error) {
-      // Silently fail
-    }
-    
-    // Apply the hint effects
     if (hintType === 'initialLetters') {
+      if (rowsInitialHintUsed[level]) return;
+      setRowsInitialHintUsed(prev => {
+        const next = [...prev];
+        next[level] = true;
+        return next;
+      });
+      setHintCount(prev => prev + 1);
+      try {
+        if (window.gtag && typeof window.gtag === 'function') {
+          window.gtag('event', 'hint_used', { hint_type: hintType, puzzle_id: puzzle.id || 'unknown' });
+        }
+      } catch {}
       applyInitialLettersHint();
-    } else if (hintType === 'stepLetters') {
+      return;
+    }
+    if (hintType === 'stepLetters') {
+      if (rowsStepHintUsed[level]) return;
+      setRowsStepHintUsed(prev => {
+        const next = [...prev];
+        next[level] = true;
+        return next;
+      });
+      setHintCount(prev => prev + 1);
+      try {
+        if (window.gtag && typeof window.gtag === 'function') {
+          window.gtag('event', 'hint_used', { hint_type: hintType, puzzle_id: puzzle.id || 'unknown' });
+        }
+      } catch {}
       applyStepLettersHint();
+      return;
+    }
+    if (hintType === 'filterKeyboard') {
+      if (easyThisPuzzle || easyLocked) return;
+      try { localStorage.setItem(`${puzzleKey}-easy-locked`, '1'); } catch {}
+      setEasyLocked(true);
+      setEasyThisPuzzle(true);
+      if (!hintsUsed.filterKeyboard) {
+        setHintsUsed(prev => ({ ...prev, filterKeyboard: true }));
+        setHintCount(prev => prev + 1);
+        try {
+          if (window.gtag && typeof window.gtag === 'function') {
+            window.gtag('event', 'hint_used', { hint_type: hintType, puzzle_id: puzzle.id || 'unknown' });
+          }
+        } catch {}
+      }
+      return;
     }
   }
   
   function applyInitialLettersHint() {
+    // Apply only to current level
     const newLockColors = lockColors.map((rowColors, rowIndex) => {
+      if (rowIndex !== level) return rowColors;
       const newRowColors = [...rowColors];
-      // Reveal first letter of each word
       if (newRowColors[0] === null) {
         newRowColors[0] = "Y"; // Yellow for hinted
       }
@@ -164,35 +208,29 @@ export default function Game({ puzzle }) {
   }
   
   function applyStepLettersHint() {
+    // Apply only to current level
     const newLockColors = lockColors.map((rowColors, rowIndex) => {
+      if (rowIndex !== level) return rowColors;
       const newRowColors = [...rowColors];
-      const stepCol = stepIdx[rowIndex]; // This is a single number, not an array
-      
-      // Reveal step letter (the new letter added) - skip first row (stepCol === -1)
+      const stepCol = stepIdx[rowIndex];
       if (stepCol !== -1 && stepCol !== undefined && newRowColors[stepCol] === null) {
-        newRowColors[stepCol] = "Y"; // Yellow for hinted
+        newRowColors[stepCol] = "Y";
       }
       return newRowColors;
     });
     
-    // Update all guesses at once
+    // Update guess only for current level
     const newGuesses = guesses.map((guess, rowIndex) => {
-      const stepCol = stepIdx[rowIndex]; // This is a single number, not an array
+      if (rowIndex !== level) return guess;
+      const stepCol = stepIdx[rowIndex];
       const ans = rows[rowIndex].answer.toUpperCase();
       const ansLen = ans.length;
       let newGuess = (guess || "").toUpperCase();
-      
-      // Check if this step column was just revealed (was null before, now Y)
-      if (stepCol !== -1 && stepCol !== undefined && 
-          lockColors[rowIndex][stepCol] === null && newLockColors[rowIndex][stepCol] === "Y") {
-        // Pad the guess to the correct length first
+      if (stepCol !== -1 && stepCol !== undefined && lockColors[rowIndex][stepCol] === null && newLockColors[rowIndex][stepCol] === "Y") {
         newGuess = newGuess.padEnd(ansLen, " ").slice(0, ansLen);
-        // Then insert the step letter at the correct position
         newGuess = newGuess.slice(0, stepCol) + ans[stepCol] + newGuess.slice(stepCol + 1);
-        // Remove trailing spaces
         newGuess = newGuess.trimEnd();
       }
-      
       return newGuess;
     });
     
@@ -286,6 +324,8 @@ export default function Game({ puzzle }) {
         cursor,
         wasWrong,
         hintsUsed,
+        rowsInitialHintUsed,
+        rowsStepHintUsed,
         hintCount,
         guessCount,
         wrongGuessCount,
@@ -580,9 +620,7 @@ export default function Game({ puzzle }) {
       </div>
       
       <div className="w-full px-3 py-2 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20">
-        <div className="flex items-center gap-2">
-          {/* Empty left side */}
-        </div>
+        <div className="flex items-center gap-2" />
         
         <div className="flex items-center gap-2">
           <div className="relative hints-dropdown">
@@ -597,63 +635,55 @@ export default function Game({ puzzle }) {
               <div className="absolute right-0 top-full mt-1 w-48 bg-gray-800 border border-gray-600 rounded-md shadow-lg">
                 <button
                   onClick={() => {
-                    useHint('stepLocations');
-                    setShowHintsDropdown(false);
-                  }}
-                  disabled={hintsUsed.stepLocations}
-                  className={
-                    "w-full text-left px-3 py-2 text-xs border-b border-gray-600 " +
-                    (hintsUsed.stepLocations
-                      ? "text-amber-300 bg-amber-900/20 cursor-default"
-                      : "text-gray-300 hover:bg-gray-700")
-                  }
-                >
-                  {hintsUsed.stepLocations ? "✓ Reveal step locations" : "Reveal step locations"}
-                </button>
-                <button
-                  onClick={() => {
                     useHint('initialLetters');
                     setShowHintsDropdown(false);
                   }}
-                  disabled={hintsUsed.initialLetters}
+                  disabled={rowsInitialHintUsed[level]}
                   className={
                     "w-full text-left px-3 py-2 text-xs border-b border-gray-600 " +
-                    (hintsUsed.initialLetters
+                    (rowsInitialHintUsed[level]
                       ? "text-blue-300 bg-blue-900/20 cursor-default"
                       : "text-gray-300 hover:bg-gray-700")
                   }
                 >
-                  {hintsUsed.initialLetters ? "✓ Reveal first letters" : "Reveal first letters"}
-                </button>
-                <button
-                  onClick={() => {
-                    useHint('filterKeyboard');
-                    setShowHintsDropdown(false);
-                  }}
-                  disabled={hintsUsed.filterKeyboard}
-                  className={
-                    "w-full text-left px-3 py-2 text-xs border-b border-gray-600 " +
-                    (hintsUsed.filterKeyboard
-                      ? "text-purple-300 bg-purple-900/20 cursor-default"
-                      : "text-gray-300 hover:bg-gray-700")
-                  }
-                >
-                  {hintsUsed.filterKeyboard ? "✓ Filter keyboard" : "Filter keyboard"}
+                  {rowsInitialHintUsed[level] ? "✓ First letter" : "Reveal first letter"}
                 </button>
                 <button
                   onClick={() => {
                     useHint('stepLetters');
                     setShowHintsDropdown(false);
                   }}
-                  disabled={hintsUsed.stepLetters}
+                  disabled={rowsStepHintUsed[level]}
                   className={
-                    "w-full text-left px-3 py-2 text-xs " +
-                    (hintsUsed.stepLetters
+                    "w-full text-left px-3 py-2 text-xs border-b border-gray-600 " +
+                    (rowsStepHintUsed[level]
                       ? "text-green-300 bg-green-900/20 cursor-default"
                       : "text-gray-300 hover:bg-gray-700")
                   }
                 >
-                  {hintsUsed.stepLetters ? "✓ Reveal step letters" : "Reveal step letters"}
+                  {rowsStepHintUsed[level] ? "✓ Step letter" : "Reveal step letter"}
+                </button>
+                <button
+                  onClick={() => {
+                    if (!(easyThisPuzzle || easyLocked)) {
+                      try { localStorage.setItem(`${puzzleKey}-easy-locked`, '1'); } catch {}
+                      setEasyLocked(true);
+                      setEasyThisPuzzle(true);
+                      if (!hintsUsed.filterKeyboard) {
+                        useHint('filterKeyboard');
+                      }
+                    }
+                    setShowHintsDropdown(false);
+                  }}
+                  disabled={easyThisPuzzle || easyLocked}
+                  className={
+                    "w-full text-left px-3 py-2 text-xs " +
+                    ((easyThisPuzzle || easyLocked)
+                      ? "text-purple-300 bg-purple-900/20 cursor-default"
+                      : "text-gray-300 hover:bg-gray-700")
+                  }
+                >
+                  {(easyThisPuzzle || easyLocked) ? "✓ Filter keyboard" : "Filter keyboard"}
                 </button>
               </div>
             )}
@@ -664,6 +694,25 @@ export default function Game({ puzzle }) {
           >
             How to Play
           </button>
+          {/* Settings gear moved to right */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSettings((v) => !v)}
+              className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
+              aria-label="Settings"
+            >
+              ⚙️
+            </button>
+            {showSettings && (
+              <div className="absolute right-0 top-full mt-1 w-56 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-2 text-xs">
+                <label className="flex items-center justify-between py-1">
+                  <span className="text-gray-300">Hard mode</span>
+                  <input type="checkbox" checked={settings.hardMode} onChange={(e) => setSettings(s => ({ ...s, hardMode: e.target.checked }))} />
+                </label>
+                <div className="text-[10px] text-gray-400">Hides step locations (🪜) until revealed. Saved as your default.</div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -711,7 +760,7 @@ export default function Game({ puzzle }) {
           guesses={guesses}
           lockColors={lockColors}
           stepIdx={stepIdx}
-          stepsRevealed={hintsUsed.stepLocations}
+          hardMode={settings.hardMode}
           level={level}
           cursor={cursor}
           onTileClick={(i, col) => {
@@ -731,7 +780,7 @@ export default function Game({ puzzle }) {
         onKeyPress={handleKeyPress}
         onEnter={handleEnter}
         onBackspace={handleBackspace}
-        filteredLetters={hintsUsed.filterKeyboard ? lettersUsedInAnswers : null}
+        filteredLetters={(easyThisPuzzle || easyLocked) ? lettersUsedInAnswers : null}
       />
    
       {showShare && (

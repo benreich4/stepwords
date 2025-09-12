@@ -52,14 +52,14 @@ export default function HowToPlayModal({ onClose }) {
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>Correct letters turn <span className="text-green-400">green</span></li>
               <li>Letters that took multiple guesses or required a hint turn <span className="text-yellow-400">yellow</span></li>
-              <li>Use <strong className="text-sky-400">Hints</strong> for help:
+              <li>Use <strong className="text-sky-400">Hints</strong> for help (they apply to the currently selected row):
                 <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
-                  <li><strong className="text-amber-400">Step locations</strong> - Show 🪜 icons</li>
-                  <li><strong className="text-blue-400">First letters</strong> - Reveal starting letters</li>
-                  <li><strong className="text-purple-400">Filter keyboard</strong> - Hide unused letters</li>
-                  <li><strong className="text-green-400">Step letters</strong> - Show new letters added</li>
+                  <li><strong className="text-blue-400">First letter</strong> — Reveals the first letter for this row (one-time per row)</li>
+                  <li><strong className="text-green-400">Step letter</strong> — Reveals the newly added letter for this row (one-time per row)</li>
+                  <li><strong className="text-purple-400">Filter keyboard</strong> — Hides letters not used anywhere in this puzzle (one-way per puzzle)</li>
                 </ul>
               </li>
+              <li><strong>Hard mode</strong> — 🪜 ladder icons are hidden by default; reveal them using hints</li>
             </ul>
           </div>
         </div>

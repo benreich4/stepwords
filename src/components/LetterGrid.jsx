@@ -5,7 +5,7 @@ export default function LetterGrid({
   guesses,
   lockColors,
   stepIdx,
-  stepsRevealed,
+  hardMode = true,
   level,
   cursor,
   onTileClick,
@@ -27,7 +27,7 @@ export default function LetterGrid({
                   char={showVal[col] || ""}
                   state={lockColors[i][col]}
                   isCursor={i === level && col === cursor}
-                  showStep={i >= 1 && col === stepPos && (stepsRevealed || lockColors[i][stepPos] !== null)}
+                  showStep={i >= 1 && col === stepPos && (hardMode ? lockColors[i][stepPos] !== null : true)}
                   onClick={() => onTileClick(i, col)}
                   maxWordLength={maxWordLength}
                 />
