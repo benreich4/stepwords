@@ -76,9 +76,9 @@ export default function Game({ puzzle }) {
   const [settings, setSettings] = useState(() => {
     try {
       const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}');
-      return { hardMode: s.hardMode !== false };
+      return { hardMode: s.hardMode === true };
     } catch {
-      return { hardMode: true };
+      return { hardMode: false };
     }
   });
   useEffect(() => {
