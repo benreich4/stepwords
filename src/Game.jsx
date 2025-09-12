@@ -345,21 +345,22 @@ export default function Game({ puzzle }) {
 
   function typeChar(ch) {
     const len = rowLen(level);
-
-    // If current cell is blocked (locked or hint-revealed), jump to the next available
-    if (isBlocked(level, cursor)) {
-      const nextPos = nearestUnlockedInRow(level, cursor);
+    // Determine target position respecting locks
+    let targetPos = cursor;
+    if (isBlocked(level, targetPos)) {
+      const nextPos = nearestUnlockedInRow(level, targetPos);
       if (nextPos === -1) return; // row fully blocked
+      targetPos = nextPos;
       setCursor(nextPos);
     }
 
     const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
-    const next = (cur.slice(0, cursor) + ch.toUpperCase() + cur.slice(cursor + 1))
+    const next = (cur.slice(0, targetPos) + ch.toUpperCase() + cur.slice(targetPos + 1))
       .slice(0, len).trimEnd();
     setGuessAt(level, next);
 
     // Advance to the next available (skip blocked)
-    let pos = cursor;
+    let pos = targetPos;
     for (let t = 0; t < len; t++) {
       pos += 1;
       if (pos >= len) break;
