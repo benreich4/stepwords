@@ -23,6 +23,7 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
     }
     
     const isDisabled = disabledKeys.has(key);
+    // Only filter letter keys; do not filter special keys like SUBMIT/BACKSPACE
     const isFiltered = filteredLetters && !filteredLetters.includes(key);
     
     return `${baseClass} text-sm ${
@@ -45,12 +46,13 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
                 key={key}
                 onClick={() => {
                   const isDisabled = disabledKeys.has(key);
+                  const isSpecial = (key === 'SUBMIT' || key === 'BACKSPACE');
                   const isFiltered = filteredLetters && !filteredLetters.includes(key);
-                  if (!isDisabled && !isFiltered) {
+                  if (!isDisabled && (isSpecial || !isFiltered)) {
                     handleKeyClick(key);
                   }
                 }}
-                disabled={disabledKeys.has(key) || (filteredLetters && !filteredLetters.includes(key))}
+                disabled={disabledKeys.has(key) || (!['SUBMIT','BACKSPACE'].includes(key) && (filteredLetters && !filteredLetters.includes(key)))}
                 className={getKeyClass(key)}
                 style={{
                   minWidth: key === 'SUBMIT' ? '70px' : key === 'BACKSPACE' ? '60px' : '32px',
