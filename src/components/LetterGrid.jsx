@@ -11,7 +11,7 @@ export default function LetterGrid({
   onTileClick,
 }) {
   return (
-    <div className="w-full flex flex-col items-start gap-1 select-none px-0">
+    <div className="w-full flex flex-col items-start gap-1 select-none px-0 pb-12">
       {rows.map((r, i) => {
         const len = r.answer.length;
         const showVal = (guesses[i] || "").toUpperCase();

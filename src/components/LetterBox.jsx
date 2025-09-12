@@ -15,7 +15,7 @@ export default function LetterBox({
   const base =
     "relative inline-flex items-center justify-center border rounded-[6px] " +
     "select-none uppercase font-bold leading-none " +
-    "w-[7.5vw] aspect-square text-[4vw] min-w-[20px] min-h-[20px] " +
+    "w-[6vw] aspect-square text-[3vw] min-w-[18px] min-h-[18px] max-w-[32px] max-h-[32px] " +
     "sm:w-8 sm:text-sm md:w-10 md:h-10 md:text-base";
 
   return (

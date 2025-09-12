@@ -693,7 +693,7 @@ export default function Game({ puzzle }) {
                     }}
                   />
 
-        <div className="h-6 mt-3 text-xs text-gray-300 px-3 pb-32">{message}</div>
+        <div className="h-6 mt-3 text-xs text-gray-300 px-3 pb-24">{message}</div>
       </div>
 
       {/* Sticky keyboard at bottom */}
