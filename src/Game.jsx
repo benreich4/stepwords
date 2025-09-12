@@ -249,6 +249,16 @@ export default function Game({ puzzle }) {
       setShowHowToPlay(true);
     }
     
+    // If puzzle already completed previously, immediately show share modal
+    try {
+      const completed = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
+      if (completed.includes(puzzle.id)) {
+        const share = buildEmojiShareGridFrom(rows, lockColors);
+        setShareText(share);
+        setShowShare(true);
+      }
+    } catch {}
+
     // Track puzzle start
     try {
       if (window.gtag && typeof window.gtag === 'function') {
