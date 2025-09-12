@@ -27,7 +27,7 @@ export default function LetterGrid({
                   char={showVal[col] || ""}
                   state={lockColors[i][col]}
                   isCursor={i === level && col === cursor}
-                  showStep={stepsRevealed && i >= 1 && col === stepPos}
+                  showStep={i >= 1 && col === stepPos && (stepsRevealed || lockColors[i][stepPos] !== null)}
                   onClick={() => onTileClick(i, col)}
                   maxWordLength={maxWordLength}
                 />
