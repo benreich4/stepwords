@@ -513,17 +513,17 @@ export default function Game({ puzzle }) {
   const handleEnter = () => {
     const len = rowLen(level);
     const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
-    // Prevent submit unless all non-blocked positions are filled
-    let allFilled = true;
+    // Allow partial submissions, but not empty (consider only editable cells)
+    let hasAnyFilled = false;
     for (let col = 0; col < len; col++) {
-      if (!isBlocked(level, col) && cur[col] === " ") {
-        allFilled = false;
+      if (!isBlocked(level, col) && cur[col] !== " ") {
+        hasAnyFilled = true;
         break;
       }
     }
-    if (!allFilled) {
-      setMessage("Complete the word to submit");
-      return; // ignore Enter if incomplete
+    if (!hasAnyFilled) {
+      setMessage("Type at least one letter to submit");
+      return; // ignore Enter if empty
     }
     submitRow(level);
   };
