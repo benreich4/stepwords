@@ -37,14 +37,8 @@ export default function Archives() {
 
   return (
     <div className="px-3 py-4">
-      <div className="flex justify-between items-center mb-3">
+      <div className="mb-3">
         <h1 className="text-2xl font-bold">Stepword Puzzles - Archives</h1>
-        <Link 
-          to="/create" 
-          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors"
-        >
-          Create Puzzle
-        </Link>
       </div>
       {err && <div className="text-red-400 mb-2">{err}</div>}
       <ul className="space-y-2">
