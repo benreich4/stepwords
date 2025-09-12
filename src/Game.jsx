@@ -369,6 +369,11 @@ export default function Game({ puzzle }) {
   }
 
   function submitRow(i) {
+    // If this row is already fully correct (all green), ignore submit and do not count a guess
+    if (lockColors[i] && lockColors[i].length && lockColors[i].every((c) => c === 'G')) {
+      return;
+    }
+
     const ans = rows[i].answer.toUpperCase();
     const len = ans.length;
     const cur = (guesses[i] || "").toUpperCase().padEnd(len, " ").slice(0, len);
