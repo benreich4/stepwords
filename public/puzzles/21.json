@@ -1,0 +1,11 @@
+{
+  "id": "21",
+  "rows": [
+    { "answer": "too",      "clue": "\"___ easy!\" (3)" },
+    { "answer": "boot",       "clue": "Give the ___ (dismiss) (4)" },
+    { "answer": "robot",      "clue":  "Android (5)" },
+    { "answer": "reboot",      "clue":  "Fresh start, of a sort (6)" },
+    { "answer": "october",      "clue":   "Kind of surprise (7)" },
+    { "answer": "cuberoot",      "clue":  "1 to 1 or 2 to 8 (4,4)" }
+  ]
+}
