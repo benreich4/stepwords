@@ -76,22 +76,16 @@ export default function Game({ puzzle }) {
   const [settings, setSettings] = useState(() => {
     try {
       const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}');
-      return { hardMode: s.hardMode === true };
+      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true };
     } catch {
-      return { hardMode: false };
+      return { hardMode: false, easyMode: false };
     }
   });
   useEffect(() => {
-    try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode })); } catch {}
+    try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode })); } catch {}
   }, [settings]);
   const [showSettings, setShowSettings] = useState(false);
-  // Easy mode (filters keyboard to puzzle letters), per-puzzle toggle in settings
-  const [easyEnabled, setEasyEnabled] = useState(() => {
-    try { return localStorage.getItem(`${puzzleKey}-easy-enabled`) === '1'; } catch { return false; }
-  });
-  useEffect(() => {
-    try { if (easyEnabled) localStorage.setItem(`${puzzleKey}-easy-enabled`, '1'); else localStorage.removeItem(`${puzzleKey}-easy-enabled`); } catch {}
-  }, [easyEnabled]);
+  // Easy mode now saved globally in settings (like hardMode)
   // New hint system: 2 per-row hints (initialLetters, stepLetters). Keyboard filter moved to settings as Easy mode
   const [hintsUsed, setHintsUsed] = useState(savedState.hintsUsed || {
     initialLetters: false,
@@ -677,9 +671,9 @@ export default function Game({ puzzle }) {
 
                 <label className="flex items-center justify-between py-1">
                   <span className="text-gray-300">Easy mode</span>
-                  <input type="checkbox" checked={easyEnabled} onChange={(e) => setEasyEnabled(e.target.checked)} />
+                  <input type="checkbox" checked={settings.easyMode} onChange={(e) => setSettings(s => ({ ...s, easyMode: e.target.checked }))} />
                 </label>
-                <div className="text-[10px] text-gray-400">Filters keyboard to letters in this puzzle. Per-puzzle setting.</div>
+                <div className="text-[10px] text-gray-400">Filters keyboard to letters in this puzzle. Saved as your default.</div>
               </div>
             )}
           </div>
@@ -766,7 +760,7 @@ export default function Game({ puzzle }) {
         onKeyPress={handleKeyPress}
         onEnter={handleEnter}
         onBackspace={handleBackspace}
-        filteredLetters={easyEnabled ? lettersUsedInAnswers : null}
+        filteredLetters={settings.easyMode ? lettersUsedInAnswers : null}
       />
    
       {showShare && (

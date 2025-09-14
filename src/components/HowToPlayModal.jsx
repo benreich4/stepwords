@@ -56,10 +56,10 @@ export default function HowToPlayModal({ onClose }) {
                 <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
                   <li><strong className="text-blue-400">First letter</strong> — Reveals the first letter for this row (one-time per row)</li>
                   <li><strong className="text-green-400">Step letter</strong> — Reveals the newly added letter for this row (one-time per row)</li>
-                  <li><strong className="text-purple-400">Filter keyboard</strong> — Hides letters not used anywhere in this puzzle (one-way per puzzle)</li>
                 </ul>
               </li>
-              <li><strong>Hard mode</strong> — 🪜 ladder icons are hidden by default; reveal them using hints</li>
+              <li><strong>Hard mode</strong> (Settings) — Hides 🪜 step locations by default until revealed with hints. Saved as your default.</li>
+              <li><strong>Easy mode</strong> (Settings) — Filters the on‑screen keyboard to letters used in this puzzle. Saved as your default.</li>
             </ul>
           </div>
         </div>
