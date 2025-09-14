@@ -85,14 +85,14 @@ export default function Game({ puzzle }) {
     try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode })); } catch {}
   }, [settings]);
   const [showSettings, setShowSettings] = useState(false);
-  // Lock Easy mode per-puzzle once enabled
-  const [easyLocked, setEasyLocked] = useState(() => {
-    try { return Boolean(localStorage.getItem(`${puzzleKey}-easy-locked`)); } catch { return false; }
+  // Easy mode (filters keyboard to puzzle letters), per-puzzle toggle in settings
+  const [easyEnabled, setEasyEnabled] = useState(() => {
+    try { return localStorage.getItem(`${puzzleKey}-easy-enabled`) === '1'; } catch { return false; }
   });
-  const [easyThisPuzzle, setEasyThisPuzzle] = useState(() => {
-    try { return Boolean(localStorage.getItem(`${puzzleKey}-easy-locked`)); } catch { return false; }
-  });
-  // New hint system: 3 types of hints
+  useEffect(() => {
+    try { if (easyEnabled) localStorage.setItem(`${puzzleKey}-easy-enabled`, '1'); else localStorage.removeItem(`${puzzleKey}-easy-enabled`); } catch {}
+  }, [easyEnabled]);
+  // New hint system: 2 per-row hints (initialLetters, stepLetters). Keyboard filter moved to settings as Easy mode
   const [hintsUsed, setHintsUsed] = useState(savedState.hintsUsed || {
     initialLetters: false,
     stepLetters: false,
@@ -162,22 +162,7 @@ export default function Game({ puzzle }) {
       applyStepLettersHint();
       return;
     }
-    if (hintType === 'filterKeyboard') {
-      if (easyThisPuzzle || easyLocked) return;
-      try { localStorage.setItem(`${puzzleKey}-easy-locked`, '1'); } catch {}
-      setEasyLocked(true);
-      setEasyThisPuzzle(true);
-      if (!hintsUsed.filterKeyboard) {
-        setHintsUsed(prev => ({ ...prev, filterKeyboard: true }));
-        setHintCount(prev => prev + 1);
-        try {
-          if (window.gtag && typeof window.gtag === 'function') {
-            window.gtag('event', 'hint_used', { hint_type: hintType, puzzle_id: puzzle.id || 'unknown' });
-          }
-        } catch {}
-      }
-      return;
-    }
+    // filterKeyboard moved to settings as Easy mode
   }
   
   function applyInitialLettersHint() {
@@ -663,28 +648,7 @@ export default function Game({ puzzle }) {
                 >
                   {rowsStepHintUsed[level] ? "✓ Step letter" : "Reveal step letter"}
                 </button>
-                <button
-                  onClick={() => {
-                    if (!(easyThisPuzzle || easyLocked)) {
-                      try { localStorage.setItem(`${puzzleKey}-easy-locked`, '1'); } catch {}
-                      setEasyLocked(true);
-                      setEasyThisPuzzle(true);
-                      if (!hintsUsed.filterKeyboard) {
-                        useHint('filterKeyboard');
-                      }
-                    }
-                    setShowHintsDropdown(false);
-                  }}
-                  disabled={easyThisPuzzle || easyLocked}
-                  className={
-                    "w-full text-left px-3 py-2 text-xs " +
-                    ((easyThisPuzzle || easyLocked)
-                      ? "text-purple-300 bg-purple-900/20 cursor-default"
-                      : "text-gray-300 hover:bg-gray-700")
-                  }
-                >
-                  {(easyThisPuzzle || easyLocked) ? "✓ Filter keyboard" : "Filter keyboard"}
-                </button>
+                {/* Filter keyboard moved to settings as Easy mode */}
               </div>
             )}
           </div>
@@ -709,7 +673,13 @@ export default function Game({ puzzle }) {
                   <span className="text-gray-300">Hard mode</span>
                   <input type="checkbox" checked={settings.hardMode} onChange={(e) => setSettings(s => ({ ...s, hardMode: e.target.checked }))} />
                 </label>
-                <div className="text-[10px] text-gray-400">Hides step locations (🪜) until revealed. Saved as your default.</div>
+                <div className="text-[10px] text-gray-400 mb-2">Hides step locations (🪜) until revealed. Saved as your default.</div>
+
+                <label className="flex items-center justify-between py-1">
+                  <span className="text-gray-300">Easy mode</span>
+                  <input type="checkbox" checked={easyEnabled} onChange={(e) => setEasyEnabled(e.target.checked)} />
+                </label>
+                <div className="text-[10px] text-gray-400">Filters keyboard to letters in this puzzle. Per-puzzle setting.</div>
               </div>
             )}
           </div>
@@ -728,13 +698,13 @@ export default function Game({ puzzle }) {
           <div className="text-sm text-gray-300 mx-2 flex-1 text-center">
             <span className="font-semibold">Clue:</span> {clue}
           </div>
-          <button
+        <button
             onClick={() => moveLevel(1)}
             aria-label="Next word"
             className="px-2 py-1 rounded text-gray-300 hover:text-white hover:bg-gray-900/40"
           >
             →
-          </button>
+        </button>
         </div>
       </div>
 
@@ -796,7 +766,7 @@ export default function Game({ puzzle }) {
         onKeyPress={handleKeyPress}
         onEnter={handleEnter}
         onBackspace={handleBackspace}
-        filteredLetters={(easyThisPuzzle || easyLocked) ? lettersUsedInAnswers : null}
+        filteredLetters={easyEnabled ? lettersUsedInAnswers : null}
       />
    
       {showShare && (

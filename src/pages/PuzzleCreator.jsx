@@ -57,13 +57,14 @@ const PuzzleCreatorSimple = () => {
     }
 
     try {
+      const rows = submissionWords.map((word, i) => ({
+        answer: (word || '').toLowerCase().trim(),
+        clue: (submissionClues[i] || '').trim(),
+      }));
       const puzzleData = {
-        title: submissionTitle.trim() || 'Untitled Puzzle',
         author: submissionAuthor.trim(),
-        date: new Date().toISOString().split('T')[0],
-        words: submissionWords.map(word => word.toLowerCase().trim()),
-        clues: submissionClues.map(clue => clue.trim()),
-        submittedAt: new Date().toISOString()
+        rows,
+        submittedAt: new Date().toISOString(),
       };
 
       // Try API first, fallback to localStorage
@@ -80,9 +81,10 @@ const PuzzleCreatorSimple = () => {
           throw new Error('API failed');
         }
       } catch (error) {
-        // Fallback to localStorage
+        // Fallback to localStorage in puzzle file format
         const submissions = JSON.parse(localStorage.getItem('puzzleSubmissions') || '[]');
-        submissions.push(puzzleData);
+        const fallback = { author: puzzleData.author, rows };
+        submissions.push(fallback);
         localStorage.setItem('puzzleSubmissions', JSON.stringify(submissions));
       }
 
