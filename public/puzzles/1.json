@@ -7,12 +7,9 @@
     { "answer": "orient", "clue": "Get situated (6)" },
     { "answer": "protein", "clue": "___ shake (7)" },
     { "answer": "pointier", "clue": "More elven, earwise (8)" },
-    { "answer": "priesinto", "clue": "Snoops around (9)" },
+    { "answer": "priesinto", "clue": "Snoops around (5,4)" },
     { "answer": "reposition", "clue": "Put back in place (10)" },
-    { "answer": "preposition", "clue": "In or on, e.g. (11)" },
-    { "answer": "prepositions", "clue": "In and on, e.g. (12)" },
-    { "answer": "superposition", "clue": "In two states at once in quantum mechanics (13)" },
-    { "answer": "presupposition", "clue": "Assumption made before you even know you’ve made it (14)" }
+    { "answer": "preposition", "clue": "In or on, e.g. (11)" }
   ]
 }
 
