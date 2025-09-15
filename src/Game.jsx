@@ -104,7 +104,7 @@ export default function Game({ puzzle }) {
   const [showShare, setShowShare] = useState(false);
   const [shareText, setShareText] = useState("");
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [showHintsDropdown, setShowHintsDropdown] = useState(false);
+  const [showRevealConfirm, setShowRevealConfirm] = useState(false);
   const [gameStartTime, setGameStartTime] = useState(Date.now());
   
 
@@ -122,99 +122,32 @@ export default function Game({ puzzle }) {
     return Array.from(allLetters).sort();
   }, [puzzle]);
 
-  // New hint functions
-  function useHint(hintType) {
-    if (hintType === 'initialLetters') {
-      if (rowsInitialHintUsed[level]) return;
-      setRowsInitialHintUsed(prev => {
-        const next = [...prev];
-        next[level] = true;
-        return next;
-      });
-      setHintCount(prev => prev + 1);
-      try {
-        if (window.gtag && typeof window.gtag === 'function') {
-          window.gtag('event', 'hint_used', { hint_type: hintType, puzzle_id: puzzle.id || 'unknown' });
-        }
-      } catch {}
-      applyInitialLettersHint();
-      return;
-    }
-    if (hintType === 'stepLetters') {
-      if (rowsStepHintUsed[level]) return;
-      setRowsStepHintUsed(prev => {
-        const next = [...prev];
-        next[level] = true;
-        return next;
-      });
-      setHintCount(prev => prev + 1);
-      try {
-        if (window.gtag && typeof window.gtag === 'function') {
-          window.gtag('event', 'hint_used', { hint_type: hintType, puzzle_id: puzzle.id || 'unknown' });
-        }
-      } catch {}
-      applyStepLettersHint();
-      return;
-    }
-    // filterKeyboard moved to settings as Easy mode
-  }
-  
-  function applyInitialLettersHint() {
-    // Apply only to current level
-    const newLockColors = lockColors.map((rowColors, rowIndex) => {
-      if (rowIndex !== level) return rowColors;
-      const newRowColors = [...rowColors];
-      if (newRowColors[0] === null) {
-        newRowColors[0] = "Y"; // Yellow for hinted
-      }
-      return newRowColors;
+  // Reveal a specific tile by clicking it after activating 'Reveal letter'
+  function revealTileAt(rowIndex, colIndex) {
+    const ans = rows[rowIndex].answer.toUpperCase();
+    if (!ans || colIndex < 0 || colIndex >= ans.length) return;
+    if (lockColors[rowIndex]?.[colIndex]) return; // already revealed/locked
+
+    const newLockColors = lockColors.map((rc) => rc.slice());
+    newLockColors[rowIndex][colIndex] = "Y";
+
+    const len = ans.length;
+    const newGuesses = guesses.map((g, r) => {
+      if (r !== rowIndex) return g;
+      let cur = (g || "").toUpperCase().padEnd(len, " ").slice(0, len);
+      cur = cur.slice(0, colIndex) + ans[colIndex] + cur.slice(colIndex + 1);
+      return cur.trimEnd();
     });
-    
-    // Update all guesses at once
-    const newGuesses = guesses.map((guess, rowIndex) => {
-      const ans = rows[rowIndex].answer.toUpperCase();
-      const currentGuess = (guess || "").toUpperCase();
-      
-      if (newLockColors[rowIndex][0] === "Y") {
-        return ans[0] + currentGuess.slice(1);
-      }
-      
-      return currentGuess;
-    });
-    
+
     setLockColors(newLockColors);
     setGuesses(newGuesses);
-  }
-  
-  function applyStepLettersHint() {
-    // Apply only to current level
-    const newLockColors = lockColors.map((rowColors, rowIndex) => {
-      if (rowIndex !== level) return rowColors;
-      const newRowColors = [...rowColors];
-      const stepCol = stepIdx[rowIndex];
-      if (stepCol !== -1 && stepCol !== undefined && newRowColors[stepCol] === null) {
-        newRowColors[stepCol] = "Y";
+    setHintCount((n) => n + 1);
+    setMessage("Revealed letter.");
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'hint_used', { hint_type: 'reveal_letter', puzzle_id: puzzle.id || 'unknown' });
       }
-      return newRowColors;
-    });
-    
-    // Update guess only for current level
-    const newGuesses = guesses.map((guess, rowIndex) => {
-      if (rowIndex !== level) return guess;
-      const stepCol = stepIdx[rowIndex];
-      const ans = rows[rowIndex].answer.toUpperCase();
-      const ansLen = ans.length;
-      let newGuess = (guess || "").toUpperCase();
-      if (stepCol !== -1 && stepCol !== undefined && lockColors[rowIndex][stepCol] === null && newLockColors[rowIndex][stepCol] === "Y") {
-        newGuess = newGuess.padEnd(ansLen, " ").slice(0, ansLen);
-        newGuess = newGuess.slice(0, stepCol) + ans[stepCol] + newGuess.slice(stepCol + 1);
-        newGuess = newGuess.trimEnd();
-      }
-      return newGuess;
-    });
-    
-    setLockColors(newLockColors);
-    setGuesses(newGuesses);
+    } catch {}
   }
 
 
@@ -245,19 +178,7 @@ export default function Game({ puzzle }) {
     }
   }, [level, isMobile]);
 
-  // Close hints dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showHintsDropdown && !event.target.closest('.hints-dropdown')) {
-        setShowHintsDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showHintsDropdown]);
+  // Hints dropdown removed; no-op
 
   // Show how to play modal on first visit and track puzzle start
   useEffect(() => {
@@ -602,50 +523,12 @@ export default function Game({ puzzle }) {
         <div className="flex items-center gap-2" />
         
         <div className="flex items-center gap-2">
-          <div className="relative hints-dropdown">
-            <button
-              onClick={() => setShowHintsDropdown(!showHintsDropdown)}
-              className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
-            >
-              Hints {hintCount > 0 && `(${hintCount})`}
-            </button>
-            
-            {showHintsDropdown && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-gray-800 border border-gray-600 rounded-md shadow-lg">
-                <button
-                  onClick={() => {
-                    useHint('initialLetters');
-                    setShowHintsDropdown(false);
-                  }}
-                  disabled={rowsInitialHintUsed[level]}
-                  className={
-                    "w-full text-left px-3 py-2 text-xs border-b border-gray-600 " +
-                    (rowsInitialHintUsed[level]
-                      ? "text-blue-300 bg-blue-900/20 cursor-default"
-                      : "text-gray-300 hover:bg-gray-700")
-                  }
-                >
-                  {rowsInitialHintUsed[level] ? "✓ First letter" : "Reveal first letter"}
-                </button>
-                <button
-                  onClick={() => {
-                    useHint('stepLetters');
-                    setShowHintsDropdown(false);
-                  }}
-                  disabled={rowsStepHintUsed[level]}
-                  className={
-                    "w-full text-left px-3 py-2 text-xs border-b border-gray-600 " +
-                    (rowsStepHintUsed[level]
-                      ? "text-green-300 bg-green-900/20 cursor-default"
-                      : "text-gray-300 hover:bg-gray-700")
-                  }
-                >
-                  {rowsStepHintUsed[level] ? "✓ Step letter" : "Reveal step letter"}
-                </button>
-                {/* Filter keyboard moved to settings as Easy mode */}
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => setShowRevealConfirm(true)}
+            className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
+          >
+            Reveal letter {hintCount > 0 && `(${hintCount})`}
+          </button>
           <button
             onClick={() => setShowHowToPlay(true)}
             className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
@@ -744,12 +627,12 @@ export default function Game({ puzzle }) {
           level={level}
           cursor={cursor}
           onTileClick={(i, col) => {
-                        setLevel(i);
-                        setCursor(col);
+            setLevel(i);
+            setCursor(col);
             if (!isMobile) {
-                        inputRef.current?.focus();
-                      }
-                    }}
+              inputRef.current?.focus();
+            }
+          }}
                   />
 
         <div className="text-xs text-gray-300 px-3 mt-1 mb-2">{message}</div>
@@ -786,6 +669,32 @@ export default function Game({ puzzle }) {
             }
           }}
         />
+      )}
+
+      {/* Reveal confirm modal */}
+      {showRevealConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-sm rounded-lg border border-gray-700 bg-gray-900 p-4 text-gray-200">
+            <div className="text-sm mb-3">Reveal currently selected space?</div>
+            <div className="flex justify-end gap-2 text-sm">
+              <button
+                className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-300 hover:bg-gray-800"
+                onClick={() => setShowRevealConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 py-1.5 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+                onClick={() => {
+                  revealTileAt(level, cursor);
+                  setShowRevealConfirm(false);
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showHowToPlay && (
