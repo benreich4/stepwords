@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchManifest, loadPuzzleById } from "../lib/puzzles.js";
-import { getTodayIsoInET } from "../lib/date.js";
+import { getTodayIsoInET, isPreviewEnabled } from "../lib/date.js";
 import Game from "../Game.jsx";
 
 export default function Home() {
@@ -22,7 +22,8 @@ export default function Home() {
         
         // Only allow puzzles with date <= today (Eastern Time)
         const todayET = getTodayIsoInET();
-        const available = list.filter(p => p.date <= todayET);
+        const preview = isPreviewEnabled();
+        const available = list.filter(p => preview ? true : (p.date <= todayET));
         if (available.length === 0) {
           setErr("No puzzles available yet today");
           setLoading(false);

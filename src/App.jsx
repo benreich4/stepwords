@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 // Inline analytics - no separate module needed
 import { useEffect } from "react";
+import { isPreviewEnabled } from "./lib/date.js";
 
 export default function App() {
   const location = useLocation();
@@ -17,6 +18,17 @@ export default function App() {
       // Silently fail
     }
   }, [location]);
+
+  // Preview token handler: visiting ?preview=on sets a local flag for early access
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('preview') === 'on') {
+      try { localStorage.setItem('stepwords-preview', '1'); } catch {}
+    }
+    if (params.get('preview') === 'off') {
+      try { localStorage.removeItem('stepwords-preview'); } catch {}
+    }
+  }, [location.search]);
 
   return (
     <div className="min-h-screen w-screen bg-black text-gray-100">
