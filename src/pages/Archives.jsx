@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchManifest } from "../lib/puzzles.js";
+import { getTodayIsoInET } from "../lib/date.js";
 import { parseLocalISODate } from "../lib/date.js";
 
 export default function Archives() {
@@ -37,6 +38,11 @@ export default function Archives() {
       if (!maxDate || d > maxDate) maxDate = d;
     }
 
+    // Clamp maxDate to today (ET) so Archives doesn't advance into future months
+    const todayET = getTodayIsoInET();
+    const todayDate = parseLocalISODate(todayET);
+    if (maxDate && maxDate > todayDate) maxDate = todayDate;
+
     // Build list of months from minDate to maxDate inclusive
     const start = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
     const end = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
@@ -49,6 +55,7 @@ export default function Archives() {
     }
 
     // For each month, build a 6x7 grid of dates (Sun-Sat)
+    const todayET2 = getTodayIsoInET();
     const monthData = months.map(({ year, month }) => {
       const firstOfMonth = new Date(year, month, 1);
       const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -60,7 +67,7 @@ export default function Archives() {
         // Only render within puzzle range
         if (d < minDate || d > maxDate) return { date: d, puzzle: null };
         const iso = [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
-        const puzzle = byDate.get(iso) || null;
+        const puzzle = (iso <= todayET2) ? (byDate.get(iso) || null) : null;
         return { date: d, puzzle };
       });
       return { year, month, cells };

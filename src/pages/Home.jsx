@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchManifest, loadPuzzleById } from "../lib/puzzles.js";
+import { getTodayIsoInET } from "../lib/date.js";
 import Game from "../Game.jsx";
 
 export default function Home() {
@@ -19,8 +20,16 @@ export default function Home() {
           return;
         }
         
-        // Sort by date desc and get the most recent puzzle
-        const sortedPuzzles = list.sort((a, b) => new Date(a.date) < new Date(b.date) ? 1 : -1);
+        // Only allow puzzles with date <= today (Eastern Time)
+        const todayET = getTodayIsoInET();
+        const available = list.filter(p => p.date <= todayET);
+        if (available.length === 0) {
+          setErr("No puzzles available yet today");
+          setLoading(false);
+          return;
+        }
+        // Sort by date desc among available
+        const sortedPuzzles = available.sort((a, b) => (a.date < b.date ? 1 : -1));
         const mostRecent = sortedPuzzles[0];
         
         // Load the most recent puzzle

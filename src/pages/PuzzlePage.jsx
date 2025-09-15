@@ -1,8 +1,8 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Game from "../Game.jsx";
-import { loadPuzzleById } from "../lib/puzzles.js";
-import { formatDateWithDayOfWeek } from "../lib/date.js";
+import { fetchManifest, loadPuzzleById } from "../lib/puzzles.js";
+import { formatDateWithDayOfWeek, getTodayIsoInET } from "../lib/date.js";
 
 export default function PuzzlePage() {
   const { puzzleId } = useParams();
@@ -14,9 +14,14 @@ export default function PuzzlePage() {
     setErr("");
     setData(null);
 
-    loadPuzzleById(puzzleId)
-      .then((json) => {
+    Promise.all([fetchManifest(), loadPuzzleById(puzzleId)])
+      .then(([manifest, json]) => {
         if (!mounted) return;
+        const meta = manifest.find((p) => String(p.id) === String(puzzleId));
+        const todayET = getTodayIsoInET();
+        if (!meta || meta.date > todayET) {
+          throw new Error("This puzzle is not yet available.");
+        }
         setData(json);
         const dateStr = json.date ? formatDateWithDayOfWeek(json.date) : "";
         document.title = `Stepword Puzzle – #${json.id}${dateStr ? ` (${dateStr})` : ""}`;

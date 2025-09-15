@@ -36,3 +36,23 @@ export function formatShortDate(input) {
     year: "numeric",
   }).format(d);
 }
+
+// Returns today's date in Eastern Time as YYYY-MM-DD
+export function getTodayIsoInET() {
+  try {
+    // en-CA yields YYYY-MM-DD format
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+  } catch {
+    // Fallback to UTC if Intl/timeZone unsupported
+    const now = new Date();
+    const y = now.getUTCFullYear();
+    const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(now.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+}
