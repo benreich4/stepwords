@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchManifest } from "../lib/puzzles.js";
+import { parseLocalISODate } from "../lib/date.js";
 
 export default function Archives() {
   const [manifest, setManifest] = useState([]);
@@ -31,7 +32,7 @@ export default function Archives() {
     let maxDate = null;
     for (const p of manifest) {
       byDate.set(p.date, p);
-      const d = new Date(p.date);
+      const d = parseLocalISODate(p.date);
       if (!minDate || d < minDate) minDate = d;
       if (!maxDate || d > maxDate) maxDate = d;
     }
@@ -58,7 +59,7 @@ export default function Archives() {
         const d = new Date(year, month, dayNum);
         // Only render within puzzle range
         if (d < minDate || d > maxDate) return { date: d, puzzle: null };
-        const iso = d.toISOString().slice(0, 10);
+        const iso = [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
         const puzzle = byDate.get(iso) || null;
         return { date: d, puzzle };
       });

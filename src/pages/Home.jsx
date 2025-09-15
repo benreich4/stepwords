@@ -20,7 +20,7 @@ export default function Home() {
         }
         
         // Sort by date desc and get the most recent puzzle
-        const sortedPuzzles = list.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const sortedPuzzles = list.sort((a, b) => new Date(a.date) < new Date(b.date) ? 1 : -1);
         const mostRecent = sortedPuzzles[0];
         
         // Load the most recent puzzle
@@ -30,7 +30,8 @@ export default function Home() {
         if (puzzleData) {
           setPuzzle(puzzleData);
           // Set document title with day of week
-          const date = new Date(puzzleData.date);
+          const [y,m,d] = puzzleData.date.split('-').map((v)=>parseInt(v,10));
+          const date = new Date(y, m-1, d);
           const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
           document.title = `Stepword Puzzle – ${dayOfWeek}, ${puzzleData.date}`;
         }
