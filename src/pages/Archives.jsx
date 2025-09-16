@@ -143,7 +143,7 @@ export default function Archives() {
 
   const currentMonthData = months.find((mm) => mm.year === current.year && mm.month === current.month);
 
-  const monthName = (y, m) => new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date(y, m, 1));
+  // const monthName = (y, m) => new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date(y, m, 1));
 
   return (
     <div className="px-3 py-3 flex justify-center">

@@ -87,13 +87,9 @@ export default function Game({ puzzle }) {
   const [showSettings, setShowSettings] = useState(false);
   // Easy mode now saved globally in settings (like hardMode)
   // New hint system: 2 per-row hints (initialLetters, stepLetters). Keyboard filter moved to settings as Easy mode
-  const [hintsUsed, setHintsUsed] = useState(savedState.hintsUsed || {
-    initialLetters: false,
-    stepLetters: false,
-    filterKeyboard: false
-  });
-  const [rowsInitialHintUsed, setRowsInitialHintUsed] = useState(savedState.rowsInitialHintUsed || rows.map(() => false));
-  const [rowsStepHintUsed, setRowsStepHintUsed] = useState(savedState.rowsStepHintUsed || rows.map(() => false));
+  const [hintsUsed] = useState(savedState.hintsUsed || { initialLetters: false, stepLetters: false, filterKeyboard: false });
+  const [rowsInitialHintUsed] = useState(savedState.rowsInitialHintUsed || rows.map(() => false));
+  const [rowsStepHintUsed] = useState(savedState.rowsStepHintUsed || rows.map(() => false));
   // Colors now simplified: 'G' for correct, 'Y' for hinted or previously incorrect
   const [wasWrong, setWasWrong] = useState(savedState.wasWrong);
   // Session stats
@@ -105,7 +101,7 @@ export default function Game({ puzzle }) {
   const [shareText, setShareText] = useState("");
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showRevealConfirm, setShowRevealConfirm] = useState(false);
-  const [gameStartTime, setGameStartTime] = useState(Date.now());
+  const [gameStartTime] = useState(Date.now());
   
 
   // Function to get letters used in all answers
@@ -204,9 +200,7 @@ export default function Game({ puzzle }) {
           puzzle_id: puzzle.id || 'unknown' 
         });
       }
-    } catch (error) {
-      // Silently fail
-    }
+    } catch (_err) { void 0; }
   }, [puzzle.id]);
 
   const handleCloseHowToPlay = () => {
@@ -375,9 +369,7 @@ export default function Game({ puzzle }) {
               completion_time: Date.now() - (gameStartTime || Date.now())
             });
           }
-        } catch (error) {
-          // Silently fail
-        }
+        } catch (_err) { void 0; }
         
         // Clear saved state when puzzle is completed
         localStorage.removeItem(puzzleKey);
@@ -664,9 +656,7 @@ export default function Game({ puzzle }) {
                   total_guesses: guessCount
                 });
               }
-            } catch (error) {
-              // Silently fail
-            }
+            } catch (_err) { void 0; }
           }}
         />
       )}

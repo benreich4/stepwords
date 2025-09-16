@@ -148,7 +148,6 @@ const Explore = () => {
       .sort(() => Math.random() - 0.5); // Shuffle
     
     let bestWord = null;
-    let bestChainLength = 0;
     
     // Test up to 1000 random candidates to find good starting points
     const testCount = Math.min(1000, candidates.length);
@@ -160,7 +159,7 @@ const Explore = () => {
       // Only accept words that can form chains of length 5 or more
       if (chainLength >= 5) {
         bestWord = word;
-        bestChainLength = chainLength;
+        // capture for potential UI in future; currently unused
         console.log(`Found good word: "${word}" with chain length ${chainLength}`);
         break; // Use the first word we find with chain >= 5
       }

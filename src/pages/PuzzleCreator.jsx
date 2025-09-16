@@ -5,7 +5,7 @@ const PuzzleCreatorSimple = () => {
   const [submissionWords, setSubmissionWords] = useState(['', '', '', '', '']);
   const [submissionClues, setSubmissionClues] = useState(['', '', '', '', '']);
   const [submissionAuthor, setSubmissionAuthor] = useState('');
-  const [submissionTitle, setSubmissionTitle] = useState('');
+  // title is not used in current backend format
   const [submissionStatus, setSubmissionStatus] = useState('');
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
 
