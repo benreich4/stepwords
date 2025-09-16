@@ -56,9 +56,9 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
                 disabled={disabledKeys.has(key) || (!['SUBMIT','BACKSPACE'].includes(key) && (filteredLetters && !filteredLetters.includes(key)))}
                 className={getKeyClass(key)}
                 style={{
-                  minWidth: key === 'SUBMIT' ? '76px' : key === 'BACKSPACE' ? '64px' : '36px',
-                  height: '44px',
-                  WebkitTapHighlightColor: 'transparent'
+                  WebkitTapHighlightColor: 'transparent',
+                  minWidth: key === 'SUBMIT' ? '70px' : key === 'BACKSPACE' ? '60px' : '32px',
+                  height: '40px'
                 }}
                 tabIndex={-1}
               >
