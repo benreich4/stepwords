@@ -45,6 +45,18 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
               <button
                 key={key}
                 onPointerDown={(e) => {
+                  // Use pointer for mouse/pen; touch handled in onTouchStart to avoid missed taps on iOS
+                  if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+                  e.preventDefault();
+                  const isDisabled = disabledKeys.has(key);
+                  const isSpecial = (key === 'SUBMIT' || key === 'BACKSPACE');
+                  const isFiltered = filteredLetters && !filteredLetters.includes(key);
+                  if (!isDisabled && (isSpecial || !isFiltered)) {
+                    handleKeyClick(key);
+                  }
+                }}
+                onTouchStart={(e) => {
+                  // Dedicated touch handler for iOS Chrome/Safari to improve rapid-tap reliability
                   e.preventDefault();
                   const isDisabled = disabledKeys.has(key);
                   const isSpecial = (key === 'SUBMIT' || key === 'BACKSPACE');
