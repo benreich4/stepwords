@@ -238,6 +238,41 @@ export default function Game({ puzzle }) {
 
   const clue = rows[level].clue;
 
+  function renderClueText(text) {
+    // Only single-number references like [4] are recognized.
+    const nodes = [];
+    const regex = /\[(\d+)\]/g;
+    let last = 0; let m;
+    while ((m = regex.exec(text)) !== null) {
+      if (m.index > last) nodes.push(text.slice(last, m.index));
+      const n = parseInt(m[1], 10);
+      if (Number.isFinite(n) && n >= 1 && n <= rows.length) {
+        const jumpIndex = n - 1;
+        nodes.push(
+          <button
+            key={`ref-${m.index}`}
+            type="button"
+            className="inline-flex items-center justify-center w-5 h-5 rounded border bg-gray-800 border-gray-700 text-gray-300 text-[9px] leading-none hover:border-sky-600 hover:text-sky-300 align-middle -translate-y-[1px]"
+            onClick={() => {
+              setLevel(jumpIndex);
+              const firstOpen = nearestUnlockedInRow(jumpIndex, 0);
+              setCursor(firstOpen === -1 ? 0 : firstOpen);
+              if (!isMobile) inputRef.current?.focus();
+            }}
+            aria-label={`Jump to row ${n}`}
+          >
+            {String(n)}
+          </button>
+        );
+      } else {
+        nodes.push(text.slice(m.index, regex.lastIndex));
+      }
+      last = regex.lastIndex;
+    }
+    if (last < text.length) nodes.push(text.slice(last));
+    return nodes;
+  }
+
   function setGuessAt(i, next) {
     setGuesses(prev => prev.map((g, idx) => (idx === i ? next : g)));
   }
@@ -582,7 +617,7 @@ export default function Game({ puzzle }) {
             ←
           </button>
           <div className="text-sm text-gray-300 mx-2 flex-1 text-center">
-            <span className="font-semibold">Clue:</span> {clue}
+            <span className="font-semibold">Clue {level+1}:</span> {renderClueText(clue)}
           </div>
         <button
             onClick={() => moveLevel(1)}
@@ -641,6 +676,12 @@ export default function Game({ puzzle }) {
             if (!isMobile) {
               inputRef.current?.focus();
             }
+          }}
+          onJumpToRow={(i)=>{
+            setLevel(i);
+            const firstOpen = nearestUnlockedInRow(i, 0);
+            setCursor(firstOpen === -1 ? 0 : firstOpen);
+            if (!isMobile) inputRef.current?.focus();
           }}
                   />
 

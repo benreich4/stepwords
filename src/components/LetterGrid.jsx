@@ -9,6 +9,7 @@ export default function LetterGrid({
   level,
   cursor,
   onTileClick,
+  onJumpToRow,
 }) {
   // Find the longest word length in the puzzle
   const maxWordLength = Math.max(...rows.map(row => row.answer.length));
@@ -19,7 +20,15 @@ export default function LetterGrid({
         const showVal = (guesses[i] || "").toUpperCase();
         const stepPos = stepIdx[i]; // -1 for the first row
         return (
-          <div key={i} className="w-full flex flex-row gap-0 px-0">
+          <div key={i} className="w-full flex flex-row items-center gap-1 px-0">
+            <button
+              type="button"
+              onClick={() => onJumpToRow && onJumpToRow(i)}
+              className={`shrink-0 w-6 h-6 rounded text-[10px] flex items-center justify-center border ${i===level? 'bg-sky-700 border-sky-500 text-white':'bg-gray-800 border-gray-700 text-gray-300'}`}
+              aria-label={`Row ${i+1}`}
+            >
+              {i+1}
+            </button>
             <div className="flex gap-0 px-0 mx-0">
               {Array.from({ length: len }).map((_, col) => (
                 <LetterBox
