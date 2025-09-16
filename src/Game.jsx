@@ -597,7 +597,7 @@ export default function Game({ puzzle }) {
 
 
       <div 
-        className="flex-1 overflow-y-auto pt-2"
+        className="flex-1 overflow-y-auto pt-2 pb-8"
         onClick={() => {
           console.log('Click handler:', { isMobile, hasInput: !!inputRef.current });
           if (!isMobile && inputRef.current) {
@@ -645,6 +645,8 @@ export default function Game({ puzzle }) {
                   />
 
         <div className="text-xs text-gray-300 px-3 mt-1 mb-2">{message}</div>
+        {/* Spacer equal to keyboard height (updated dynamically) */}
+        <div id="bottom-scroll-spacer" className="h-0" aria-hidden />
       </div>
 
       {/* Sticky keyboard at bottom */}
@@ -653,6 +655,10 @@ export default function Game({ puzzle }) {
         onEnter={handleEnter}
         onBackspace={handleBackspace}
         filteredLetters={settings.easyMode ? lettersUsedInAnswers : null}
+        onResize={(h) => {
+          const spacer = document.getElementById('bottom-scroll-spacer');
+          if (spacer) spacer.style.height = Math.max(0, Math.floor(h)) + 'px';
+        }}
       />
    
       {showShare && (
