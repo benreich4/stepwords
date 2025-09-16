@@ -44,7 +44,8 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
             {row.map((key) => (
               <button
                 key={key}
-                onClick={() => {
+                onPointerDown={(e) => {
+                  e.preventDefault();
                   const isDisabled = disabledKeys.has(key);
                   const isSpecial = (key === 'SUBMIT' || key === 'BACKSPACE');
                   const isFiltered = filteredLetters && !filteredLetters.includes(key);
@@ -55,9 +56,11 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
                 disabled={disabledKeys.has(key) || (!['SUBMIT','BACKSPACE'].includes(key) && (filteredLetters && !filteredLetters.includes(key)))}
                 className={getKeyClass(key)}
                 style={{
-                  minWidth: key === 'SUBMIT' ? '70px' : key === 'BACKSPACE' ? '60px' : '32px',
-                  height: '40px'
+                  minWidth: key === 'SUBMIT' ? '76px' : key === 'BACKSPACE' ? '64px' : '36px',
+                  height: '44px',
+                  WebkitTapHighlightColor: 'transparent'
                 }}
+                tabIndex={-1}
               >
                 {key === 'BACKSPACE' ? '⌫' : key}
               </button>
