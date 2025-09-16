@@ -25,7 +25,7 @@ export default function HowToPlayModal({ onClose }) {
           <div className="bg-gray-800 rounded-lg p-4 my-4">
             <div className="text-sm text-gray-400 mb-3">Example puzzle:</div>
             <div className="flex flex-col items-start gap-1">
-              {["ROW", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"].map((word, i) => (
+              {["WOE", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"].map((word, i) => (
                 <div key={i} className="flex gap-0">
                   {word.split("").map((letter, j) => (
                     <div
@@ -57,6 +57,9 @@ export default function HowToPlayModal({ onClose }) {
               <li><strong>Easy mode</strong> (Settings) — Filters the on‑screen keyboard to letters used in this puzzle. Saved as your default.</li>
             </ul>
           </div>
+          <p className="text-gray-400 text-xs">
+            Puzzles get a bit harder over the week, and a new one unlocks every night at midnight (ET).
+          </p>
         </div>
         
         <div className="flex justify-end mt-6">
