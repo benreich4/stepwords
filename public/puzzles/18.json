@@ -2,12 +2,11 @@
   "id": "18",
   "rows": [
     { "answer": "ten", "clue": "A Hamilton (3)" },
-    { "answer": "nets", "clue":  "The ___, crosstown rival of [3, 6] (4)" },
+    { "answer": "nets", "clue":  "The ___, crosstown rival of [3,6] (4)" },
     { "answer": "scent",     "clue":  "Fragrance (5)" },
-    { "answer": "incest",       "clue": "Worst case scenario involving [7, 3] (6)" },
+    { "answer": "insect",       "clue": "Six footer? (6)" },
     { "answer": "snicket",      "clue": "Kit, Jacques, or Lemony (7)" },
     { "answer": "kitchens",       "clue": "They can have islands in them (8)" },
-    { "answer": "theknicks",      "clue": "See [4] (3, 6)" },
-    { "answer": "sketchykin",     "clue": "Creepy uncle, e.g. (7, 3)" }
+    { "answer": "theknicks",      "clue": "See [4] (3,6)" }
   ]
 }

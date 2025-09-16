@@ -4,12 +4,12 @@
     { "answer": "eli", "clue": "Yalie (3)" },
     { "answer": "nile", "clue":  "Cairo to Khartoum connector (4)" },
     { "answer": "intel",     "clue":  "Inside info (5)" },
-    { "answer": "letsin",       "clue": "Welcomes (4, 2)" },
+    { "answer": "letsin",       "clue": "Welcomes (4,2)" },
     { "answer": "saltine",      "clue": "Snack for one with a stomach bug (7)" },
     { "answer": "plainest",       "clue": "Simplest (8)" },
-    { "answer": "palestine",      "clue":  "Jordan's neighbor (9)" },
-    { "answer": "iceplanets",      "clue":  "Pluto and Europa (3, 7)" },
-    { "answer": "ethicspanel",      "clue":   "Board for thorny dilemmas (6, 5)" },
+    { "answer": "palestine",      "clue":  "Biblical Canaan (9)" },
+    { "answer": "iceplanets",      "clue":  "Pluto and Europa (3,7)" },
+    { "answer": "ethicspanel",      "clue":   "Board for thorny dilemmas (6,5)" },
     { "answer": "encephalitis",      "clue":  "Brain inflammation (12)" }
   ]
 }
