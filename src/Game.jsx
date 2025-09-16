@@ -295,7 +295,8 @@ export default function Game({ puzzle }) {
     const len = rowLen(level);
     // Determine target position respecting locks
     let targetPos = cursor;
-    if (isBlocked(level, targetPos) || isCellFilled(level, targetPos)) {
+    // If current tile is locked, move to next empty editable; otherwise allow overwrite even if filled
+    if (isBlocked(level, targetPos)) {
       const nextPos = nearestEmptyEditableInRow(level, targetPos);
       if (nextPos === -1) return; // no space to type
       targetPos = nextPos;
@@ -303,6 +304,7 @@ export default function Game({ puzzle }) {
     }
 
     const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
+    const overwriteMode = cur[targetPos] !== " " && !isBlocked(level, targetPos);
     const next = (cur.slice(0, targetPos) + ch.toUpperCase() + cur.slice(targetPos + 1))
       .slice(0, len).trimEnd();
     setGuessAt(level, next);
@@ -310,7 +312,9 @@ export default function Game({ puzzle }) {
     // Advance to the next available (skip blocked)
     let pos = targetPos + 1;
     while (pos < len) {
-      if (!isBlocked(level, pos) && !isCellFilled(level, pos)) { setCursor(pos); break; }
+      if (!isBlocked(level, pos)) {
+        if (overwriteMode || !isCellFilled(level, pos)) { setCursor(pos); break; }
+      }
       pos += 1;
     }
     setMessage("");
