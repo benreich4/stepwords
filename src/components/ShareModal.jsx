@@ -9,6 +9,23 @@ export default function ShareModal({
   onClose,
 }) {
   const [notice, setNotice] = useState("");
+  // Determine if this is today's puzzle in ET
+  const { isTodayET, puzzleDateText } = (() => {
+    try {
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+      // Expect the page to have puzzle date in document.title e.g., "(..., September 19, 2025)"
+      const m = document.title.match(/\((\w+,\s+\w+\s+\d{1,2},\s+\d{4})\)$/);
+      if (!m) return { isTodayET: false, puzzleDateText: null };
+      const dt = new Date(m[1]);
+      const y = dt.getFullYear();
+      const mm = String(dt.getMonth()+1).padStart(2,'0');
+      const dd = String(dt.getDate()).padStart(2,'0');
+      const iso = `${y}-${mm}-${dd}`;
+      return { isTodayET: iso === today, puzzleDateText: m[1] };
+    } catch {
+      return { isTodayET: false, puzzleDateText: null };
+    }
+  })();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
@@ -58,7 +75,10 @@ export default function ShareModal({
             <button
               onClick={async () => {
                 try {
-                  const composed = `I solved today's Stepword Puzzle!\n\n${shareText}\n\nhttps://stepwords.xyz`;
+                  const header = isTodayET
+                    ? "I solved today's Stepword Puzzle!"
+                    : (puzzleDateText ? `I solved the Stepword Puzzle for ${puzzleDateText}!` : "I solved the Stepword Puzzle!");
+                  const composed = `${header}\n\n${shareText}\n\nhttps://stepwords.xyz`;
                   await navigator.clipboard.writeText(composed);
                   setNotice("Message copied to clipboard");
                 } catch {
