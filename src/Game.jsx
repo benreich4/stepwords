@@ -253,6 +253,20 @@ export default function Game({ puzzle }) {
     return -1;
   }
 
+  function isCellFilled(rowIndex, colIndex) {
+    const len = rowLen(rowIndex);
+    const g = (guesses[rowIndex] || "").toUpperCase().padEnd(len, " ").slice(0, len);
+    return g[colIndex] !== " ";
+  }
+
+  function nearestEmptyEditableInRow(rowIndex, startColInclusive) {
+    const len = rowLen(rowIndex);
+    for (let pos = Math.max(0, startColInclusive); pos < len; pos++) {
+      if (!isBlocked(rowIndex, pos) && !isCellFilled(rowIndex, pos)) return pos;
+    }
+    return -1;
+  }
+
   function stepCursorInRow(dir) {
     const len = rowLen(level);
     let col = cursor;
@@ -281,9 +295,9 @@ export default function Game({ puzzle }) {
     const len = rowLen(level);
     // Determine target position respecting locks
     let targetPos = cursor;
-    if (isBlocked(level, targetPos)) {
-      const nextPos = nearestUnlockedInRow(level, targetPos);
-      if (nextPos === -1) return; // row fully blocked
+    if (isBlocked(level, targetPos) || isCellFilled(level, targetPos)) {
+      const nextPos = nearestEmptyEditableInRow(level, targetPos);
+      if (nextPos === -1) return; // no space to type
       targetPos = nextPos;
       setCursor(nextPos);
     }
@@ -294,11 +308,10 @@ export default function Game({ puzzle }) {
     setGuessAt(level, next);
 
     // Advance to the next available (skip blocked)
-    let pos = targetPos;
-    for (let t = 0; t < len; t++) {
+    let pos = targetPos + 1;
+    while (pos < len) {
+      if (!isBlocked(level, pos) && !isCellFilled(level, pos)) { setCursor(pos); break; }
       pos += 1;
-      if (pos >= len) break;
-      if (!isBlocked(level, pos)) { setCursor(pos); break; }
     }
     setMessage("");
   }
