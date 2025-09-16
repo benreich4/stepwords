@@ -30,7 +30,8 @@ export default function App() {
   return (
     <div className="min-h-screen w-screen bg-black text-gray-100">
       <header className="w-full px-2 py-1 border-b border-gray-800">
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] text-gray-400">Stepwords, created by Ben Reich</span>
           <Link to="/archives" className="text-xs text-gray-400 hover:text-gray-200 transition-colors">
             Archives
           </Link>
