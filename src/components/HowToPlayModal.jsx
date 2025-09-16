@@ -1,4 +1,9 @@
+import { computeStepIndices } from "../lib/gameUtils.js";
+
 export default function HowToPlayModal({ onClose }) {
+  const exampleWords = ["WOE", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"];
+  const exampleRows = exampleWords.map(w => ({ answer: w }));
+  const exampleStepIdx = computeStepIndices(exampleRows);
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 px-4 py-4 overflow-y-auto">
       <div className="w-full max-w-2xl rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-6 shadow-2xl my-auto">
@@ -25,7 +30,7 @@ export default function HowToPlayModal({ onClose }) {
           <div className="bg-gray-800 rounded-lg p-4 my-4">
             <div className="text-sm text-gray-400 mb-3">Example puzzle:</div>
             <div className="flex flex-col items-start gap-1">
-              {["WOE", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"].map((word, i) => (
+              {exampleWords.map((word, i) => (
                 <div key={i} className="flex gap-0">
                   {word.split("").map((letter, j) => (
                     <div
@@ -33,7 +38,7 @@ export default function HowToPlayModal({ onClose }) {
                       className="relative inline-flex items-center justify-center border rounded-[6px] select-none uppercase font-bold leading-none w-8 h-8 text-sm bg-green-600 border-green-500 text-white"
                     >
                       <span>{letter}</span>
-                      {i >= 1 && j === word.length - 1 && (
+                      {i >= 1 && j === exampleStepIdx[i] && (
                         <span className="pointer-events-none absolute bottom-[1px] right-[1px] select-none text-[10px] leading-none" aria-hidden>
                           🪜
                         </span>
