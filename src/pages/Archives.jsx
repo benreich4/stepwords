@@ -192,6 +192,10 @@ export default function Archives() {
                   );
                 }
                 const solved = completedIds.has(puzzle.id);
+                const perfectSet = (() => {
+                  try { return new Set(JSON.parse(localStorage.getItem('stepwords-perfect') || '[]')); } catch { return new Set(); }
+                })();
+                const isPerfect = solved && perfectSet.has(puzzle.id);
                 const hasProgress = (() => {
                   try {
                     const raw = localStorage.getItem(`stepwords-${puzzle.id}`);
@@ -205,8 +209,8 @@ export default function Archives() {
                     return false;
                   } catch { return false; }
                 })();
-                const icon = solved ? '✓' : (hasProgress ? '🧗' : '🪜');
-                const color = solved ? 'text-green-400' : hasProgress ? 'text-yellow-300' : 'text-gray-300';
+                const icon = isPerfect ? '⭐' : (solved ? '✓' : (hasProgress ? '👟' : '🪜'));
+                const color = isPerfect ? 'text-yellow-300' : (solved ? 'text-green-400' : hasProgress ? 'text-yellow-300' : 'text-gray-300');
                 const bg = solved ? 'bg-gray-900/60' : 'bg-gray-900/40';
                 return (
                   <Link key={idx} to={`/${puzzle.id}`} className={`h-8 rounded border border-gray-800 ${bg} hover:border-gray-600 flex items-center justify-center gap-1`}>
@@ -218,8 +222,9 @@ export default function Archives() {
             </div>
             {/* Legend */}
             <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-gray-400">
+              <span className="flex items-center gap-1"><span className="text-yellow-300">⭐</span> Perfect</span>
               <span className="flex items-center gap-1"><span className="text-green-400">✓</span> Solved</span>
-              <span className="flex items-center gap-1"><span className="text-yellow-300">🧗</span> In progress</span>
+              <span className="flex items-center gap-1"><span className="text-yellow-300">👟</span> In progress</span>
               <span className="flex items-center gap-1"><span className="text-gray-300">🪜</span> Not started</span>
             </div>
           </div>

@@ -444,6 +444,17 @@ export default function Game({ puzzle }) {
           completedPuzzles.push(puzzle.id);
           localStorage.setItem('stepwords-completed', JSON.stringify(completedPuzzles));
         }
+
+        // Record perfect result (no hints, no wrong guesses)
+        try {
+          if (hintCount === 0 && wrongGuessCount === 0) {
+            const perfect = JSON.parse(localStorage.getItem('stepwords-perfect') || '[]');
+            if (!perfect.includes(puzzle.id)) {
+              perfect.push(puzzle.id);
+              localStorage.setItem('stepwords-perfect', JSON.stringify(perfect));
+            }
+          }
+        } catch (_e) { /* ignore */ }
         return;
       }
 
