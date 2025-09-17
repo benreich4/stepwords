@@ -192,8 +192,21 @@ export default function Archives() {
                   );
                 }
                 const solved = completedIds.has(puzzle.id);
-                const icon = solved ? '✓' : '🪜';
-                const color = solved ? 'text-green-400' : 'text-gray-300';
+                const hasProgress = (() => {
+                  try {
+                    const raw = localStorage.getItem(`stepwords-${puzzle.id}`);
+                    if (!raw) return false;
+                    const s = JSON.parse(raw);
+                    // Consider it "started" only if there is meaningful progress
+                    if (s?.guessCount > 0 || s?.hintCount > 0 || s?.wrongGuessCount > 0) return true;
+                    if (Array.isArray(s?.guesses) && s.guesses.some(g => (g || '').trim().length > 0)) return true;
+                    if (Array.isArray(s?.lockColors) && s.lockColors.some(row => Array.isArray(row) && row.some(c => c))) return true;
+                    if (typeof s?.level === 'number' && s.level > 0) return true;
+                    return false;
+                  } catch { return false; }
+                })();
+                const icon = solved ? '✓' : (hasProgress ? '🧗' : '🪜');
+                const color = solved ? 'text-green-400' : hasProgress ? 'text-yellow-300' : 'text-gray-300';
                 const bg = solved ? 'bg-gray-900/60' : 'bg-gray-900/40';
                 return (
                   <Link key={idx} to={`/${puzzle.id}`} className={`h-8 rounded border border-gray-800 ${bg} hover:border-gray-600 flex items-center justify-center gap-1`}>
@@ -202,6 +215,12 @@ export default function Archives() {
                   </Link>
                 );
               })}
+            </div>
+            {/* Legend */}
+            <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-gray-400">
+              <span className="flex items-center gap-1"><span className="text-green-400">✓</span> Solved</span>
+              <span className="flex items-center gap-1"><span className="text-yellow-300">🧗</span> In progress</span>
+              <span className="flex items-center gap-1"><span className="text-gray-300">🪜</span> Not started</span>
             </div>
           </div>
         )}
