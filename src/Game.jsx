@@ -238,6 +238,18 @@ export default function Game({ puzzle }) {
 
   const clue = rows[level].clue;
 
+  // Compute referenced rows from the current clue text (only [n] form)
+  const referencedRows = useMemo(() => {
+    const set = new Set();
+    const regex = /\[(\d+)\]/g;
+    let m;
+    while ((m = regex.exec(clue || "")) !== null) {
+      const n = parseInt(m[1], 10);
+      if (Number.isFinite(n) && n >= 1 && n <= rows.length) set.add(n - 1);
+    }
+    return set;
+  }, [clue, rows.length]);
+
   function renderClueText(text) {
     // Only single-number references like [4] are recognized.
     const nodes = [];
@@ -252,7 +264,7 @@ export default function Game({ puzzle }) {
           <button
             key={`ref-${m.index}`}
             type="button"
-            className="inline-flex items-center justify-center w-5 h-5 rounded border bg-gray-800 border-gray-700 text-gray-300 text-[9px] leading-none hover:border-sky-600 hover:text-sky-300 align-middle -translate-y-[1px]"
+            className="inline-flex items-center justify-center w-5 h-5 rounded border bg-yellow-700/30 border-yellow-400 text-yellow-200 text-[9px] leading-none hover:bg-yellow-700/40 align-middle -translate-y-[1px]"
             onClick={() => {
               setLevel(jumpIndex);
               const firstOpen = nearestUnlockedInRow(jumpIndex, 0);
@@ -617,7 +629,7 @@ export default function Game({ puzzle }) {
             ←
           </button>
           <div className="text-sm text-gray-300 mx-2 flex-1 text-center">
-            <span className="font-semibold">Clue {level+1}:</span> {renderClueText(clue)}
+            <span className="font-semibold">Clue:</span> {renderClueText(clue)}
           </div>
         <button
             onClick={() => moveLevel(1)}
@@ -683,6 +695,7 @@ export default function Game({ puzzle }) {
             setCursor(firstOpen === -1 ? 0 : firstOpen);
             if (!isMobile) inputRef.current?.focus();
           }}
+          referencedRows={referencedRows}
                   />
 
         <div className="text-xs text-gray-300 px-3 mt-1 mb-2">{message}</div>
