@@ -25,7 +25,43 @@ export default function PuzzlePage() {
         }
         setData(json);
         const dateStr = json.date ? formatDateWithDayOfWeek(json.date) : "";
-        document.title = `Stepword Puzzle – #${json.id}${dateStr ? ` (${dateStr})` : ""}`;
+        const pageTitle = `Stepword Puzzle – #${json.id}${dateStr ? ` (${dateStr})` : ""}`;
+        document.title = pageTitle;
+        // Update per-page SEO meta
+        try {
+          const descText = `Daily anagram ladder puzzle for ${dateStr || 'today'}. Build each word by adding a letter.`;
+          const setMeta = (sel, attr, value) => {
+            let el = document.querySelector(sel);
+            if (!el) { el = document.createElement('meta'); el.setAttribute(attr==='property'?'property':'name', sel.includes('property=')?sel.match(/property=\"([^\"]+)\"/)[1]:sel.match(/name=\"([^\"]+)\"/)[1]); document.head.appendChild(el); }
+            el.setAttribute(attr, sel.includes('property=')?sel.match(/property=\"([^\"]+)\"/)[1]:sel.match(/name=\"([^\"]+)\"/)[1]);
+            el.setAttribute('content', value);
+          };
+          setMeta('meta[name="description"]','name', 'description');
+          document.querySelector('meta[name="description"]').setAttribute('content', descText);
+          const ogTitle = document.querySelector('meta[property="og:title"]'); if (ogTitle) ogTitle.setAttribute('content', pageTitle);
+          const ogDesc = document.querySelector('meta[property="og:description"]'); if (ogDesc) ogDesc.setAttribute('content', descText);
+          const ogUrl = document.querySelector('meta[property="og:url"]'); if (ogUrl) ogUrl.setAttribute('content', `${location.origin}/${json.id}`);
+          const twTitle = document.querySelector('meta[name="twitter:title"]'); if (twTitle) twTitle.setAttribute('content', pageTitle);
+          const twDesc = document.querySelector('meta[name="twitter:description"]'); if (twDesc) twDesc.setAttribute('content', descText);
+          // JSON-LD Game schema
+          const ld = document.createElement('script');
+          ld.type = 'application/ld+json';
+          ld.textContent = JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Game",
+            "name": pageTitle,
+            "gamePlatform": "Web",
+            "inLanguage": "en",
+            "datePublished": json.date || todayET,
+            "genre": ["Word Game","Puzzle"],
+            "publisher": {"@type":"Organization","name":"Stepwords"},
+            "url": `${location.origin}/${json.id}`
+          });
+          // remove old injected script if present
+          document.querySelectorAll('script[type="application/ld+json"].puzzle-ld').forEach(s=>s.remove());
+          ld.className = 'puzzle-ld';
+          document.head.appendChild(ld);
+        } catch {}
       })
       .catch((e) => {
         if (!mounted) return;
