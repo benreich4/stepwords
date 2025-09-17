@@ -72,6 +72,7 @@ export default function Game({ puzzle }) {
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
   // Settings (persisted)
   const [settings, setSettings] = useState(() => {
     try {
@@ -153,12 +154,17 @@ export default function Game({ puzzle }) {
     setMessage("");
   }, [level]);
 
-  // Detect mobile device
+  // Detect mobile vs tablet devices
   useEffect(() => {
     const checkMobile = () => {
-      // Only consider it mobile if it's actually a mobile device, not just small screen
-      const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      setIsMobile(isMobileDevice);
+      const ua = navigator.userAgent || '';
+      const likelyTabletUA = /iPad|Tablet|Android(?!.*Mobile)/i.test(ua);
+      const hasTouch = navigator.maxTouchPoints && navigator.maxTouchPoints > 1;
+      const wideScreen = window.innerWidth >= 768; // iPad-ish breakpoint
+      const tablet = likelyTabletUA || (hasTouch && wideScreen);
+      const phone = /Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) && !tablet;
+      setIsTablet(Boolean(tablet));
+      setIsMobile(Boolean(phone));
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -675,13 +681,13 @@ export default function Game({ puzzle }) {
               setTimeout(() => inputRef.current?.focus(), 0);
             }
           }}
-          inputMode={isMobile ? "none" : "latin"}
+          inputMode={(isMobile ? "none" : "latin")}
         enterKeyHint="done"
         autoCapitalize="none"
         autoComplete="off"
         autoCorrect="off"
         spellCheck={false}
-          className="absolute opacity-0 -left-[9999px] w-px h-px"
+          className={isTablet ? "absolute opacity-0 w-0 h-0" : "absolute opacity-0 -left-[9999px] w-px h-px"}
         aria-hidden
       />
 
