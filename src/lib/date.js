@@ -60,6 +60,10 @@ export function getTodayIsoInET() {
 // Preview mode helper: enable via localStorage flag set by a URL param handler in App
 export function isPreviewEnabled() {
   try {
+    const params = new URLSearchParams(window.location.search || '');
+    const p = params.get('preview');
+    if (p === 'on') { try { localStorage.setItem('stepwords-preview', '1'); } catch {} return true; }
+    if (p === 'off') { try { localStorage.removeItem('stepwords-preview'); } catch {} return false; }
     return localStorage.getItem('stepwords-preview') === '1';
   } catch {
     return false;
