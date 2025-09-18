@@ -28,8 +28,8 @@ export default function ShareModal({
   })();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-lg rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-5 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-6">
+      <div className="w-full max-w-lg rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-5 shadow-2xl max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xl font-semibold text-white">You solved it!</div>
           {(hintCount === 0 && wrongGuessCount === 0) && (

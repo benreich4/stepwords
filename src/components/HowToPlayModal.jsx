@@ -1,7 +1,7 @@
 import { computeStepIndices } from "../lib/gameUtils.js";
 
 export default function HowToPlayModal({ onClose }) {
-  const exampleWords = ["WOE", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"];
+  const exampleWords = ["SOW", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"];
   const exampleRows = exampleWords.map(w => ({ answer: w }));
   const exampleStepIdx = computeStepIndices(exampleRows);
   return (
