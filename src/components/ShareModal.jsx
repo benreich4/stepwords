@@ -60,6 +60,18 @@ export default function ShareModal({
           >
             hello@stepwords.xyz
           </a>
+          <div className="mt-3">
+            <a
+              href="/archives"
+              className="inline-block text-sm text-emerald-400 hover:underline"
+              onClick={(e) => {
+                // Close modal on in-app navigation if SPA routing is in place
+                try { e.preventDefault(); window.history.pushState({}, "", "/archives"); onClose?.(); } catch {}
+              }}
+            >
+              Try another puzzle from the archives!
+            </a>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
