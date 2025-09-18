@@ -76,6 +76,8 @@ export default function Game({ puzzle }) {
   const [toast, setToast] = useState("");
   const [toastVariant, setToastVariant] = useState("info"); // info | success | warning
   const toastTimerRef = useRef(null);
+  const [dragStartRow, setDragStartRow] = useState(null);
+  const [dragOverRow, setDragOverRow] = useState(null);
 
   function showToast(text, durationMs = 2500, variant = "info") {
     setToast(text || "");
@@ -91,6 +93,14 @@ export default function Game({ puzzle }) {
       }, durationMs);
     }
   }
+  // Expose setters for drag diff to child grid (avoids prop drilling handlers)
+  useEffect(() => {
+    window.__setDragStartRow = (v) => setDragStartRow(v);
+    window.__setDragOverRow = (v) => setDragOverRow(v);
+    return () => {
+      try { delete window.__setDragStartRow; delete window.__setDragOverRow; } catch {}
+    };
+  }, []);
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
   const [isMobile, setIsMobile] = useState(false);
@@ -751,6 +761,8 @@ export default function Game({ puzzle }) {
             if (!isMobile) inputRef.current?.focus();
           }}
           referencedRows={referencedRows}
+          diffFromRow={dragStartRow}
+          diffToRow={dragOverRow}
                   />
 
         <div className="text-xs text-gray-300 px-3 mt-1 mb-2">{message}</div>

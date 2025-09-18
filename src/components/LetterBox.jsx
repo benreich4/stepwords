@@ -5,6 +5,9 @@ export default function LetterBox({
   onClick,
   showStep = false,      // <-- NEW
   maxWordLength = 7,     // <-- NEW: longest word in puzzle
+  isDiffExtra = false,   // highlight as the extra/step letter vs comparison row
+  isDiffMissing = false, // highlight as a missing/unfilled letter in comparison row
+  isDiffFilled = false,  // deemphasize letters already filled in comparison row
 }) {
   const COLOR_CLASSES = {
     G: "bg-green-600 border-green-500 text-white",
@@ -30,7 +33,7 @@ export default function LetterBox({
     <button 
       type="button" 
       onClick={onClick} 
-      className={`${base} ${stateClass}`}
+      className={`${base} ${stateClass} ${isDiffExtra ? 'opacity-60' : ''} ${isDiffMissing ? '' : ''} ${isDiffFilled ? 'opacity-60' : ''}`}
       style={{
         width: tileSize,
         fontSize: textSize,
