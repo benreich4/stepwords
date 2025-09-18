@@ -57,6 +57,7 @@ export default function HowToPlayModal({ onClose }) {
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>Correct letters turn <span className="text-green-400">green</span></li>
               <li>Letters that took multiple guesses or required a hint turn <span className="text-yellow-400">yellow</span></li>
+            <li>When a row is full, press <strong>Enter</strong> or tap <strong>Submit</strong> to check it</li>
               <li><strong className="text-sky-400">Reveal letter</strong> — Click the button, then tap any tile to reveal that letter.</li>
               <li><strong>Hard mode</strong> (Settings) — Hides 🪜 step locations by default until revealed with hints. Saved as your default.</li>
               <li><strong>Easy mode</strong> (Settings) — Filters the on‑screen keyboard to letters used in this puzzle. Saved as your default.</li>

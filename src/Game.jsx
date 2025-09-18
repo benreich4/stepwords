@@ -3,6 +3,7 @@ import LetterGrid from "./components/LetterGrid.jsx";
 import ShareModal from "./components/ShareModal.jsx";
 import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import OnScreenKeyboard from "./components/OnScreenKeyboard.jsx";
+import Toast from "./components/Toast.jsx";
 import { formatDateWithDayOfWeek } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 // Inline analytics - no separate module needed
@@ -69,6 +70,27 @@ export default function Game({ puzzle }) {
   const [guesses, setGuesses] = useState(savedState.guesses);
   const [cursor, setCursor] = useState(savedState.cursor);
   const [message, setMessage] = useState("");
+  const [enterTipShown, setEnterTipShown] = useState(() => {
+    try { return localStorage.getItem('stepwords-enter-tip-shown') === '1'; } catch { return false; }
+  });
+  const [toast, setToast] = useState("");
+  const [toastVariant, setToastVariant] = useState("info"); // info | success | warning
+  const toastTimerRef = useRef(null);
+
+  function showToast(text, durationMs = 2500, variant = "info") {
+    setToast(text || "");
+    setToastVariant(variant || "info");
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+    if (text) {
+      toastTimerRef.current = setTimeout(() => {
+        setToast("");
+        toastTimerRef.current = null;
+      }, durationMs);
+    }
+  }
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
   const [isMobile, setIsMobile] = useState(false);
@@ -139,7 +161,7 @@ export default function Game({ puzzle }) {
     setLockColors(newLockColors);
     setGuesses(newGuesses);
     setHintCount((n) => n + 1);
-    setMessage("Revealed letter.");
+    showToast("Revealed letter.", 2000, "info");
     try {
       if (window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'hint_used', { hint_type: 'reveal_letter', puzzle_id: puzzle.id || 'unknown' });
@@ -370,6 +392,19 @@ export default function Game({ puzzle }) {
       }
       pos += 1;
     }
+    // If first-time user and row became fully filled, show a one-time top toast
+    if (!enterTipShown) {
+      const after = (next.padEnd(len, " ").slice(0, len)).toUpperCase();
+      let full = true;
+      for (let col = 0; col < len; col++) {
+        if (!isBlocked(level, col) && after[col] === " ") { full = false; break; }
+      }
+      if (full) {
+        setEnterTipShown(true);
+        try { localStorage.setItem('stepwords-enter-tip-shown', '1'); } catch {}
+        showToast("Press Enter to submit", 2500, "warning");
+      }
+    }
     setMessage("");
   }
 
@@ -423,7 +458,7 @@ export default function Game({ puzzle }) {
       if (isPuzzleSolved(colorsAfter, rows)) {
         setLockColors(colorsAfter);
 
-        setMessage("🎉 You solved all the Stepwords!");
+        showToast("🎉 You solved all the Stepwords!", 2800, "success");
         const share = buildEmojiShareGridFrom(rows, colorsAfter);
         setShareText(share);
         setShowShare(true);
@@ -471,18 +506,18 @@ export default function Game({ puzzle }) {
         setLevel(nextRow);
         const firstOpen = nearestUnlockedInRow(nextRow, 0);
         setCursor(firstOpen === -1 ? 0 : firstOpen);
-        setMessage("Nice! Next word →");
+        showToast("Nice! Next word →", 2000, "success");
         requestAnimationFrame(() => inputRef.current?.focus());
       } else {
         // Last row solved but earlier rows aren’t → encourage finishing the rest
-        setMessage("This row is done. Finish the others to complete the puzzle!");
+        showToast("This row is done. Finish the others to complete the puzzle!", 2600, "info");
       }
       return;
     }
 
     // Row not solved → commit and prompt to keep going
     setLockColors(colorsAfter);
-    setMessage("Kept correct letters. Try filling the rest.");
+    showToast("Kept correct letters. Try filling the rest.", 2400, "warning");
   }
 
   // Keyboard event handlers (desktop)
@@ -535,7 +570,7 @@ export default function Game({ puzzle }) {
       }
     }
     if (!hasAnyFilled) {
-      setMessage("Type at least one letter to submit");
+      showToast("Type at least one letter to submit", 2200, "warning");
       return; // ignore Enter if empty
     }
     submitRow(level);
@@ -635,6 +670,9 @@ export default function Game({ puzzle }) {
           </div>
         </div>
       </div>
+
+      {/* Top toast */}
+      <Toast text={toast} variant={toastVariant} />
 
       <div className="w-full px-3 py-2 sticky top-[48px] bg-black/80 backdrop-blur border-b border-gray-800 z-10">
         <div className="flex items-center justify-between">
