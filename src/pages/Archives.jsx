@@ -7,7 +7,13 @@ import { parseLocalISODate } from "../lib/date.js";
 export default function Archives() {
   const [manifest, setManifest] = useState([]);
   const [err, setErr] = useState("");
-  const [current, setCurrent] = useState({ year: 0, month: 0 });
+  const [current, setCurrent] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('stepwords-archives-current') || 'null');
+      if (saved && typeof saved.year === 'number' && typeof saved.month === 'number') return saved;
+    } catch {}
+    return { year: 0, month: 0 };
+  });
 
   useEffect(() => {
     document.title = "Stepword Puzzles - Archives";
@@ -81,10 +87,17 @@ export default function Archives() {
   // Initialize current to latest month once months are available
   useEffect(() => {
     if (months.length) {
-      const latest = months[months.length - 1];
-      setCurrent({ year: latest.year, month: latest.month });
+      if (current.year === 0) {
+        const latest = months[months.length - 1];
+        setCurrent({ year: latest.year, month: latest.month });
+      }
     }
   }, [months.length]);
+
+  // Persist current archive view
+  useEffect(() => {
+    try { localStorage.setItem('stepwords-archives-current', JSON.stringify(current)); } catch {}
+  }, [current]);
 
   const years = useMemo(() => {
     if (!minDate || !maxDate) return [];
