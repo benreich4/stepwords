@@ -211,12 +211,8 @@ export default function LetterGrid({
             }
           }
 
-          // If we already faded the step (backward), consume one overlap count for that step
-          // so duplicates are handled (e.g., TIPINS with a second I)
-          if (backward && stepPos >= 0 && stepPos < len) {
-            const stepCh = fromAns[stepPos];
-            if (countsOverlap[stepCh] > 0) countsOverlap[stepCh] -= 1;
-          }
+          // Do not pre-consume the overlap for the step letter.
+          // This allows cases like APPRECIATE (step E) vs PER to dim two Es: one for step, one for overlap.
 
           // Deemphasize any letters in FROM that are covered by countsOverlap (multiset-aware)
           for (let c = 0; c < len; c++) {
