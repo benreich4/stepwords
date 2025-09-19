@@ -1,4 +1,5 @@
 import LetterBox from "./LetterBox.jsx";
+import { useRef } from "react";
 
 export default function LetterGrid({
   rows,
@@ -14,13 +15,25 @@ export default function LetterGrid({
   diffFromRow = null, // index to compare FROM (longer row)
   diffToRow = null,   // index to compare TO (shorter row)
 }) {
+  // Long-press tracking for mobile/desktop: start diff after hold on row number
+  const longPressTimerRef = useRef(null);
+  const longPressActiveRef = useRef(false);
+  const longPressStartRowRef = useRef(null);
+  const prevBodyOverflowRef = useRef("");
+  const prevBodyTouchActionRef = useRef("");
+  const prevBodyUserSelectRef = useRef("");
+  const prevBodyPositionRef = useRef("");
+  const prevBodyTopRef = useRef("");
+  const prevScrollYRef = useRef(0);
+  const activePointerIdRef = useRef(null);
+  const unblockHandlersRef = useRef({});
   // Find the longest word length in the puzzle
   const maxWordLength = Math.max(...rows.map(row => row.answer.length));
+  const isHoldingOnly = longPressActiveRef.current && longPressStartRowRef.current != null && (typeof diffToRow !== 'number' || diffToRow == null);
   return (
     <div
       className="w-full flex flex-col items-start gap-1 select-none pl-2 pr-0 pb-0"
       onPointerDown={(e) => {
-        if (typeof onJumpToRow !== 'function') return;
         const target = e.target;
         if (!target || !target.closest) return;
         const rowBtn = target.closest('button[aria-label^="Row "]');
@@ -29,140 +42,199 @@ export default function LetterGrid({
         const m = label.match(/Row\s+(\d+)/);
         if (!m) return;
         const rowIndex = parseInt(m[1], 10) - 1;
-        try {
-          if (typeof window.__setDragStartRow === 'function') window.__setDragStartRow(rowIndex);
-          if (typeof window.__setDragOverRow === 'function') window.__setDragOverRow(rowIndex);
-        } catch {}
+        longPressStartRowRef.current = rowIndex;
+        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+        longPressActiveRef.current = false;
+        activePointerIdRef.current = e.pointerId;
+        try { e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+        longPressTimerRef.current = setTimeout(() => {
+          longPressActiveRef.current = true;
+          try {
+            if (typeof window.__setDragStartRow === 'function') window.__setDragStartRow(rowIndex);
+            if (typeof window.__setDragOverRow === 'function') window.__setDragOverRow(rowIndex);
+          } catch {}
+          // Disable page scroll/selection while in compare mode
+          try {
+            // Freeze body scroll via position:fixed to avoid iOS scrolling
+            prevScrollYRef.current = window.scrollY || 0;
+            prevBodyOverflowRef.current = document.body.style.overflow;
+            prevBodyTouchActionRef.current = document.body.style.touchAction;
+            prevBodyUserSelectRef.current = document.body.style.userSelect;
+            prevBodyPositionRef.current = document.body.style.position;
+            prevBodyTopRef.current = document.body.style.top;
+            document.body.style.overflow = 'hidden';
+            document.body.style.touchAction = 'none';
+            document.body.style.userSelect = 'none';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${prevScrollYRef.current}px`;
+          } catch {}
+          // Additionally block touchmove/wheel globally (iOS/Safari edge cases)
+          try {
+            const block = (ev) => { ev.preventDefault(); };
+            window.addEventListener('touchmove', block, { passive: false });
+            window.addEventListener('wheel', block, { passive: false });
+            unblockHandlersRef.current = { block };
+          } catch {}
+        }, 300);
       }}
       onPointerMove={(e) => {
-        const target = e.target;
-        if (!target || !target.closest) return;
-        const rowBtn = target.closest('button[aria-label^="Row "]');
-        if (!rowBtn) return;
-        const label = rowBtn.getAttribute('aria-label') || '';
-        const m = label.match(/Row\s+(\d+)/);
-        if (!m) return;
-        const rowIndex = parseInt(m[1], 10) - 1;
-        try { if (typeof window.__setDragOverRow === 'function') window.__setDragOverRow(rowIndex); } catch {}
-      }}
-      onPointerUp={() => {
+        if (!longPressActiveRef.current) return;
         try {
-          if (typeof window.__setDragStartRow === 'function') window.__setDragStartRow(null);
-          if (typeof window.__setDragOverRow === 'function') window.__setDragOverRow(null);
+          e.preventDefault();
+          const scroller = document.getElementById('grid-scroll');
+          if (scroller) {
+            scroller.style.overflowY = 'hidden';
+            scroller.style.touchAction = 'none';
+          }
+        } catch {}
+        // Determine row under pointer by Y coordinate using row containers
+        const y = e.clientY;
+        try {
+          const containers = e.currentTarget.querySelectorAll('[data-row-index]');
+          let hit = null;
+          containers.forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            if (y >= rect.top && y <= rect.bottom) {
+              const idx = parseInt(el.getAttribute('data-row-index'), 10);
+              hit = Number.isFinite(idx) ? idx : hit;
+            }
+          });
+          if (hit != null) {
+            if (typeof window.__setDragOverRow === 'function') window.__setDragOverRow(hit);
+          }
         } catch {}
       }}
-      onTouchStart={(e) => {
-        const rowsFromTouches = [];
-        for (let i = 0; i < e.touches.length; i++) {
-          const t = e.touches[i];
-          const el = document.elementFromPoint(t.clientX, t.clientY);
-          if (!el || !el.closest) continue;
-          const btn = el.closest('button[aria-label^="Row "]');
-          if (!btn) continue;
-          const label = btn.getAttribute('aria-label') || '';
-          const m = label.match(/Row\s+(\d+)/);
-          if (m) rowsFromTouches.push(parseInt(m[1], 10) - 1);
-        }
-        if (rowsFromTouches.length >= 1) {
-          try { if (typeof window.__setDragStartRow === 'function') window.__setDragStartRow(rowsFromTouches[0]); } catch {}
-        }
-        if (rowsFromTouches.length >= 2) {
-          try { if (typeof window.__setDragOverRow === 'function') window.__setDragOverRow(rowsFromTouches[1]); } catch {}
-        }
-      }}
-      onTouchMove={(e) => {
-        // keep start; update over to any other touched row
-        const touchedRows = new Set();
-        for (let i = 0; i < e.touches.length; i++) {
-          const t = e.touches[i];
-          const el = document.elementFromPoint(t.clientX, t.clientY);
-          if (!el || !el.closest) continue;
-          const btn = el.closest('button[aria-label^="Row "]');
-          if (!btn) continue;
-          const label = btn.getAttribute('aria-label') || '';
-          const m = label.match(/Row\s+(\d+)/);
-          if (m) touchedRows.add(parseInt(m[1], 10) - 1);
-        }
-        if (touchedRows.size >= 2) {
-          // pick any second row
-          const arr = Array.from(touchedRows);
-          try { if (typeof window.__setDragOverRow === 'function') window.__setDragOverRow(arr[1]); } catch {}
-        }
-      }}
-      onTouchEnd={(e) => {
-        if (e.touches.length === 0) {
+      onPointerUp={() => {
+        if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+        if (longPressActiveRef.current) {
           try {
             if (typeof window.__setDragStartRow === 'function') window.__setDragStartRow(null);
             if (typeof window.__setDragOverRow === 'function') window.__setDragOverRow(null);
           } catch {}
-        } else if (e.touches.length === 1) {
-          try { if (typeof window.__setDragOverRow === 'function') window.__setDragOverRow(null); } catch {}
+          // Restore page/scroll/selection
+          try {
+            document.body.style.overflow = prevBodyOverflowRef.current || '';
+            document.body.style.touchAction = prevBodyTouchActionRef.current || '';
+            document.body.style.userSelect = prevBodyUserSelectRef.current || '';
+            document.body.style.position = prevBodyPositionRef.current || '';
+            document.body.style.top = prevBodyTopRef.current || '';
+            window.scrollTo(0, prevScrollYRef.current || 0);
+            const scroller = document.getElementById('grid-scroll');
+            if (scroller) { scroller.style.overflowY = ''; scroller.style.touchAction = ''; }
+            if (unblockHandlersRef.current.block) {
+              window.removeEventListener('touchmove', unblockHandlersRef.current.block);
+              window.removeEventListener('wheel', unblockHandlersRef.current.block);
+              unblockHandlersRef.current = {};
+            }
+          } catch {}
         }
+        longPressActiveRef.current = false;
+        longPressStartRowRef.current = null;
+        try { if (activePointerIdRef.current != null && e.currentTarget.releasePointerCapture) e.currentTarget.releasePointerCapture(activePointerIdRef.current); } catch {}
+        activePointerIdRef.current = null;
       }}
+      onPointerCancel={() => {
+        if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+        if (longPressActiveRef.current) {
+          try {
+            if (typeof window.__setDragStartRow === 'function') window.__setDragStartRow(null);
+            if (typeof window.__setDragOverRow === 'function') window.__setDragOverRow(null);
+          } catch {}
+          try {
+            document.body.style.overflow = prevBodyOverflowRef.current || '';
+            document.body.style.touchAction = prevBodyTouchActionRef.current || '';
+            document.body.style.userSelect = prevBodyUserSelectRef.current || '';
+            document.body.style.position = prevBodyPositionRef.current || '';
+            document.body.style.top = prevBodyTopRef.current || '';
+            window.scrollTo(0, prevScrollYRef.current || 0);
+            const scroller = document.getElementById('grid-scroll');
+            if (scroller) { scroller.style.overflowY = ''; scroller.style.touchAction = ''; }
+            if (unblockHandlersRef.current.block) {
+              window.removeEventListener('touchmove', unblockHandlersRef.current.block);
+              window.removeEventListener('wheel', unblockHandlersRef.current.block);
+              unblockHandlersRef.current = {};
+            }
+          } catch {}
+        }
+        longPressActiveRef.current = false;
+        longPressStartRowRef.current = null;
+      }}
+      // Multi-touch logic removed; long-press initiates diff instead
     >
       {rows.map((r, i) => {
         const len = r.answer.length;
         const showVal = (guesses[i] || "").toUpperCase();
         const stepPos = stepIdx[i]; // -1 for the first row
 
-        // Diff highlighting:
-        // - For FROM row: deemphasize letters that are "extra" vs TO row's answer (multiset diff),
-        //   and also deemphasize letters that are already FILLED in the TO row's guess.
-        // - For TO row: highlight missing (unfilled) letters.
-        let fromExtraMask = null;    // positions in FROM row that are extra relative to TO answer
-        let fromFilledMask = null;   // positions in FROM row that correspond to letters already filled in TO guess
-        let diffMissingMask = null;  // positions in TO row that are currently unfilled
+        // Diff highlighting rules:
+        // - Always deemphasize the step letter of the FROM row (true extra vs row-1).
+        // - If comparing to the immediate previous row (gap === 1): also
+        //   deemphasize characters in FROM that are already filled in the TO row's guess (multiset match).
+        // - If comparing across multiple rows (gap > 1): only deemphasize
+        //   the FROM row's step letter and any intermediate step letters that are revealed/locked.
+        //   Ignore the TO row's answer/guess to avoid over-deemphasis when middle rows are unknown.
+
+        let fromExtraMask = null;    // positions in FROM row that are extra or accounted for by known steps
+        let fromFilledMask = null;   // positions in FROM row matched by filled letters in immediate TO row (gap === 1 only)
+        let diffMissingMask = null;  // (unused visual now; kept for future)
 
         const inRange = (idx) => idx != null && idx >= 0 && idx < rows.length;
         if (diffFromRow === i && inRange(diffToRow)) {
           const fromAns = rows[diffFromRow].answer.toUpperCase();
-          const toAns = rows[diffToRow].answer.toUpperCase();
-          const toGuess = (guesses[diffToRow] || "").toUpperCase();
-
-          const countLetters = (s) => {
-            const m = Object.create(null);
-            for (const ch of s) { if (ch !== ' ') m[ch] = (m[ch] || 0) + 1; }
-            return m;
-          };
-          const fromCounts = countLetters(fromAns);
-          const toCounts = countLetters(toAns);
-          const extraCounts = Object.create(null);
-          for (const ch in fromCounts) {
-            const extra = fromCounts[ch] - (toCounts[ch] || 0);
-            if (extra > 0) extraCounts[ch] = extra;
-          }
-          const filledCounts = countLetters(toGuess);
+          const gap = Math.abs(diffFromRow - diffToRow);
+          const backward = diffToRow < diffFromRow;  // comparing to previous words
+          const forward = diffToRow > diffFromRow;   // comparing to future words
 
           fromExtraMask = Array.from({ length: len }, () => false);
           fromFilledMask = Array.from({ length: len }, () => false);
-          // First pass: mark extra letters by consuming extraCounts
-          for (let c = 0; c < len; c++) {
-            const ch = fromAns[c];
-            if (extraCounts[ch] > 0) {
-              fromExtraMask[c] = true;
-              extraCounts[ch] -= 1;
+
+          // Step letter handling depends on direction
+          // - Backward (to earlier rows): step letter is truly extra vs previous, so fade it
+          // - Forward (to later rows): do NOT fade step letter unless covered by overlaps below
+          if (backward && stepPos >= 0 && stepPos < len) {
+            fromExtraMask[stepPos] = true;
+          }
+
+          // Build overlap counts from TO row's current guess (only what user has entered)
+          const countsOverlap = Object.create(null);
+          const toGuess = (guesses[diffToRow] || "").toUpperCase();
+          for (const ch of toGuess) { if (ch !== ' ') countsOverlap[ch] = (countsOverlap[ch] || 0) + 1; }
+
+          // For backward gap > 1, also account for revealed intermediate step letters
+          if (backward && gap > 1) {
+            for (let k = diffToRow + 1; k < diffFromRow; k++) {
+              const sIdx = stepIdx[k];
+              if (sIdx >= 0 && lockColors[k] && lockColors[k][sIdx] != null) {
+                const ch = rows[k].answer.toUpperCase()[sIdx];
+                if (ch && ch !== ' ') countsOverlap[ch] = (countsOverlap[ch] || 0) + 1;
+              }
             }
           }
-          // Second pass: mark letters that are already filled in TO row (not already extra)
+
+          // If we already faded the step (backward), consume one overlap count for that step
+          // so duplicates are handled (e.g., TIPINS with a second I)
+          if (backward && stepPos >= 0 && stepPos < len) {
+            const stepCh = fromAns[stepPos];
+            if (countsOverlap[stepCh] > 0) countsOverlap[stepCh] -= 1;
+          }
+
+          // Deemphasize any letters in FROM that are covered by countsOverlap (multiset-aware)
           for (let c = 0; c < len; c++) {
             const ch = fromAns[c];
-            if (!fromExtraMask[c] && filledCounts[ch] > 0) {
+            if (fromExtraMask[c]) continue; // step already handled
+            if (countsOverlap[ch] > 0) {
               fromFilledMask[c] = true;
-              filledCounts[ch] -= 1;
+              countsOverlap[ch] -= 1;
             }
           }
         }
 
-        if (diffToRow === i && inRange(diffFromRow)) {
-          const targetLen = len;
-          const g = (guesses[i] || "").toUpperCase().padEnd(targetLen, " ").slice(0, targetLen);
-          diffMissingMask = Array.from({ length: targetLen }, (_, c) => g[c] === " ");
-        }
+        // No special treatment for TO row visuals (we removed yellow); keep for future if needed
         // deemphasize intermediate step letters when dragging across multiple rows
         // ONLY if that step letter is actually revealed/locked on that row
         const isIntermediateStep = (diffFromRow != null && diffToRow != null && i > diffToRow && i < diffFromRow && stepPos >= 0);
         return (
-          <div key={i} className="w-full flex flex-row items-center gap-1 px-0">
+          <div key={i} data-row-index={i} className="w-full flex flex-row items-center gap-1 px-0">
             <button
               type="button"
               onClick={() => onJumpToRow && onJumpToRow(i)}
@@ -184,6 +256,7 @@ export default function LetterGrid({
                   isDiffExtra={Boolean(fromExtraMask?.[col])}
                   isDiffMissing={Boolean(diffMissingMask?.[col])}
                   isDiffFilled={Boolean(fromFilledMask?.[col]) || (isIntermediateStep && col === stepPos && lockColors[i][stepPos] != null)}
+                  isDiffAll={isHoldingOnly && longPressStartRowRef.current === i}
                 />
               ))}
             </div>

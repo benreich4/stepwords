@@ -8,6 +8,7 @@ export default function LetterBox({
   isDiffExtra = false,   // highlight as the extra/step letter vs comparison row
   isDiffMissing = false, // highlight as a missing/unfilled letter in comparison row
   isDiffFilled = false,  // deemphasize letters already filled in comparison row
+  isDiffAll = false,     // deemphasize entire row (initial hold before selecting target)
 }) {
   const COLOR_CLASSES = {
     G: "bg-green-600 border-green-500 text-white",
@@ -28,12 +29,13 @@ export default function LetterBox({
     "relative inline-flex items-center justify-center border rounded-[6px] box-border " +
     "select-none uppercase font-bold leading-none " +
     "aspect-square";
+  const hasChar = Boolean(char && char !== " ");
 
   return (
     <button 
       type="button" 
       onClick={onClick} 
-      className={`${base} ${stateClass} ${isDiffExtra ? 'opacity-60' : ''} ${isDiffMissing ? '' : ''} ${isDiffFilled ? 'opacity-60' : ''}`}
+      className={`${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''}`}
       style={{
         width: tileSize,
         fontSize: textSize,

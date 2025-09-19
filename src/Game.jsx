@@ -78,6 +78,9 @@ export default function Game({ puzzle }) {
   const toastTimerRef = useRef(null);
   const [dragStartRow, setDragStartRow] = useState(null);
   const [dragOverRow, setDragOverRow] = useState(null);
+  const [diffTipShown, setDiffTipShown] = useState(() => {
+    try { return localStorage.getItem('stepwords-diff-tip-shown') === '1'; } catch { return false; }
+  });
 
   function showToast(text, durationMs = 2500, variant = "info") {
     setToast(text || "");
@@ -95,12 +98,19 @@ export default function Game({ puzzle }) {
   }
   // Expose setters for drag diff to child grid (avoids prop drilling handlers)
   useEffect(() => {
-    window.__setDragStartRow = (v) => setDragStartRow(v);
+    window.__setDragStartRow = (v) => {
+      setDragStartRow(v);
+      if (v != null && !diffTipShown) {
+        showToast('Hold a row number, then drag to another to compare letters', 2600, 'info');
+        setDiffTipShown(true);
+        try { localStorage.setItem('stepwords-diff-tip-shown', '1'); } catch {}
+      }
+    };
     window.__setDragOverRow = (v) => setDragOverRow(v);
     return () => {
       try { delete window.__setDragStartRow; delete window.__setDragOverRow; } catch {}
     };
-  }, []);
+  }, [diffTipShown]);
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
   const [isMobile, setIsMobile] = useState(false);
@@ -709,12 +719,11 @@ export default function Game({ puzzle }) {
 
 
       <div 
+        id="grid-scroll"
         className="flex-1 overflow-y-auto pt-2 pb-8"
         onClick={() => {
-          console.log('Click handler:', { isMobile, hasInput: !!inputRef.current });
           if (!isMobile && inputRef.current) {
             inputRef.current.focus();
-            console.log('Input focused from click');
           }
         }}
       >
