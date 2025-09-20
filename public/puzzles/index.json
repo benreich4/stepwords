@@ -12,7 +12,7 @@
   { "id": "14", "author": "Ben Reich",    "date": "2025-09-18" },
   { "id": "27", "author": "Ben Reich",    "date": "2025-09-19" },
   { "id": "19", "author": "Ben Alter",    "date": "2025-09-20" },
-  { "id": "28", "author": "Ben Alter",    "date": "2025-09-21" },
+  { "id": "39", "author": "Ben Reich",    "date": "2025-09-21" },
   { "id": "10", "author": "Ben Reich",    "date": "2025-09-22" },
   { "id": "7",  "author": "Hadas Reich",  "date": "2025-09-23" },
   { "id": "16", "author": "Ben Reich",    "date": "2025-09-24" },
@@ -35,5 +35,5 @@
   { "id": "36", "author": "Steven Alter", "date": "2025-10-11" },
   { "id": "38", "author": "Hadas Reich", "date": "2025-10-12" },
   { "id": "37", "author": "Ben Alter", "date": "2025-10-13" },
-  { "id": "39", "author": "Ben Reich", "date": "2025-10-14" }
+  { "id": "28", "author": "Ben Alter", "date": "2025-10-14" }
 ]
