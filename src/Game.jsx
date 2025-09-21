@@ -676,13 +676,41 @@ export default function Game({ puzzle }) {
               <div className="absolute right-0 top-full mt-1 w-56 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-2 text-xs">
                 <label className="flex items-center justify-between py-1">
                   <span className="text-gray-300">Hard mode</span>
-                  <input type="checkbox" checked={settings.hardMode} onChange={(e) => setSettings(s => ({ ...s, hardMode: e.target.checked }))} />
+                  <input
+                    type="checkbox"
+                    checked={settings.hardMode}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSettings(s => ({ ...s, hardMode: checked }));
+                      if (checked) {
+                        try {
+                          if (window.gtag && typeof window.gtag === 'function') {
+                            window.gtag('event', 'hard_mode_turned_on', { puzzle_id: puzzle.id || 'unknown' });
+                          }
+                        } catch {}
+                      }
+                    }}
+                  />
                 </label>
                 <div className="text-[10px] text-gray-400 mb-2">Hides step locations (🪜) until revealed. Saved as your default.</div>
 
                 <label className="flex items-center justify-between py-1">
                   <span className="text-gray-300">Easy mode</span>
-                  <input type="checkbox" checked={settings.easyMode} onChange={(e) => setSettings(s => ({ ...s, easyMode: e.target.checked }))} />
+                  <input
+                    type="checkbox"
+                    checked={settings.easyMode}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSettings(s => ({ ...s, easyMode: checked }));
+                      if (checked) {
+                        try {
+                          if (window.gtag && typeof window.gtag === 'function') {
+                            window.gtag('event', 'easy_mode_turned_on', { puzzle_id: puzzle.id || 'unknown' });
+                          }
+                        } catch {}
+                      }
+                    }}
+                  />
                 </label>
                 <div className="text-[10px] text-gray-400">Filters keyboard to letters in this puzzle. Saved as your default.</div>
               </div>
