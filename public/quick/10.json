@@ -1,0 +1,12 @@
+{
+  "id": "10",
+  "rows": [
+	  { "answer": "net", 			"clue": "Butterfly catcher (3)" },
+	  { "answer": "nest", 			"clue": "Bird home (4)" },
+	  { "answer": "setin", 		"clue": "Take effect (3,2)" },
+	  { "answer": "tennis", 		"clue": "Sport with a [1] (6)" },
+	  { "answer": "tension", 		"clue": "Tautness (7)" },
+	  { "answer": "mentions", 		"clue": "Brings up in conversation (8)" },
+	  { "answer": "minnesota", 		"clue": "The North Start State (9)" }
+	]
+}

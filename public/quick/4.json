@@ -1,0 +1,10 @@
+{
+  "id": "4",
+  "rows": [
+	  { "answer": "tin", 			"clue": "Can material (3)" },
+	  { "answer": "lint", 			"clue": "Fuzzy bits on fabric (4)" },
+	  { "answer": "letin", 		"clue": "Allow entry (3,2)" },
+	  { "answer": "tinkle", 		"clue": "Pee, euphemistically (6)" },
+	  { "answer": "tolkien", 	"clue": "“The Hobbit” author (7)" }
+	]
+}

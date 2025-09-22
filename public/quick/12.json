@@ -1,0 +1,12 @@
+{
+  "id": "12",
+  "rows": [
+	  { "answer": "lie", 			"clue": "Falsehood (3)" },
+	  { "answer": "live", 			"clue": "In real time (4)" },
+	  { "answer": "olive", 		"clue": "Mediterranean tree fruit (5)" },
+	  { "answer": "violet", 		"clue": "Purple shade (6)" },
+	  { "answer": "violent", 		"clue": "Savage (7)" },
+	  { "answer": "novelist", 		"clue": "Author of fiction (8)" },
+	  { "answer": "novelties", 		"clue": "New gadgets (9)" }
+	]
+}

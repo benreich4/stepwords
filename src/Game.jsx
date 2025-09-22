@@ -4,15 +4,17 @@ import ShareModal from "./components/ShareModal.jsx";
 import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import OnScreenKeyboard from "./components/OnScreenKeyboard.jsx";
 import Toast from "./components/Toast.jsx";
+import QuickIntroModal from "./components/QuickIntroModal.jsx";
 import { formatDateWithDayOfWeek } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 // Inline analytics - no separate module needed
-export default function Game({ puzzle }) {
+export default function Game({ puzzle, isQuick = false }) {
   const rows = puzzle.rows; // [{answer, clue}, ...] shortest→longest
   const stepIdx = computeStepIndices(rows);
   
   // Generate a unique key for this puzzle
-  const puzzleKey = `stepwords-${puzzle.id || 'default'}`;
+  const puzzleNamespace = isQuick ? 'quickstep' : 'stepwords';
+  const puzzleKey = `${puzzleNamespace}-${puzzle.id || 'default'}`;
   
   // Load saved state or initialize defaults
   const loadSavedState = () => {
@@ -66,7 +68,7 @@ export default function Game({ puzzle }) {
   
   const [lockColors, setLockColors] = useState(savedState.lockColors);
   const isLocked = (r, c) => Boolean(lockColors[r]?.[c]);
-  const [level, setLevel] = useState(savedState.level);
+  const [level, setLevel] = useState(Math.min(savedState.level, Math.max(0, (rows?.length || 1) - 1)));
   const [guesses, setGuesses] = useState(savedState.guesses);
   const [cursor, setCursor] = useState(savedState.cursor);
   const [message, setMessage] = useState("");
@@ -144,6 +146,7 @@ export default function Game({ puzzle }) {
   const [shareText, setShareText] = useState("");
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showRevealConfirm, setShowRevealConfirm] = useState(false);
+  const [showQuickIntro, setShowQuickIntro] = useState(false);
   const [gameStartTime] = useState(Date.now());
   
 
@@ -184,7 +187,7 @@ export default function Game({ puzzle }) {
     showToast("Revealed letter.", 2000, "info");
     try {
       if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'hint_used', { hint_type: 'reveal_letter', puzzle_id: puzzle.id || 'unknown' });
+        window.gtag('event', 'hint_used', { hint_type: 'reveal_letter', puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' });
       }
     } catch {}
   }
@@ -230,10 +233,19 @@ export default function Game({ puzzle }) {
     if (!hasSeenHowToPlay) {
       setShowHowToPlay(true);
     }
+    // Quick intro if user has played main but not seen quick intro
+    try {
+      const hasPlayedMain = localStorage.getItem('stepwords-completed') || localStorage.getItem('stepwords-visited');
+      const seenQuickIntro = localStorage.getItem('quickstep-intro-shown');
+      if (!isQuick && hasPlayedMain && !seenQuickIntro) {
+        setShowQuickIntro(true);
+      }
+      localStorage.setItem(`${puzzleNamespace}-visited`, '1');
+    } catch {}
     
     // If puzzle already completed previously, immediately show share modal
     try {
-      const completed = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
+      const completed = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
       if (completed.includes(puzzle.id)) {
         const share = buildEmojiShareGridFrom(rows, lockColors);
         setShareText(share);
@@ -245,7 +257,8 @@ export default function Game({ puzzle }) {
     try {
       if (window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'puzzle_started', { 
-          puzzle_id: puzzle.id || 'unknown' 
+          puzzle_id: puzzle.id || 'unknown',
+          mode: isQuick ? 'quick' : 'main'
         });
       }
     } catch (_err) { void 0; }
@@ -284,7 +297,13 @@ export default function Game({ puzzle }) {
   }, [lockColors, level, guesses, cursor, wasWrong, hintsUsed, hintCount, guessCount, wrongGuessCount]);
 
 
-  const clue = rows[level].clue;
+  const clue = rows[level]?.clue || "";
+
+  // Clamp level if rows length changes or saved state was out of bounds
+  useEffect(() => {
+    if (!Array.isArray(rows) || rows.length === 0) { setLevel(0); return; }
+    if (level < 0 || level >= rows.length) setLevel(0);
+  }, [rows?.length]);
 
   // Compute referenced rows from the current clue text (only [n] form)
   const referencedRows = useMemo(() => {
@@ -491,7 +510,8 @@ export default function Game({ puzzle }) {
               hints_used: hintCount,
               total_guesses: guessCount,
               wrong_guesses: wrongGuessCount,
-              completion_time: Date.now() - (gameStartTime || Date.now())
+              completion_time: Date.now() - (gameStartTime || Date.now()),
+              mode: isQuick ? 'quick' : 'main'
             });
           }
         } catch (_err) { void 0; }
@@ -500,19 +520,19 @@ export default function Game({ puzzle }) {
         localStorage.removeItem(puzzleKey);
         
         // Mark puzzle as completed
-        const completedPuzzles = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
+        const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
         if (!completedPuzzles.includes(puzzle.id)) {
           completedPuzzles.push(puzzle.id);
-          localStorage.setItem('stepwords-completed', JSON.stringify(completedPuzzles));
+          localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
         }
 
         // Record perfect result (no hints, no wrong guesses)
         try {
           if (hintCount === 0 && wrongGuessCount === 0) {
-            const perfect = JSON.parse(localStorage.getItem('stepwords-perfect') || '[]');
+            const perfect = JSON.parse(localStorage.getItem(`${puzzleNamespace}-perfect`) || '[]');
             if (!perfect.includes(puzzle.id)) {
               perfect.push(puzzle.id);
-              localStorage.setItem('stepwords-perfect', JSON.stringify(perfect));
+              localStorage.setItem(`${puzzleNamespace}-perfect`, JSON.stringify(perfect));
             }
           }
         } catch (_e) { /* ignore */ }
@@ -826,6 +846,7 @@ export default function Game({ puzzle }) {
           wrongGuessCount={wrongGuessCount}
           guessCount={guessCount}
           rowsLength={rows.length}
+          isQuick={isQuick}
           onClose={() => {
             setShowShare(false);
             // Track share action
@@ -870,6 +891,9 @@ export default function Game({ puzzle }) {
 
       {showHowToPlay && (
         <HowToPlayModal onClose={handleCloseHowToPlay} />
+      )}
+      {showQuickIntro && (
+        <QuickIntroModal onClose={() => { setShowQuickIntro(false); try { localStorage.setItem('quickstep-intro-shown','1'); } catch {} }} />
       )}
     </div>
 

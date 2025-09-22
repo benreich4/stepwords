@@ -1,0 +1,10 @@
+{
+  "id": "1",
+  "rows": [
+	  { "answer": "car", "clue": "Tesla, e.g. (3)" },
+	  { "answer": "race", "clue": "Speed competition, sometimes involving a [1] (4)" },
+	  { "answer": "cream", "clue": "Word after ice (5)" },
+	  { "answer": "camera", "clue": "Phone app for capturing memories (6)" },
+	  { "answer": "america", "clue": "United States of ___ (7)" }
+	]
+}

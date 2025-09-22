@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function ShareModal({
   shareText,
@@ -7,6 +8,7 @@ export default function ShareModal({
   guessCount,
   rowsLength,
   onClose,
+  isQuick = false,
 }) {
   const [notice, setNotice] = useState("");
   // Determine if this is today's puzzle in ET
@@ -72,6 +74,22 @@ export default function ShareModal({
               Try another puzzle from the archives!
             </a>
           </div>
+          <div className="mt-2">
+          <Link 
+              to={isQuick ? "/" : "/quick"}
+              className="inline-block text-sm text-emerald-400 hover:underline"
+            onClick={() => {
+              try {
+                if (window.gtag && typeof window.gtag === 'function') {
+                  window.gtag('event', 'cta_navigate', { target: isQuick ? 'main' : 'quick', source: 'completion_modal', mode: isQuick ? 'quick' : 'main' });
+                }
+              } catch {}
+              try { onClose?.(); } catch {}
+            }}
+            >
+              {isQuick ? "Try today’s main Stepword puzzle" : "Try today’s Quick Stepword puzzle"}
+            </Link>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -87,9 +105,13 @@ export default function ShareModal({
             <button
               onClick={async () => {
                 try {
-                  const header = isTodayET
-                    ? "I solved today's Stepword Puzzle!"
-                    : (puzzleDateText ? `I solved the Stepword Puzzle for ${puzzleDateText}!` : "I solved the Stepword Puzzle!");
+                  const header = isQuick
+                    ? (isTodayET
+                        ? "I solved today's Quick Stepword Puzzle!"
+                        : (puzzleDateText ? `I solved the Quick Stepword Puzzle for ${puzzleDateText}!` : "I solved the Quick Stepword Puzzle!"))
+                    : (isTodayET
+                        ? "I solved today's Stepword Puzzle!"
+                        : (puzzleDateText ? `I solved the Stepword Puzzle for ${puzzleDateText}!` : "I solved the Stepword Puzzle!"));
                   const composed = `${header}\n\n${shareText}\n\nhttps://stepwords.xyz`;
                   await navigator.clipboard.writeText(composed);
                   setNotice("Message copied to clipboard");

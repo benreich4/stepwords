@@ -1,0 +1,10 @@
+{
+  "id": "6",
+  "rows": [
+	  { "answer": "owe", 			"clue": "Be in debt (3)" },
+	  { "answer": "wore", 			"clue": "Had on (4)" },
+	  { "answer": "owner", 		"clue": "One with possession (5)" },
+	  { "answer": "knower", 		"clue": "One with information (6)" },
+	  { "answer": "newyork", 	"clue": "The Big Apple (3,4)" }
+	]
+}

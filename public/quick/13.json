@@ -1,0 +1,12 @@
+{
+  "id": "13",
+  "rows": [
+	  { "answer": "pea", 			"clue": "Pod vegetable (3)" },
+	  { "answer": "pear", 		"clue": "Tree fruit (4)" },
+	  { "answer": "prema", 		"clue": "Sanskrit word for love (5)" },
+	  { "answer": "ramped", 		"clue": "Sloped upward (6)" },
+	  { "answer": "premade", 		"clue": "Assembled ahead of time (7)" },
+	  { "answer": "pampered", 		"clue": "Spoiled with luxury (8)" },
+	  { "answer": "pipedream", 		"clue": "Unrealistic hope (4,5)" }
+	]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "3",
+  "rows": [
+	  { "answer": "ten", 			"clue": "Perfect score, often (3)" },
+	  { "answer": "cent", 			"clue": "[1] of these make a dime (4)" },
+	  { "answer": "scent", 		"clue": "Smell (5)" },
+	  { "answer": "insect", 		"clue": "Six-legged creature (6)" },
+	  { "answer": "snicket", 	"clue": "Author Lemony of \"A Series of Unfortunate Events\" (7)" }
+	]
+}

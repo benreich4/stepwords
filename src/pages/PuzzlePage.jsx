@@ -4,8 +4,9 @@ import Game from "../Game.jsx";
 import { fetchManifest, loadPuzzleById } from "../lib/puzzles.js";
 import { formatDateWithDayOfWeek, getTodayIsoInET, isPreviewEnabled } from "../lib/date.js";
 
-export default function PuzzlePage() {
-  const { puzzleId } = useParams();
+export default function PuzzlePage({ puzzleId: propId, isQuick = false }) {
+  const { puzzleId: paramId } = useParams();
+  const puzzleId = propId || paramId;
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
 
@@ -25,7 +26,7 @@ export default function PuzzlePage() {
         }
         setData(json);
         const dateStr = json.date ? formatDateWithDayOfWeek(json.date) : "";
-        const pageTitle = `Stepword Puzzle – #${json.id}${dateStr ? ` (${dateStr})` : ""}`;
+        const pageTitle = `${isQuick ? 'Quick Stepword' : 'Stepword Puzzle'} – #${json.id}${dateStr ? ` (${dateStr})` : ""}`;
         document.title = pageTitle;
         // Update per-page SEO meta
         try {
@@ -40,7 +41,7 @@ export default function PuzzlePage() {
           document.querySelector('meta[name="description"]').setAttribute('content', descText);
           const ogTitle = document.querySelector('meta[property="og:title"]'); if (ogTitle) ogTitle.setAttribute('content', pageTitle);
           const ogDesc = document.querySelector('meta[property="og:description"]'); if (ogDesc) ogDesc.setAttribute('content', descText);
-          const ogUrl = document.querySelector('meta[property="og:url"]'); if (ogUrl) ogUrl.setAttribute('content', `${location.origin}/${json.id}`);
+          const ogUrl = document.querySelector('meta[property="og:url"]'); if (ogUrl) ogUrl.setAttribute('content', `${location.origin}/${isQuick ? 'quick/' : ''}${json.id}`);
           const twTitle = document.querySelector('meta[name="twitter:title"]'); if (twTitle) twTitle.setAttribute('content', pageTitle);
           const twDesc = document.querySelector('meta[name="twitter:description"]'); if (twDesc) twDesc.setAttribute('content', descText);
           // JSON-LD Game schema
@@ -55,7 +56,7 @@ export default function PuzzlePage() {
             "datePublished": json.date || todayET,
             "genre": ["Word Game","Puzzle"],
             "publisher": {"@type":"Organization","name":"Stepwords"},
-            "url": `${location.origin}/${json.id}`
+            "url": `${location.origin}/${isQuick ? 'quick/' : ''}${json.id}`
           });
           // remove old injected script if present
           document.querySelectorAll('script[type="application/ld+json"].puzzle-ld').forEach(s=>s.remove());

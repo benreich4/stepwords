@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchManifest } from "../lib/puzzles.js";
+import { fetchQuickManifest } from "../lib/quickPuzzles.js";
 import { getTodayIsoInET, isPreviewEnabled } from "../lib/date.js";
 import { parseLocalISODate } from "../lib/date.js";
 
 export default function Archives() {
   const [manifest, setManifest] = useState([]);
   const [err, setErr] = useState("");
+  const [quickManifest, setQuickManifest] = useState([]);
   const [current, setCurrent] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('stepwords-archives-current') || 'null');
@@ -20,6 +22,9 @@ export default function Archives() {
     fetchManifest()
       .then((list) => setManifest(list))
       .catch((e) => setErr(e.message));
+    fetchQuickManifest()
+      .then((list) => setQuickManifest(list))
+      .catch(() => { /* quick is optional; ignore errors */ });
   }, []);
 
   const completedIds = useMemo(() => {
@@ -29,12 +34,20 @@ export default function Archives() {
       return new Set();
     }
   }, []);
+  const quickCompletedIds = useMemo(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('quickstep-completed') || '[]'));
+    } catch {
+      return new Set();
+    }
+  }, []);
 
-  const { months, minDate, maxDate, minYM, maxYM } = useMemo(() => {
-    if (!manifest.length) return { months: [], minDate: null, maxDate: null, minYM: null, maxYM: null };
+  const { months, minDate, maxDate, minYM, maxYM, quickByDate } = useMemo(() => {
+    if (!manifest.length) return { months: [], minDate: null, maxDate: null, minYM: null, maxYM: null, quickByDate: new Map() };
 
-    // Map date string -> puzzle
+    // Map date string -> puzzle (main)
     const byDate = new Map();
+    const quickMap = new Map();
     let minDate = null;
     let maxDate = null;
     for (const p of manifest) {
@@ -42,6 +55,10 @@ export default function Archives() {
       const d = parseLocalISODate(p.date);
       if (!minDate || d < minDate) minDate = d;
       if (!maxDate || d > maxDate) maxDate = d;
+    }
+    // Map quick puzzles by date (if available)
+    for (const q of (quickManifest || [])) {
+      quickMap.set(q.date, q);
     }
 
     // Clamp maxDate to today (ET) unless preview is enabled
@@ -81,8 +98,11 @@ export default function Archives() {
       return { year, month, cells };
     });
 
-    return { months: monthData, minDate, maxDate, minYM: months[0], maxYM: months[months.length - 1] };
-  }, [manifest]);
+    return { months: monthData, minDate, maxDate, minYM: months[0], maxYM: months[months.length - 1], quickByDate: quickMap };
+  }, [manifest, quickManifest]);
+
+  // Build a parallel Quick calendar by reusing the same dates but linking to /quick/:id
+  const miniMonths = months; // structure reused for layout
 
   // Initialize current to latest month once months are available
   useEffect(() => {
@@ -232,6 +252,56 @@ export default function Archives() {
                   </Link>
                 );
               })}
+            </div>
+            {/* Quick Stepword calendar */}
+            <div className="mt-6">
+              <div className="text-xs text-gray-400 mb-1">Quick Stepwords</div>
+              <div className="grid grid-cols-7 gap-1">
+                {currentMonthData.cells.map((cell, idx) => {
+                  if (cell === null) {
+                    return <div key={idx} className="h-8" />;
+                  }
+                  const dayNum = cell.date.getDate();
+                  const iso = [cell.date.getFullYear(), String(cell.date.getMonth()+1).padStart(2,'0'), String(cell.date.getDate()).padStart(2,'0')].join('-');
+                  const todayET2 = getTodayIsoInET();
+                  const preview2 = isPreviewEnabled();
+                  const puzzle = (preview2 || iso <= todayET2) ? (quickByDate.get(iso) || null) : null;
+                  if (!puzzle) {
+                    return (
+                      <div key={idx} className="h-8 rounded border border-gray-800 bg-gray-900/40 text-gray-600 flex items-center justify-center">
+                        {dayNum}
+                      </div>
+                    );
+                  }
+                  // Status for quick puzzles (use same icons)
+                  const qSolved = quickCompletedIds.has(puzzle.id);
+                  const qPerfectSet = (() => {
+                    try { return new Set(JSON.parse(localStorage.getItem('quickstep-perfect') || '[]')); } catch { return new Set(); }
+                  })();
+                  const qIsPerfect = qSolved && qPerfectSet.has(puzzle.id);
+                  const qHasProgress = (() => {
+                    try {
+                      const raw = localStorage.getItem(`quickstep-${puzzle.id}`);
+                      if (!raw) return false;
+                      const s = JSON.parse(raw);
+                      if (s?.guessCount > 0 || s?.hintCount > 0 || s?.wrongGuessCount > 0) return true;
+                      if (Array.isArray(s?.guesses) && s.guesses.some(g => (g || '').trim().length > 0)) return true;
+                      if (Array.isArray(s?.lockColors) && s.lockColors.some(row => Array.isArray(row) && row.some(c => c))) return true;
+                      if (typeof s?.level === 'number' && s.level > 0) return true;
+                      return false;
+                    } catch { return false; }
+                  })();
+                  const qIcon = qIsPerfect ? '⭐' : (qSolved ? '✓' : (qHasProgress ? '👟' : '🪜'));
+                  const qColor = qIsPerfect ? 'text-yellow-300' : (qSolved ? 'text-green-400' : qHasProgress ? 'text-yellow-300' : 'text-gray-300');
+                  const qBg = qSolved ? 'bg-gray-900/60' : 'bg-gray-900/40';
+                  return (
+                    <Link key={idx} to={`/quick/${puzzle.id}`} className={`h-8 rounded border border-gray-800 ${qBg} hover:border-gray-600 flex items-center justify-center gap-1`}>
+                      <span className="text-[10px] text-gray-400">{dayNum}</span>
+                      <span className={`${qColor} text-xs leading-none`}>{qIcon}</span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
             {/* Legend */}
             <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-gray-400">

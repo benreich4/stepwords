@@ -61,6 +61,7 @@ export default function HowToPlayModal({ onClose }) {
               <li><strong className="text-sky-400">Reveal letter</strong> — Click the button, then tap any tile to reveal that letter.</li>
               <li><strong>Hard mode</strong> (Settings) — Hides 🪜 step locations by default until revealed with hints. Saved as your default.</li>
               <li><strong>Easy mode</strong> (Settings) — Filters the on‑screen keyboard to letters used in this puzzle. Saved as your default.</li>
+            <li>Each day also has a <strong>Quick Stepword</strong> — a shorter, gentler puzzle to warm up or get unstuck.</li>
             </ul>
           </div>
           <p className="text-gray-400 text-xs">

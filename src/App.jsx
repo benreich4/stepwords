@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 export default function App() {
   const location = useLocation();
+  const isQuick = location.pathname.startsWith('/quick');
 
   // Track page views
   useEffect(() => {
@@ -32,9 +33,14 @@ export default function App() {
       <header className="w-full px-2 py-1 border-b border-gray-800">
         <div className="flex justify-between items-center">
           <span className="text-[10px] text-gray-400">Stepwords, created by Ben Reich</span>
-          <Link to="/archives" className="text-xs text-gray-400 hover:text-gray-200 transition-colors">
-            Archives
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link to={isQuick ? "/" : "/quick"} className="text-[10px] text-emerald-400 hover:underline">
+              {isQuick ? "Try today’s main Stepword puzzle" : "Try today’s Quick Stepword puzzle"}
+            </Link>
+            <Link to="/archives" className="text-xs text-gray-400 hover:text-gray-200 transition-colors">
+              Archives
+            </Link>
+          </div>
         </div>
       </header>
       <main className="w-full">

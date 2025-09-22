@@ -1,0 +1,11 @@
+{
+  "id": "11",
+  "rows": [
+	  { "answer": "she", 			"clue": "Female pronoun (3)" },
+	  { "answer": "shoe", 			"clue": "It might be fitted to a [3]'s hoof (4)" },
+	  { "answer": "horse", 		"clue": "Animal that might wear a [2] (5)" },
+	  { "answer": "chores", 		"clue": "Household tasks (6)" },
+	  { "answer": "heroics", 		"clue": "Brave deeds (7)" },
+	  { "answer": "cheerios", 		"clue": "O-shaped breakfast bites (8)" }
+	]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "5",
+  "rows": [
+	  { "answer": "tee", 			"clue": "Casual shirt (3)" },
+	  { "answer": "tree", 			"clue": "Oak or elm, e.g. (4)" },
+	  { "answer": "meter", 		"clue": "Yard alternative (5)" },
+	  { "answer": "remote", 		"clue": "TV controller (6)" },
+	  { "answer": "meteors", 	"clue": "Shooting stars (7)" }
+	]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "2",
+  "rows": [
+	  { "answer": "sat", "clue": "Used a chair (3)" },
+	  { "answer": "salt", "clue": "Pepper counterpart (4)" },
+	  { "answer": "tesla", "clue": "Cybertruck manufacturer (5)" },
+	  { "answer": "latest", "clue": "Newest (6)" },
+	  { "answer": "letseat", "clue": "\"Time for dinner, everyone!\" (4,3)" },
+	  { "answer": "seatbelt", "clue": "Safety feature in a [3] (4,4)" }
+	]
+}

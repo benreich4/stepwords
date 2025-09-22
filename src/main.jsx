@@ -7,6 +7,8 @@ import Archives from "./pages/Archives.jsx";
 import PuzzlePage from "./pages/PuzzlePage.jsx";
 import PuzzleCreator from "./pages/PuzzleCreator.jsx";
 import Explore from "./pages/Explore.jsx";
+import QuickToday from "./pages/QuickToday.jsx";
+import QuickPage from "./pages/QuickPage.jsx";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -16,6 +18,8 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "/archives", element: <Archives /> },
+      { path: "/quick", element: <QuickToday /> },
+      { path: "/quick/:puzzleId", element: <QuickPage /> },
       { path: "/:puzzleId", element: <PuzzlePage /> },
     ],
   },
