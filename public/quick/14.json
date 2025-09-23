@@ -1,12 +1,11 @@
 {
   "id": "14",
   "rows": [
-	  { "answer": "",     "clue": "(3)" },
-	  { "answer": "",     "clue": "(4)" },
-	  { "answer": "",     "clue": "(5)" },
-	  { "answer": "",     "clue": "(6)" },
-	  { "answer": "",     	"clue": "(7)" },
-	  { "answer": "",     		"clue": "(8)" },
-	  { "answer": "",      		"clue": "(4,5)" }
+	  { "answer": "ore",     "clue": "Source of minerals (3)" },
+	  { "answer": "oreo",     "clue": "Creme-centered cookie (4)" },
+	  { "answer": "romeo",     	"clue": "Juliet's partner(5)" },
+	  { "answer": "boomer",     		"clue": "\"Okay ___\" (Gen Z put-down) (6)" },
+	  { "answer": "boredom",      		"clue": "What a yawn might indicate (7)" }
+	  { "answer": "bedrooms",      		"clue": "Places to sleep (8)" }
 	]
 }
