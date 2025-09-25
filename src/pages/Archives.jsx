@@ -242,8 +242,16 @@ export default function Archives() {
                     return false;
                   } catch { return false; }
                 })();
-                const icon = isPerfect ? '⭐' : (solved ? '✓' : (hasProgress ? '👟' : '🪜'));
-                const color = isPerfect ? 'text-yellow-300' : (solved ? 'text-green-400' : hasProgress ? 'text-yellow-300' : 'text-gray-300');
+                // Stars override; use special icon and color per score
+                const starsMap = (() => { try { return JSON.parse(localStorage.getItem('stepwords-stars') || '{}'); } catch { return {}; } })();
+                const starScore = starsMap[puzzle.id];
+                const isPerfectNow = (() => { try { return new Set(JSON.parse(localStorage.getItem('stepwords-perfect') || '[]')).has(puzzle.id); } catch { return false; } })();
+                const icon = Number.isFinite(starScore)
+                  ? (starScore === 0 ? '❌' : (isPerfectNow ? '🌟' : (starScore === 3 ? '⭐' : (starScore === 2 ? '✨' : '☆'))))
+                  : (isPerfect ? '🌟' : (solved ? '⭐' : (hasProgress ? '👟' : '🪜')));
+                const color = Number.isFinite(starScore)
+                  ? (starScore === 0 ? 'text-red-400' : 'text-yellow-300')
+                  : (isPerfect ? 'text-yellow-300' : (solved ? 'text-yellow-300' : hasProgress ? 'text-yellow-300' : 'text-gray-300'));
                 const bg = solved ? 'bg-gray-900/60' : 'bg-gray-900/40';
                 return (
                   <Link key={idx} to={`/${puzzle.id}`} className={`h-8 rounded border border-gray-800 ${bg} hover:border-gray-600 flex items-center justify-center gap-1`}>
@@ -291,8 +299,15 @@ export default function Archives() {
                       return false;
                     } catch { return false; }
                   })();
-                  const qIcon = qIsPerfect ? '⭐' : (qSolved ? '✓' : (qHasProgress ? '👟' : '🪜'));
-                  const qColor = qIsPerfect ? 'text-yellow-300' : (qSolved ? 'text-green-400' : qHasProgress ? 'text-yellow-300' : 'text-gray-300');
+                  const qStarsMap = (() => { try { return JSON.parse(localStorage.getItem('quickstep-stars') || '{}'); } catch { return {}; } })();
+                  const qStarScore = qStarsMap[puzzle.id];
+                  const qIsPerfectNow = (() => { try { return new Set(JSON.parse(localStorage.getItem('quickstep-perfect') || '[]')).has(puzzle.id); } catch { return false; } })();
+                  const qIcon = Number.isFinite(qStarScore)
+                    ? (qStarScore === 0 ? '❌' : (qIsPerfectNow ? '🌟' : (qStarScore === 3 ? '⭐' : (qStarScore === 2 ? '✨' : '☆'))))
+                    : (qIsPerfect ? '🌟' : (qSolved ? '⭐' : (qHasProgress ? '👟' : '🪜')));
+                  const qColor = Number.isFinite(qStarScore)
+                    ? (qStarScore === 0 ? 'text-red-400' : 'text-yellow-300')
+                    : (qIsPerfect ? 'text-yellow-300' : (qSolved ? 'text-yellow-300' : qHasProgress ? 'text-yellow-300' : 'text-gray-300'));
                   const qBg = qSolved ? 'bg-gray-900/60' : 'bg-gray-900/40';
                   return (
                     <Link key={idx} to={`/quick/${puzzle.id}`} className={`h-8 rounded border border-gray-800 ${qBg} hover:border-gray-600 flex items-center justify-center gap-1`}>
@@ -304,9 +319,12 @@ export default function Archives() {
               </div>
             </div>
             {/* Legend */}
-            <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-gray-400">
-              <span className="flex items-center gap-1"><span className="text-yellow-300">⭐</span> Perfect</span>
-              <span className="flex items-center gap-1"><span className="text-green-400">✓</span> Solved</span>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-[10px] text-gray-400">
+              <span className="flex items-center gap-1"><span className="text-yellow-300">🌟</span> Perfect</span>
+              <span className="flex items-center gap-1"><span className="text-yellow-300">⭐</span> 3 stars</span>
+              <span className="flex items-center gap-1"><span className="text-yellow-300">✨</span> 2 stars</span>
+              <span className="flex items-center gap-1"><span className="text-yellow-300">☆</span> 1 star</span>
+              <span className="flex items-center gap-1"><span className="text-red-400">❌</span> Failed</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">👟</span> In progress</span>
               <span className="flex items-center gap-1"><span className="text-gray-300">🪜</span> Not started</span>
             </div>

@@ -131,11 +131,11 @@ export default function Game({ puzzle, isQuick = false }) {
   }, [settings]);
   const [showSettings, setShowSettings] = useState(false);
   // Easy mode now saved globally in settings (like hardMode)
-  // New hint system: 2 per-row hints (initialLetters, stepLetters). Keyboard filter moved to settings as Easy mode
+  // Legacy hint fields kept for save compatibility; now using Lifelines (first/middle/last thirds, vowels)
   const [hintsUsed] = useState(savedState.hintsUsed || { initialLetters: false, stepLetters: false, filterKeyboard: false });
   const [rowsInitialHintUsed] = useState(savedState.rowsInitialHintUsed || rows.map(() => false));
   const [rowsStepHintUsed] = useState(savedState.rowsStepHintUsed || rows.map(() => false));
-  // Colors now simplified: 'G' for correct, 'Y' for hinted or previously incorrect
+  // Colors now simplified: 'G' for correct, 'Y' for lifeline-revealed or previously incorrect
   const [wasWrong, setWasWrong] = useState(savedState.wasWrong);
   // Session stats
   const [hintCount, setHintCount] = useState(savedState.hintCount);
@@ -146,8 +146,12 @@ export default function Game({ puzzle, isQuick = false }) {
   const [shareText, setShareText] = useState("");
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showRevealConfirm, setShowRevealConfirm] = useState(false);
+  const [showHintsMenu, setShowHintsMenu] = useState(false);
   const [showQuickIntro, setShowQuickIntro] = useState(false);
   const [gameStartTime] = useState(Date.now());
+  const [showLoss, setShowLoss] = useState(false);
+  const [stars, setStars] = useState(null);
+  const [didFail, setDidFail] = useState(false);
   
 
   // Function to get letters used in all answers
@@ -269,6 +273,101 @@ export default function Game({ puzzle, isQuick = false }) {
     localStorage.setItem('stepwords-how-to-play', 'true');
   };
 
+  // Lifelines (once per puzzle): first/middle/last thirds, vowels
+  const [lifelineFirstUsed, setLifelineFirstUsed] = useState(savedState.lifelineFirstUsed || false);
+  const [lifelineMiddleUsed, setLifelineMiddleUsed] = useState(savedState.lifelineMiddleUsed || false);
+  const [lifelineLastUsed, setLifelineLastUsed] = useState(savedState.lifelineLastUsed || false);
+  const [lifelineVowelsUsed, setLifelineVowelsUsed] = useState(savedState.lifelineVowelsUsed || false);
+
+  function revealIndicesInCurrentRow(indices) {
+    const i = level;
+    const ans = rows[i]?.answer?.toUpperCase?.() || "";
+    const len = ans.length;
+    if (!len || !Array.isArray(indices) || indices.length === 0) return;
+    const newLockColors = lockColors.map(rc => rc.slice());
+    const rowLock = newLockColors[i] ? newLockColors[i].slice() : Array(len).fill(null);
+    const curChars = (guesses[i] || "").toUpperCase().padEnd(len, " ").slice(0, len).split("");
+    for (const c of indices) {
+      if (c < 0 || c >= len) continue;
+      if (!rowLock[c]) rowLock[c] = "Y";
+      curChars[c] = ans[c];
+    }
+    newLockColors[i] = rowLock;
+    const newGuesses = guesses.slice();
+    newGuesses[i] = curChars.join("").trimEnd();
+    setLockColors(newLockColors);
+    setGuesses(newGuesses);
+  }
+
+  function useLifeline(kind) {
+    const i = level;
+    const ans = rows[i]?.answer?.toUpperCase?.() || "";
+    const len = ans.length;
+    if (!len) return;
+    let used = false;
+    if (kind === 'first3' && !lifelineFirstUsed) {
+      const count = Math.min(isQuick ? 2 : 3, len);
+      const idx = Array.from({ length: count }, (_, k) => k);
+      revealIndicesInCurrentRow(idx);
+      setLifelineFirstUsed(true);
+      used = true;
+      showToast(`Revealed first ${count} letters.`, 2000, "info");
+    } else if (kind === 'edge_step' && !lifelineMiddleUsed) {
+      const indices = new Set();
+      indices.add(0);
+      if (len - 1 >= 0) indices.add(len - 1);
+      const sIdx = Array.isArray(stepIdx) ? stepIdx[i] : undefined;
+      if (Number.isFinite(sIdx) && sIdx >= 0 && sIdx < len) indices.add(sIdx);
+      revealIndicesInCurrentRow(Array.from(indices));
+      setLifelineMiddleUsed(true);
+      used = true;
+      showToast("Revealed first, last, and step letter.", 2200, "info");
+    } else if (kind === 'last3' && !lifelineLastUsed) {
+      const count = Math.min(isQuick ? 2 : 3, len);
+      const start = Math.max(0, len - count);
+      const idx = Array.from({ length: count }, (_, k) => start + k);
+      revealIndicesInCurrentRow(idx);
+      setLifelineLastUsed(true);
+      used = true;
+      showToast(`Revealed last ${count} letters.`, 2000, "info");
+    } else if (kind === 'mid3' && !lifelineVowelsUsed) {
+      const count = Math.min(isQuick ? 2 : 3, len);
+      const start = Math.max(0, Math.floor((len - count) / 2));
+      const idx = Array.from({ length: count }, (_, k) => start + k);
+      revealIndicesInCurrentRow(idx);
+      setLifelineVowelsUsed(true);
+      used = true;
+      showToast(`Revealed ${count} middle letters.`, 2000, "info");
+    }
+    if (used) {
+      const before = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
+      setHintCount((n) => n + 1);
+      setShowHintsMenu(false);
+      const after = Math.max(0, scoreBase - (hintCount + 1 + wrongGuessCount));
+      if (before > 0 && after === 0) {
+        showToast('Score is 0. Next strike ends the game.', 2800, 'warning');
+      }
+      try { if (window.gtag && typeof window.gtag==='function') { window.gtag('event','lifeline_used',{ lifeline: kind, puzzle_id: puzzle.id||'unknown', mode: isQuick?'quick':'main' }); } } catch {}
+    }
+  }
+
+  function revealAllAsYellowAndFill() {
+    const newLock = lockColors.map((rowLock, r) => {
+      const ans = (rows[r]?.answer || '').toUpperCase();
+      const len = ans.length;
+      const next = Array(len);
+      for (let c = 0; c < len; c++) {
+        const cur = rowLock?.[c] || null;
+        next[c] = (cur === 'G' || cur === 'Y') ? cur : 'Y';
+      }
+      return next;
+    });
+    const newGuesses = rows.map(r => (r.answer || '').toUpperCase());
+    setLockColors(newLock);
+    setGuesses(newGuesses);
+    return { newLock, newGuesses };
+  }
+
   // Save game state to localStorage
   const saveGameState = () => {
     try {
@@ -278,9 +377,10 @@ export default function Game({ puzzle, isQuick = false }) {
         guesses,
         cursor,
         wasWrong,
-        hintsUsed,
-        rowsInitialHintUsed,
-        rowsStepHintUsed,
+        lifelineFirstUsed,
+        lifelineMiddleUsed,
+        lifelineLastUsed,
+        lifelineVowelsUsed,
         hintCount,
         guessCount,
         wrongGuessCount,
@@ -298,6 +398,8 @@ export default function Game({ puzzle, isQuick = false }) {
 
 
   const clue = rows[level]?.clue || "";
+  const scoreBase = 10;
+  const scoreNow = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
 
   // Clamp level if rows length changes or saved state was out of bounds
   useEffect(() => {
@@ -489,8 +591,29 @@ export default function Game({ puzzle, isQuick = false }) {
     setWasWrong(wasWrongAfter);
     setGuessCount((n) => n + 1);
     if (wrongsThisSubmit > 0) setWrongGuessCount((n) => n + wrongsThisSubmit);
+    const scoreBefore = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
+    // If already at 0 and we get any new strikes → immediate loss
+    if (scoreBefore === 0 && wrongsThisSubmit > 0) {
+      const { newLock } = revealAllAsYellowAndFill();
+      try { const key = `${puzzleNamespace}-stars`; const map = JSON.parse(localStorage.getItem(key) || '{}'); map[puzzle.id] = 0; localStorage.setItem(key, JSON.stringify(map)); } catch {}
+      try { if (window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'puzzle_out_of_score', { puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' }); } } catch {}
+      const share = buildEmojiShareGridFrom(rows, newLock);
+      setShareText(share);
+      setStars(0);
+      setDidFail(true);
+      setShowShare(true);
+      return;
+    }
+
+    const newWrongTotal = wrongGuessCount + wrongsThisSubmit;
 
     const solvedThisRow = rowColors.every(Boolean);
+
+    // Warn when score reaches 0 (but not loss yet)
+    const scoreAfter = Math.max(0, scoreBase - (hintCount + newWrongTotal));
+    if (scoreBefore > 0 && scoreAfter === 0 && wrongsThisSubmit > 0) {
+      showToast('Score is 0. Next strike ends the game.', 2800, 'warning');
+    }
 
     if (solvedThisRow) {
       // ✅ Only consider the puzzle solved if *every* row is fully colored
@@ -500,6 +623,17 @@ export default function Game({ puzzle, isQuick = false }) {
         showToast("🎉 You solved all the Stepwords!", 2800, "success");
         const share = buildEmojiShareGridFrom(rows, colorsAfter);
         setShareText(share);
+        // Compute and persist stars from final score
+        const finalScore = Math.max(0, scoreBase - (hintCount + newWrongTotal));
+        const awarded = finalScore >= 7 ? 3 : (finalScore >= 3 ? 2 : 1);
+        setStars(awarded);
+        setDidFail(false);
+        try {
+          const key = `${puzzleNamespace}-stars`;
+          const map = JSON.parse(localStorage.getItem(key) || '{}');
+          map[puzzle.id] = awarded;
+          localStorage.setItem(key, JSON.stringify(map));
+        } catch {}
         setShowShare(true);
         
         // Track game completion
@@ -526,16 +660,7 @@ export default function Game({ puzzle, isQuick = false }) {
           localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
         }
 
-        // Record perfect result (no hints, no wrong guesses)
-        try {
-          if (hintCount === 0 && wrongGuessCount === 0) {
-            const perfect = JSON.parse(localStorage.getItem(`${puzzleNamespace}-perfect`) || '[]');
-            if (!perfect.includes(puzzle.id)) {
-              perfect.push(puzzle.id);
-              localStorage.setItem(`${puzzleNamespace}-perfect`, JSON.stringify(perfect));
-            }
-          }
-        } catch (_e) { /* ignore */ }
+        // Perfect tracking no longer needed (covered by 3-star score)
         return;
       }
 
@@ -668,15 +793,38 @@ export default function Game({ puzzle, isQuick = false }) {
       </div>
       
       <div className="w-full px-3 py-2 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20">
-        <div className="flex items-center gap-2" />
+        <div className="flex items-center gap-3 text-xs text-gray-300">
+          <div className="flex items-center gap-1">
+            <div className="px-2 py-0.5 rounded border border-gray-700 bg-gray-900/40" title={`Score: ${scoreNow}` }>
+              🏆 {scoreNow}
+            </div>
+            <button
+              className="w-4 h-4 inline-flex items-center justify-center rounded border border-gray-700 text-gray-300 hover:bg-gray-900/60"
+              aria-label="How does score work?"
+              onClick={() => showToast('Score starts at 10. Lose a point for each lifeline and each strike. At 0, the next strike ends the game.', 5200, 'info')}
+            >?
+            </button>
+          </div>
+          {/* Stars removed from header per spec; shown in completion modal only */}
+        </div>
         
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowRevealConfirm(true)}
-            className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
-          >
-            Reveal letter {hintCount > 0 && `(${hintCount})`}
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowHintsMenu((v)=>!v)}
+              className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
+            >
+              Lifelines
+            </button>
+            {showHintsMenu && (
+              <div className="absolute left-0 top-full mt-1 w-64 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-1 text-xs">
+                <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineMiddleUsed} onClick={()=>useLifeline('edge_step')}>Reveal first, last, and step letter</button>
+                <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineFirstUsed} onClick={()=>useLifeline('first3')}>Reveal first {isQuick ? 2 : 3} letters</button>
+                <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineVowelsUsed} onClick={()=>useLifeline('mid3')}>Reveal {isQuick ? 2 : 3} middle letters</button>
+                <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineLastUsed} onClick={()=>useLifeline('last3')}>Reveal last {isQuick ? 2 : 3} letters</button>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setShowHowToPlay(true)}
             className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
@@ -805,12 +953,12 @@ export default function Game({ puzzle, isQuick = false }) {
           level={level}
           cursor={cursor}
           onTileClick={(i, col) => {
-            setLevel(i);
-            setCursor(col);
+                        setLevel(i);
+                        setCursor(col);
             if (!isMobile) {
-              inputRef.current?.focus();
-            }
-          }}
+                        inputRef.current?.focus();
+                      }
+                    }}
           onJumpToRow={(i)=>{
             setLevel(i);
             const firstOpen = nearestUnlockedInRow(i, 0);
@@ -847,6 +995,8 @@ export default function Game({ puzzle, isQuick = false }) {
           guessCount={guessCount}
           rowsLength={rows.length}
           isQuick={isQuick}
+          stars={stars}
+          didFail={didFail}
           onClose={() => {
             setShowShare(false);
             // Track share action
@@ -894,6 +1044,28 @@ export default function Game({ puzzle, isQuick = false }) {
       )}
       {showQuickIntro && (
         <QuickIntroModal onClose={() => { setShowQuickIntro(false); try { localStorage.setItem('quickstep-intro-shown','1'); } catch {} }} />
+      )}
+      {showLoss && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-sm rounded-lg border border-gray-700 bg-gray-900 p-4 text-gray-200">
+            <div className="text-lg font-semibold mb-2">Out of strikes</div>
+            <div className="text-sm mb-4">You ran out of strikes. Better luck tomorrow!</div>
+            <div className="flex justify-end gap-2 text-sm">
+              <button
+                className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-300 hover:bg-gray-800"
+                onClick={() => setShowLoss(false)}
+              >Close</button>
+              <a
+                href="/archives"
+                className="px-3 py-1.5 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+                onClick={(e) => {
+                  try { e.preventDefault(); window.history.pushState({}, "", "/archives"); } catch {}
+                  setShowLoss(false);
+                }}
+              >Go to Archives</a>
+            </div>
+          </div>
+        </div>
       )}
     </div>
 

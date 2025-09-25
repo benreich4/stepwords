@@ -55,13 +55,14 @@ export default function HowToPlayModal({ onClose }) {
           
           <div className="space-y-2 text-sm">
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>Correct letters turn <span className="text-green-400">green</span></li>
-              <li>Letters that took multiple guesses or required a hint turn <span className="text-yellow-400">yellow</span></li>
-            <li>When a row is full, press <strong>Enter</strong> or tap <strong>Submit</strong> to check it</li>
-              <li><strong className="text-sky-400">Reveal letter</strong> — Click the button, then tap any tile to reveal that letter.</li>
-              <li><strong>Hard mode</strong> (Settings) — Hides 🪜 step locations by default until revealed with hints. Saved as your default.</li>
-              <li><strong>Easy mode</strong> (Settings) — Filters the on‑screen keyboard to letters used in this puzzle. Saved as your default.</li>
-            <li>Each day also has a <strong>Quick Stepword</strong> — a shorter, gentler puzzle to warm up or get unstuck.</li>
+              <li>Correct letters turn <span className="text-green-400">green</span>;  Ones that required multiple guesses or hints turn <span className="text-yellow-400">yellow</span>.</li>
+              <li>Submit a row with <strong>Enter</strong> or <strong>Submit</strong>.</li>
+              <li><strong>Lifelines</strong>: quick reveals to nudge you forward (each costs 1 point). On Quick Stepwords, lifelines reveal only 2 letters.</li>
+              <li><strong>Hard mode</strong>: hides 🪜 step locations by default.</li>
+              <li><strong>Easy mode</strong>: filters the on‑screen keyboard.</li>
+              <li><strong>Score</strong>: starts at 10. Lose a point for each lifeline and each strike (wrong letter submitted). At 0, the next strike ends the game.</li>
+              <li><strong>Stars</strong>: 3★ score 7–10, 2★ 3–6, 1★ 0–3. Perfect = 10 with no lifelines.</li>
+              <li><strong>Quick Stepword</strong>: a shorter daily warm‑up.</li>
             </ul>
           </div>
           <p className="text-gray-400 text-xs">

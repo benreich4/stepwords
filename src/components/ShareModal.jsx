@@ -9,6 +9,8 @@ export default function ShareModal({
   rowsLength,
   onClose,
   isQuick = false,
+  stars = null,
+  didFail = false,
 }) {
   const [notice, setNotice] = useState("");
   // Determine if this is today's puzzle in ET
@@ -33,8 +35,8 @@ export default function ShareModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-6">
       <div className="w-full max-w-lg rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-5 shadow-2xl max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-xl font-semibold text-white">You solved it!</div>
-          {(hintCount === 0 && wrongGuessCount === 0) && (
+          <div className="text-xl font-semibold text-white">{didFail ? 'You ran out of points' : 'You solved it!'}</div>
+          {!didFail && (hintCount === 0 && wrongGuessCount === 0) && (
             <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-700 text-white border border-emerald-500">Perfect!</span>
           )}
         </div>
@@ -45,9 +47,15 @@ export default function ShareModal({
             <div className="text-lg font-semibold text-gray-100">{guessCount}/{rowsLength}</div>
           </div>
           <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
-            <div className="text-gray-400">Hints</div>
+            <div className="text-gray-400">Lifelines used</div>
             <div className="text-lg font-semibold text-gray-100">{hintCount}</div>
           </div>
+          {Number.isFinite(stars) && !didFail && (
+            <div className="col-span-2 rounded-lg border border-gray-700 bg-gray-900/60 p-3 flex items-center justify-between">
+              <div className="text-gray-400">Stars</div>
+              <div className="text-xl font-semibold text-yellow-300">{'★'.repeat(Math.max(0,Math.min(3,stars||0)))}{'☆'.repeat(Math.max(0,3-(stars||0)))}</div>
+            </div>
+          )}
         </div>
 
         <pre className="whitespace-pre-wrap text-2xl leading-snug mb-4 p-3 rounded-lg border border-gray-700 bg-gray-900/60">
@@ -105,14 +113,23 @@ export default function ShareModal({
             <button
               onClick={async () => {
                 try {
-                  const header = isQuick
-                    ? (isTodayET
-                        ? "I solved today's Quick Stepword Puzzle!"
-                        : (puzzleDateText ? `I solved the Quick Stepword Puzzle for ${puzzleDateText}!` : "I solved the Quick Stepword Puzzle!"))
-                    : (isTodayET
-                        ? "I solved today's Stepword Puzzle!"
-                        : (puzzleDateText ? `I solved the Stepword Puzzle for ${puzzleDateText}!` : "I solved the Stepword Puzzle!"));
-                  const composed = `${header}\n\n${shareText}\n\nhttps://stepwords.xyz`;
+                  const header = didFail
+                    ? (isQuick
+                        ? (isTodayET
+                            ? "I tried today's Quick Stepword Puzzle."
+                            : (puzzleDateText ? `I tried the Quick Stepword Puzzle for ${puzzleDateText}.` : "I tried the Quick Stepword Puzzle."))
+                        : (isTodayET
+                            ? "I tried today's Stepword Puzzle."
+                            : (puzzleDateText ? `I tried the Stepword Puzzle for ${puzzleDateText}.` : "I tried the Stepword Puzzle.")))
+                    : (isQuick
+                        ? (isTodayET
+                            ? "I solved today's Quick Stepword Puzzle!"
+                            : (puzzleDateText ? `I solved the Quick Stepword Puzzle for ${puzzleDateText}!` : "I solved the Quick Stepword Puzzle!"))
+                        : (isTodayET
+                            ? "I solved today's Stepword Puzzle!"
+                            : (puzzleDateText ? `I solved the Stepword Puzzle for ${puzzleDateText}!` : "I solved the Stepword Puzzle!")));
+                  const starLine = (!didFail && Number.isFinite(stars)) ? `\nStars: ${'★'.repeat(Math.max(0,Math.min(3,stars||0)))}${'☆'.repeat(Math.max(0,3-(stars||0)))}` : '';
+                  const composed = `${header}${starLine}\n\n${shareText}\n\nhttps://stepwords.xyz`;
                   await navigator.clipboard.writeText(composed);
                   setNotice("Message copied to clipboard");
                 } catch {
