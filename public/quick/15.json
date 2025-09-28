@@ -1,0 +1,12 @@
+{
+  "id": "15",
+  "rows": [
+	  { "answer": "rat", 			"clue": "Peter Pettigrew, e.g. (3)" },
+	  { "answer": "wart", 			"clue": "Witch's pimple (4)" },
+	  { "answer": "wrath", 			"clue": "Voldemort's is known for this feeling (5)" },
+	  { "answer": "orwhat", 		"clue": "\"Are you a wizard, ___?\" (Hermione's question to Harry) (2,4)" },
+	  { "answer": "artshow", 		"clue": "Exhibit that might include the Fat Lady (3,4)" },
+	  { "answer": "hogwarts", 	"clue": "___ School of Witchcraft and Wizardry (8)" }
+	]
+}
+
