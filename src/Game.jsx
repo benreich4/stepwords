@@ -562,7 +562,7 @@ export default function Game({ puzzle, isQuick = false }) {
     const nextGuess = Array.from(cur);
     const rowColors = lockColors[i].slice();
     const nextWasWrongRow = wasWrong[i].slice();
-    let wrongsThisSubmit = 0;
+    let hadWrong = false;
 
     for (let k = 0; k < len; k++) {
       const guessed = cur[k];
@@ -577,7 +577,7 @@ export default function Game({ puzzle, isQuick = false }) {
         // Clear the incorrect guess
         nextGuess[k] = " ";
         // Do not change existing color (keep prior lock if already correct or hinted)
-        wrongsThisSubmit += 1;
+        hadWrong = true;
       }
     }
 
@@ -590,10 +590,10 @@ export default function Game({ puzzle, isQuick = false }) {
     setGuessAt(i, nextGuess.join("").trimEnd());
     setWasWrong(wasWrongAfter);
     setGuessCount((n) => n + 1);
-    if (wrongsThisSubmit > 0) setWrongGuessCount((n) => n + wrongsThisSubmit);
+    if (hadWrong) setWrongGuessCount((n) => n + 1);
     const scoreBefore = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
     // If already at 0 and we get any new strikes → immediate loss
-    if (scoreBefore === 0 && wrongsThisSubmit > 0) {
+    if (scoreBefore === 0 && hadWrong) {
       const { newLock } = revealAllAsYellowAndFill();
       try { const key = `${puzzleNamespace}-stars`; const map = JSON.parse(localStorage.getItem(key) || '{}'); map[puzzle.id] = 0; localStorage.setItem(key, JSON.stringify(map)); } catch {}
       try { if (window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'puzzle_out_of_score', { puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' }); } } catch {}
@@ -605,13 +605,13 @@ export default function Game({ puzzle, isQuick = false }) {
       return;
     }
 
-    const newWrongTotal = wrongGuessCount + wrongsThisSubmit;
+    const newWrongTotal = wrongGuessCount + (hadWrong ? 1 : 0);
 
     const solvedThisRow = rowColors.every(Boolean);
 
     // Warn when score reaches 0 (but not loss yet)
     const scoreAfter = Math.max(0, scoreBase - (hintCount + newWrongTotal));
-    if (scoreBefore > 0 && scoreAfter === 0 && wrongsThisSubmit > 0) {
+    if (scoreBefore > 0 && scoreAfter === 0 && hadWrong) {
       showToast('Score is 0. Next strike ends the game.', 2800, 'warning');
     }
 
