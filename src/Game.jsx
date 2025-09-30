@@ -744,23 +744,38 @@ export default function Game({ puzzle, isQuick = false }) {
   const handleBackspace = () => {
     const len = rowLen(level);
     const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
-
-    // If current tile is blocked (solved/hinted), jump left to nearest editable
+    // If current tile is blocked (solved/hinted), act on the nearest editable to the left
     if (isBlocked(level, cursor)) {
-      let pos = cursor - 1;
-      while (pos >= 0 && isBlocked(level, pos)) pos--;
-      if (pos >= 0) setCursor(pos);
+      let left = cursor - 1;
+      while (left >= 0 && isBlocked(level, left)) left--;
+      if (left >= 0) {
+        // Delete the letter at the immediate editable left (if any) and move cursor there
+        const chLeft = cur[left];
+        const updated = cur.slice(0, left) + " " + cur.slice(left + 1);
+        setGuessAt(level, updated.trimEnd());
+        setCursor(left);
+      }
       return;
     }
 
-    // Clear current square (only if editable)
-    const updated = cur.slice(0, cursor) + " " + cur.slice(cursor + 1);
-    setGuessAt(level, updated.trimEnd());
+    // Editable tile behavior
+    const here = cur[cursor];
+    if (here !== " ") {
+      // If current tile has a letter: delete it but keep cursor in place
+      const updated = cur.slice(0, cursor) + " " + cur.slice(cursor + 1);
+      setGuessAt(level, updated.trimEnd());
+      setCursor(cursor);
+      return;
+    }
 
-    // Move cursor left to previous editable (if any)
-    let pos = cursor - 1;
-    while (pos >= 0 && isBlocked(level, pos)) pos--;
-    setCursor(Math.max(0, pos >= 0 ? pos : 0));
+    // Current tile is empty → delete the immediate letter to the left (skipping blocked), and move cursor left
+    let left = cursor - 1;
+    while (left >= 0 && isBlocked(level, left)) left--;
+    if (left >= 0) {
+      const updated = cur.slice(0, left) + " " + cur.slice(left + 1);
+      setGuessAt(level, updated.trimEnd());
+      setCursor(left);
+    }
   };
 
   // Treat both real locks and hint-reveals as "blocked"
