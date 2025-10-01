@@ -639,6 +639,17 @@ export default function Game({ puzzle, isQuick = false }) {
           map[puzzle.id] = awarded;
           localStorage.setItem(key, JSON.stringify(map));
         } catch {}
+        // Record perfect (score 10 and no lifelines used)
+        try {
+          if (finalScore === 10 && hintCount === 0) {
+            const pkey = `${puzzleNamespace}-perfect`;
+            const arr = JSON.parse(localStorage.getItem(pkey) || '[]');
+            if (!arr.includes(puzzle.id)) {
+              arr.push(puzzle.id);
+              localStorage.setItem(pkey, JSON.stringify(arr));
+            }
+          }
+        } catch {}
         setShowShare(true);
         
         // Track game completion
