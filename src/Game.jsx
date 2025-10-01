@@ -9,7 +9,12 @@ import { formatDateWithDayOfWeek } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 // Inline analytics - no separate module needed
 export default function Game({ puzzle, isQuick = false }) {
-  const rows = puzzle.rows; // [{answer, clue}, ...] shortest→longest
+  const rowsRaw = puzzle.rows || [];
+  // Normalize answers: ignore spaces in answers (e.g., "hello world" -> "helloworld")
+  const rows = useMemo(() => rowsRaw.map(r => ({
+    ...r,
+    answer: (r?.answer || "").replace(/\s+/g, "")
+  })), [rowsRaw]); // [{answer, clue}, ...] shortest→longest
   const stepIdx = computeStepIndices(rows);
   
   // Generate a unique key for this puzzle
@@ -156,17 +161,17 @@ export default function Game({ puzzle, isQuick = false }) {
 
   // Function to get letters used in all answers
   const lettersUsedInAnswers = useMemo(() => {
-    if (!puzzle || !puzzle.rows) {
+    if (!rows || !rows.length) {
       return [];
     }
     const allLetters = new Set();
-    puzzle.rows.forEach(row => {
+    rows.forEach(row => {
       row.answer.toUpperCase().split('').forEach(letter => {
         allLetters.add(letter);
       });
     });
     return Array.from(allLetters).sort();
-  }, [puzzle]);
+  }, [rows]);
 
   // Reveal a specific tile by clicking it after activating 'Reveal letter'
   function revealTileAt(rowIndex, colIndex) {
