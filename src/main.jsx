@@ -9,6 +9,8 @@ import PuzzleCreator from "./pages/PuzzleCreator.jsx";
 import Explore from "./pages/Explore.jsx";
 import QuickToday from "./pages/QuickToday.jsx";
 import QuickPage from "./pages/QuickPage.jsx";
+import Submissions from "./pages/Submissions.jsx";
+import SubmissionPlay from "./pages/SubmissionPlay.jsx";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -20,6 +22,8 @@ const router = createBrowserRouter([
       { path: "/archives", element: <Archives /> },
       { path: "/quick", element: <QuickToday /> },
       { path: "/quick/:puzzleId", element: <QuickPage /> },
+      { path: "/submissions", element: <Submissions /> },
+      { path: "/submissions/:sid", element: <SubmissionPlay /> },
       { path: "/:puzzleId", element: <PuzzlePage /> },
     ],
   },
