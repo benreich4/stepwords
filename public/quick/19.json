@@ -1,0 +1,11 @@
+{
+  "id": "19",
+  "rows": [
+	  { "answer": "eta", 			"clue": "Uber prediction, for short (3)" },
+	  { "answer": "tear", 			"clue": "Drop from an eye (4)" },
+	  { "answer": "alert", 			"clue": "Warning signal (5)" },
+	  { "answer": "relate", 		"clue": "Have empathy for (6)" },
+	  { "answer": "getreal", 		"clue": "\"Stop kidding yourself!\" (3,4)" },
+	  { "answer": "alterego", 		"clue": "Clark Kent, for Superman (5,3)" }
+	]
+}
