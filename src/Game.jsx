@@ -350,7 +350,7 @@ export default function Game({ puzzle, isQuick = false }) {
       setShowHintsMenu(false);
       const after = Math.max(0, scoreBase - (hintCount + 1 + wrongGuessCount));
       if (before > 0 && after === 0) {
-        showToast('Score is 0. Next strike ends the game.', 2800, 'warning');
+        showToast('Score is 0. Next misstep ends the game.', 2800, 'warning');
       }
       try { if (window.gtag && typeof window.gtag==='function') { window.gtag('event','lifeline_used',{ lifeline: kind, puzzle_id: puzzle.id||'unknown', mode: isQuick?'quick':'main' }); } } catch {}
     }
@@ -597,7 +597,7 @@ export default function Game({ puzzle, isQuick = false }) {
     setGuessCount((n) => n + 1);
     if (hadWrong) setWrongGuessCount((n) => n + 1);
     const scoreBefore = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
-    // If already at 0 and we get any new strikes → immediate loss
+    // If already at 0 and we get any new missteps → immediate loss
     if (scoreBefore === 0 && hadWrong) {
       const { newLock } = revealAllAsYellowAndFill();
       try { const key = `${puzzleNamespace}-stars`; const map = JSON.parse(localStorage.getItem(key) || '{}'); map[puzzle.id] = 0; localStorage.setItem(key, JSON.stringify(map)); } catch {}
@@ -617,7 +617,7 @@ export default function Game({ puzzle, isQuick = false }) {
     // Warn when score reaches 0 (but not loss yet)
     const scoreAfter = Math.max(0, scoreBase - (hintCount + newWrongTotal));
     if (scoreBefore > 0 && scoreAfter === 0 && hadWrong) {
-      showToast('Score is 0. Next strike ends the game.', 2800, 'warning');
+      showToast('Score is 0. Next misstep ends the game.', 2800, 'warning');
     }
 
     if (solvedThisRow) {
@@ -832,7 +832,7 @@ export default function Game({ puzzle, isQuick = false }) {
             <button
               className="w-4 h-4 inline-flex items-center justify-center rounded border border-gray-700 text-gray-300 hover:bg-gray-900/60"
               aria-label="How does score work?"
-              onClick={() => showToast('Score starts at 10. Lose a point for each lifeline and each strike. At 0, the next strike ends the game.', 5200, 'info')}
+              onClick={() => showToast('Score starts at 10. Lose a point for each lifeline and each misstep. At 0, the next misstep ends the game.', 5200, 'info')}
             >?
             </button>
           </div>
@@ -1079,8 +1079,8 @@ export default function Game({ puzzle, isQuick = false }) {
       {showLoss && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-sm rounded-lg border border-gray-700 bg-gray-900 p-4 text-gray-200">
-            <div className="text-lg font-semibold mb-2">Out of strikes</div>
-            <div className="text-sm mb-4">You ran out of strikes. Better luck tomorrow!</div>
+            <div className="text-lg font-semibold mb-2">Out of missteps</div>
+            <div className="text-sm mb-4">You ran out of missteps. Better luck tomorrow!</div>
             <div className="flex justify-end gap-2 text-sm">
               <button
                 className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-300 hover:bg-gray-800"

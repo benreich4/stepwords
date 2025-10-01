@@ -60,7 +60,7 @@ export default function HowToPlayModal({ onClose }) {
               <li><strong>Lifelines</strong>: quick reveals to nudge you forward (each costs 1 point). </li>
               <li><strong>Hard mode</strong>: hides 🪜 step locations by default.</li>
               <li><strong>Easy mode</strong>: filters the on‑screen keyboard.</li>
-              <li><strong>Score</strong>: starts at 10. Lose a point for each lifeline and each strike (a wrong guess when you submit a row). At 0, the next strike ends the game.</li>
+              <li><strong>Score</strong>: starts at 10. Lose a point for each lifeline and each misstep (a wrong guess when you submit a row). At 0, the next misstep ends the game.</li>
               <li><strong>Stars</strong>: 3★ score 7–10, 2★ 3–6, 1★ 0–3. Perfect = 10 with no lifelines.</li>
               <li><strong>Quick Stepword</strong>: a shorter daily warm‑up.</li>
             </ul>
