@@ -1,0 +1,11 @@
+{
+  "id": "20",
+  "rows": [
+	  { "answer": "roe", 			"clue": "Fish eggs (3)" },
+	  { "answer": "rose", 			"clue": "Valentine’s flower (4)" },
+	  { "answer": "horse", 			"clue": "Stallion, e.g. (5)" },
+	  { "answer": "heroes", 		"clue": "Protagonists (6)" },
+	  { "answer": "rehouse", 		"clue": "Provide a new home for (7)" },
+	  { "answer": "weehours", 		"clue": "Very late at night (3,5)" }
+	]
+}
