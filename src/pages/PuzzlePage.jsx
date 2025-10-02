@@ -8,6 +8,7 @@ export default function PuzzlePage({ puzzleId: propId, isQuick = false }) {
   const { puzzleId: paramId } = useParams();
   const puzzleId = propId || paramId;
   const [data, setData] = useState(null);
+  const [nav, setNav] = useState({ prevId: null, nextId: null });
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -25,6 +26,18 @@ export default function PuzzlePage({ puzzleId: propId, isQuick = false }) {
           throw new Error("This puzzle is not yet available.");
         }
         setData(json);
+        // Compute prev/next ids within availability
+        const idx = manifest.findIndex((p) => String(p.id) === String(puzzleId));
+        let prevId = null, nextId = null;
+        if (idx > 0) {
+          const prev = manifest[idx - 1];
+          if (prev && (preview || prev.date <= todayET)) prevId = String(prev.id);
+        }
+        if (idx >= 0 && idx + 1 < manifest.length) {
+          const next = manifest[idx + 1];
+          if (next && (preview || next.date <= todayET)) nextId = String(next.id);
+        }
+        setNav({ prevId, nextId });
         const dateStr = json.date ? formatDateWithDayOfWeek(json.date) : "";
         const pageTitle = `${isQuick ? 'Quick Stepword' : 'Stepword Puzzle'} – #${json.id}${dateStr ? ` (${dateStr})` : ""}`;
         document.title = pageTitle;
@@ -85,5 +98,5 @@ export default function PuzzlePage({ puzzleId: propId, isQuick = false }) {
     return <div className="px-3 py-4 text-gray-400">Loading…</div>;
   }
 
-  return <Game puzzle={data} />;
+  return <Game puzzle={data} prevId={nav.prevId} nextId={nav.nextId} />;
 }

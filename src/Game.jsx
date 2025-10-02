@@ -8,7 +8,7 @@ import QuickIntroModal from "./components/QuickIntroModal.jsx";
 import { formatDateWithDayOfWeek } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 // Inline analytics - no separate module needed
-export default function Game({ puzzle, isQuick = false }) {
+export default function Game({ puzzle, isQuick = false, prevId = null, nextId = null }) {
   const rowsRaw = puzzle.rows || [];
   // Normalize answers: ignore spaces in answers (e.g., "hello world" -> "helloworld")
   const rows = useMemo(() => rowsRaw.map(r => ({
@@ -807,8 +807,14 @@ export default function Game({ puzzle, isQuick = false }) {
       <div className="px-3 text-center pt-4">
         {/* Smaller date on mobile */}
         {puzzle.date && (
-          <div className="text-sm sm:text-lg md:text-xl font-bold text-gray-100 mb-1">
-            {formatDateWithDayOfWeek(puzzle.date)}
+          <div className="text-sm sm:text-lg md:text-xl font-bold text-gray-100 mb-1 flex items-center justify-center gap-3">
+            {prevId && (
+              <a href={`/${isQuick ? 'quick/' : ''}${prevId}`} className="px-2 py-1 rounded hover:bg-gray-800" aria-label="Previous puzzle">←</a>
+            )}
+            <span>{formatDateWithDayOfWeek(puzzle.date)}</span>
+            {nextId && (
+              <a href={`/${isQuick ? 'quick/' : ''}${nextId}`} className="px-2 py-1 rounded hover:bg-gray-800" aria-label="Next puzzle">→</a>
+            )}
           </div>
         )}
         {/* Author byline */}
