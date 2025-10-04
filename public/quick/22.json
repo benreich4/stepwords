@@ -1,0 +1,12 @@
+{
+  "id": "22",
+  "rows": [
+	  { "answer": "get", 			"clue": "Receive (3)" },
+	  { "answer": "egot", 			"clue": "Showbiz award grand slam (4)" },
+	  { "answer": "letgo", 			"clue": "Release (3,2)" },
+	  { "answer": "gelato", 		"clue": "Italian ice cream (6)" },
+	  { "answer": "gloated", 		"clue": "Bragged (7)" },
+	  { "answer": "goaltend", 		"clue": "Illegally interfere with a basketball shot (8)" },
+	  { "answer": "elongated", 		"clue": "Extended, like each answer vis-à-vis its predecessor (9)" }
+	]
+}
