@@ -1,0 +1,16 @@
+{
+  "id": "45",
+  "author": "Ben Reich",
+  "rows": [
+    { "answer": "ale",         "clue": "Beer type (3)" },
+    { "answer": "lean",        "clue": "Cut and trim (4)" },
+    { "answer": "alien",       "clue": "One who might abduct an [7] (5)" },
+    { "answer": "genial",      "clue": "Warm and friendly (6)" },
+    { "answer": "tagline",     "clue": "Movie poster phrase (3,4)" },
+    { "answer": "triangle",    "clue": "Basic shape (8)" },
+    { "answer": "earthling",   "clue": "Human, to an [3] (9)" },
+    { "answer": "allnighter",  "clue": "It may be pulled in college (3,7)" }
+  ]
+}
+
+
