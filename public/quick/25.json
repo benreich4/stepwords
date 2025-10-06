@@ -1,0 +1,11 @@
+{
+  "id": "25",
+  "rows": [
+	  { "answer": "art", 			"clue": "Creative expression (3)" },
+	  { "answer": "tart", 			"clue": "Pastry with fruit filling (4)" },
+	  { "answer": "trait", 			"clue": "Distinguishing characteristic (5)" },
+	  { "answer": "tarpit", 		"clue": "Sticky fossil site (3,3)" },
+	  { "answer": "bitpart", 		"clue": "Small role (3,4)" },
+	  { "answer": "bradpitt", 		"clue": "\"Fight Club\" actor, unlikely to have a [5] (4,4)" }
+	]
+}
