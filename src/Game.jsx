@@ -126,13 +126,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [settings, setSettings] = useState(() => {
     try {
       const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}');
-      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true };
+      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true, lightMode: s.lightMode === true };
     } catch {
-      return { hardMode: false, easyMode: false };
+      return { hardMode: false, easyMode: false, lightMode: false };
     }
   });
   useEffect(() => {
-    try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode })); } catch {}
+    try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode })); } catch {}
   }, [settings]);
   const [showSettings, setShowSettings] = useState(false);
   // Easy mode now saved globally in settings (like hardMode)
@@ -803,7 +803,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   return (
     <>
-    <div className="w-screen h-[105vh] bg-black flex flex-col">
+    <div className={`w-screen h-[105vh] bg-black flex flex-col ${settings.lightMode ? 'filter invert hue-rotate-180' : ''}`}>
       <div className="px-3 text-center pt-4">
         {/* Smaller date on mobile */}
         {puzzle.date && (
@@ -879,6 +879,27 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             </button>
             {showSettings && (
               <div className="absolute right-0 top-full mt-1 w-56 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-2 text-xs">
+                <label className="flex items-center justify-between py-1">
+                  <span className="text-gray-300">Light mode</span>
+                  <button
+                    role="switch"
+                    aria-checked={settings.lightMode ? "true" : "false"}
+                    onClick={() => {
+                      const checked = !settings.lightMode;
+                      setSettings(s => ({ ...s, lightMode: checked }));
+                      try {
+                        if (window.gtag && typeof window.gtag === 'function') {
+                          window.gtag('event', checked ? 'light_mode_turned_on' : 'light_mode_turned_off', { puzzle_id: puzzle.id || 'unknown' });
+                        }
+                      } catch {}
+                    }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.lightMode ? 'bg-sky-500' : 'bg-gray-600'}`}
+                    aria-label="Toggle light mode"
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.lightMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
+                  </button>
+                </label>
+                <div className="text-[10px] text-gray-400 mb-2">Invert colors for a light appearance.</div>
                 <label className="flex items-center justify-between py-1">
                   <span className="text-gray-300">Hard mode</span>
                   <input
