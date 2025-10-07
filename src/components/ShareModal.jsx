@@ -71,16 +71,15 @@ export default function ShareModal({
             hello@stepwords.xyz
           </a>
           <div className="mt-3">
-            <a
-              href="/archives"
+            <Link
+              to="/archives"
               className="inline-block text-sm text-emerald-400 hover:underline"
-              onClick={(e) => {
-                // Close modal on in-app navigation if SPA routing is in place
-                try { e.preventDefault(); window.history.pushState({}, "", "/archives"); onClose?.(); } catch {}
+              onClick={() => {
+                try { onClose?.(); } catch {}
               }}
             >
               Try another puzzle from the archives!
-            </a>
+            </Link>
           </div>
           <div className="mt-2">
           <Link 
