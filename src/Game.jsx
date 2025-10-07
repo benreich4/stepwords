@@ -80,9 +80,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [enterTipShown, setEnterTipShown] = useState(() => {
     try { return localStorage.getItem('stepwords-enter-tip-shown') === '1'; } catch { return false; }
   });
+  const [submitCoachShown, setSubmitCoachShown] = useState(() => {
+    try { return localStorage.getItem('stepwords-submit-coach-shown') === '1'; } catch { return false; }
+  });
   const [toast, setToast] = useState("");
   const [toastVariant, setToastVariant] = useState("info"); // info | success | warning
   const toastTimerRef = useRef(null);
+  const submitBtnRef = useRef(null);
   const [dragStartRow, setDragStartRow] = useState(null);
   const [dragOverRow, setDragOverRow] = useState(null);
   const [diffTipShown, setDiffTipShown] = useState(() => {
@@ -539,16 +543,43 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       pos += 1;
     }
     // If first-time user and row became fully filled, show a one-time top toast
-    if (!enterTipShown) {
+    if (!enterTipShown || !submitCoachShown) {
       const after = (next.padEnd(len, " ").slice(0, len)).toUpperCase();
       let full = true;
       for (let col = 0; col < len; col++) {
         if (!isBlocked(level, col) && after[col] === " ") { full = false; break; }
       }
       if (full) {
-        setEnterTipShown(true);
-        try { localStorage.setItem('stepwords-enter-tip-shown', '1'); } catch {}
-        showToast("Press Enter to submit", 2500, "warning");
+        if (!enterTipShown) {
+          setEnterTipShown(true);
+          try { localStorage.setItem('stepwords-enter-tip-shown', '1'); } catch {}
+          showToast("Press Enter to submit", 2500, "warning");
+        }
+        if (!submitCoachShown) {
+          setSubmitCoachShown(true);
+          try { localStorage.setItem('stepwords-submit-coach-shown', '1'); } catch {}
+          // Render a lightweight coachmark anchored near the SUBMIT key
+          try {
+            const btn = submitBtnRef.current;
+            if (btn) {
+              const mark = document.createElement('div');
+              mark.style.position = 'fixed';
+              const r = btn.getBoundingClientRect();
+              mark.style.left = Math.max(8, r.left - 6) + 'px';
+              mark.style.top = Math.max(8, r.top - 40) + 'px';
+              mark.style.zIndex = '9999';
+              mark.style.pointerEvents = 'none';
+              mark.className = 'px-2 py-1 rounded bg-emerald-700 text-white text-xs border border-emerald-500 shadow';
+              mark.textContent = 'Tap Submit to check your row';
+              document.body.appendChild(mark);
+              setTimeout(() => { try { document.body.removeChild(mark); } catch {} }, 2600);
+            } else {
+              showToast("Tap Submit to check your row →", 2600, "info");
+            }
+          } catch {
+            showToast("Tap Submit to check your row →", 2600, "info");
+          }
+        }
       }
     }
     setMessage("");
@@ -1039,10 +1070,19 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         onEnter={handleEnter}
         onBackspace={handleBackspace}
         filteredLetters={settings.easyMode ? lettersUsedInAnswers : null}
+        submitReady={(() => {
+          const len = rowLen(level);
+          const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
+          for (let col = 0; col < len; col++) {
+            if (!isBlocked(level, col) && cur[col] === " ") return false;
+          }
+          return true;
+        })()}
         onResize={(h) => {
           const spacer = document.getElementById('bottom-scroll-spacer');
           if (spacer) spacer.style.height = Math.max(0, Math.floor(h)) + 'px';
         }}
+        submitButtonRef={submitBtnRef}
       />
    
       {showShare && (

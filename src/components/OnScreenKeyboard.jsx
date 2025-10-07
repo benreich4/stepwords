@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, disabledKeys = new Set(), filteredLetters = null, onResize }) {
+export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, disabledKeys = new Set(), filteredLetters = null, onResize, submitReady = false, submitButtonRef = null }) {
   const rows = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
     ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
@@ -21,7 +21,8 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
     const baseClass = "px-2 py-3 h-14 sm:h-10 rounded font-semibold select-none touch-manipulation";
     
     if (key === 'SUBMIT' || key === 'BACKSPACE') {
-      return `${baseClass} bg-gray-600 text-white hover:bg-gray-500 active:bg-gray-700 text-xs`;
+      const pulse = key === 'SUBMIT' && submitReady ? ' animate-pulse ring-2 ring-emerald-400' : '';
+      return `${baseClass} bg-gray-600 text-white hover:bg-gray-500 active:bg-gray-700 text-xs${pulse}`;
     }
     
     const isDisabled = disabledKeys.has(key);
@@ -59,6 +60,7 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
             {row.map((key) => (
               <button
                 key={key}
+                ref={key === 'SUBMIT' ? submitButtonRef : null}
                 onPointerDown={(e) => {
                   // Use pointer for mouse/pen; touch handled in onTouchStart to avoid missed taps on iOS
                   if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
