@@ -35,7 +35,7 @@ export default function ShareModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-6">
       <div className="w-full max-w-lg rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-5 shadow-2xl max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-xl font-semibold text-white">{didFail ? 'You ran out of points' : 'You solved it!'}</div>
+          <div className="text-xl font-semibold text-white">{didFail ? 'Too many missteps' : 'You solved it!'}</div>
           {!didFail && (hintCount === 0 && wrongGuessCount === 0) && (
             <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-700 text-white border border-emerald-500">Perfect!</span>
           )}

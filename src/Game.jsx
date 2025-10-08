@@ -87,6 +87,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [toastVariant, setToastVariant] = useState("info"); // info | success | warning
   const toastTimerRef = useRef(null);
   const submitBtnRef = useRef(null);
+  const starsRef = useRef(null);
+  const lastPointsRef = useRef(10);
   const [dragStartRow, setDragStartRow] = useState(null);
   const [dragOverRow, setDragOverRow] = useState(null);
   const [diffTipShown, setDiffTipShown] = useState(() => {
@@ -408,7 +410,14 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   const clue = rows[level]?.clue || "";
   const scoreBase = 10;
-  const scoreNow = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
+  const usedCount = hintCount + wrongGuessCount;
+  const pointsNow = Math.max(0, scoreBase - usedCount);
+  const currentStars = pointsNow >= 7 ? 3 : pointsNow >= 4 ? 2 : pointsNow >= 1 ? 1 : 0;
+  const nextLossIn = (() => {
+    if (currentStars === 0) return 1;
+    const rem = 4 - (usedCount % 4);
+    return rem === 0 ? 4 : rem;
+  })();
 
   // Clamp level if rows length changes or saved state was out of bounds
   useEffect(() => {
@@ -629,7 +638,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     if (hadWrong) setWrongGuessCount((n) => n + 1);
     const scoreBefore = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
     // If already at 0 and we get any new missteps → immediate loss
-    if (scoreBefore === 0 && hadWrong) {
+    if (pointsNow === 0 && hadWrong) {
       const { newLock } = revealAllAsYellowAndFill();
       try { const key = `${puzzleNamespace}-stars`; const map = JSON.parse(localStorage.getItem(key) || '{}'); map[puzzle.id] = 0; localStorage.setItem(key, JSON.stringify(map)); } catch {}
       try { if (window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'puzzle_out_of_score', { puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' }); } } catch {}
@@ -646,9 +655,31 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const solvedThisRow = rowColors.every(Boolean);
 
     // Warn when score reaches 0 (but not loss yet)
-    const scoreAfter = Math.max(0, scoreBase - (hintCount + newWrongTotal));
-    if (scoreBefore > 0 && scoreAfter === 0 && hadWrong) {
-      showToast('Score is 0. Next misstep ends the game.', 2800, 'warning');
+    const usedAfter = hintCount + newWrongTotal;
+    const pointsAfter = Math.max(0, scoreBase - usedAfter);
+    const starsAfter = pointsAfter >= 7 ? 3 : pointsAfter >= 4 ? 2 : pointsAfter >= 1 ? 1 : 0;
+    if (starsAfter === 0 && pointsAfter === 0) {
+      // show coachmark warning only when reaching 0 stars
+      showToast('Next misstep loses the game!', 3000, 'warning');
+      try {
+        const el = starsRef.current;
+        if (el) {
+          el.classList.add('ring-2','ring-red-500');
+          setTimeout(() => { try { el.classList.remove('ring-2','ring-red-500'); } catch {} }, 1500);
+          // Coachmark near stars
+          const r = el.getBoundingClientRect();
+          const mark = document.createElement('div');
+          mark.style.position = 'fixed';
+          mark.style.left = Math.max(8, r.right + 8) + 'px';
+          mark.style.top = Math.max(8, r.top - 4) + 'px';
+          mark.style.zIndex = '9999';
+          mark.style.pointerEvents = 'none';
+          mark.className = 'px-2 py-1 rounded bg-red-700 text-white text-xs border border-red-500 shadow';
+          mark.textContent = 'Next misstep loses the game!';
+          document.body.appendChild(mark);
+          setTimeout(() => { try { document.body.removeChild(mark); } catch {} }, 2600);
+        }
+      } catch {}
     }
 
     if (solvedThisRow) {
@@ -661,7 +692,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         setShareText(share);
         // Compute and persist stars from final score
         const finalScore = Math.max(0, scoreBase - (hintCount + newWrongTotal));
-        const awarded = finalScore >= 7 ? 3 : (finalScore >= 3 ? 2 : 1);
+        const awarded = finalScore >= 7 ? 3 : (finalScore >= 4 ? 2 : (finalScore >= 1 ? 1 : 0));
         setStars(awarded);
         setDidFail(false);
         try {
@@ -727,9 +758,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       return;
     }
 
-    // Row not solved → commit and prompt to keep going
-    setLockColors(colorsAfter);
+  // Row not solved → commit and prompt to keep going
+  setLockColors(colorsAfter);
+  // Inhibit this toast when at 0 points so the loss-warning toast is visible
+  if (!(pointsAfter === 0)) {
     showToast("Kept correct letters. Try filling the rest.", 2400, "warning");
+  }
   }
 
   // Keyboard event handlers (desktop)
@@ -861,19 +895,31 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       </div>
       
       <div className="w-full px-3 py-2 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20">
-        <div className="flex items-center gap-3 text-xs text-gray-300">
-          <div className="flex items-center gap-1">
-            <div className="px-2 py-0.5 rounded border border-gray-700 bg-gray-900/40" title={`Score: ${scoreNow}` }>
-              🏆 {scoreNow}
-            </div>
-            <button
-              className="w-4 h-4 inline-flex items-center justify-center rounded border border-gray-700 text-gray-300 hover:bg-gray-900/60"
-              aria-label="How does score work?"
-              onClick={() => showToast('Score starts at 10. Lose a point for each lifeline and each misstep. At 0, the next misstep ends the game.', 5200, 'info')}
-            >?
-            </button>
+        <div className="flex items-center gap-2 text-xs text-gray-300">
+          <div
+            ref={starsRef}
+            className="px-2 py-0.5 rounded border border-gray-700 bg-gray-900/40 flex items-center gap-0.5 cursor-pointer"
+            title="Current stars"
+            role="button"
+            tabIndex={0}
+            onClick={() => showToast(`Lose a star for every 4 missteps or lifelines used. Next star lost in ${nextLossIn} missteps or lifelines used.`, 5200, 'info')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showToast(`Lose a star for every 4 missteps or lifelines used. Next star lost in ${nextLossIn} missteps or lifelines used.`, 5200, 'info'); } }}
+          >
+            <span className={currentStars >= 1 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
+            <span className={currentStars >= 2 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
+            <span className={currentStars >= 3 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
           </div>
-          {/* Stars removed from header per spec; shown in completion modal only */}
+          {pointsNow === 0 && (
+            <div className="px-2 py-0.5 rounded border border-red-600 bg-red-900/40 text-red-300">
+              Next misstep loses the game!
+            </div>
+          )}
+          <button
+            className="px-2 py-0.5 inline-flex items-center justify-center rounded border border-gray-700 text-gray-300 hover:bg-gray-900/60 text-xs"
+            aria-label="How do stars work?"
+            onClick={() => showToast(`Lose a star for every 4 missteps or lifelines used. Next star lost in ${nextLossIn} ${nextLossIn === 1 ? 'misstep or lifeline used' : 'missteps or lifelines used'}.`, 5200, 'info')}
+          >?
+          </button>
         </div>
         
         <div className="flex items-center gap-2">
