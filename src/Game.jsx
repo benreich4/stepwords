@@ -1080,7 +1080,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
       <div 
         id="grid-scroll"
-        className="flex-1 overflow-y-auto pt-2 pb-8"
+        className="flex-1 overflow-y-auto pt-5 sm:pt-4 md:pt-3 pb-8"
         onClick={() => {
           if (!isMobile && inputRef.current) {
             inputRef.current.focus();
