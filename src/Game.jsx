@@ -98,6 +98,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [diffTipShown, setDiffTipShown] = useState(() => {
     try { return localStorage.getItem('stepwords-diff-tip-shown') === '1'; } catch { return false; }
   });
+  const lifelinesBtnRef = useRef(null);
+  const lastActivityRef = useRef(Date.now());
+  const lifelineNudgeShownRef = useRef(false);
 
   function showToast(text, durationMs = 2500, variant = "info") {
     setToast(text || "");
@@ -355,6 +358,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       showToast(`Revealed ${count} middle letters.`, 2000, "info");
     }
     if (used) {
+      try { lastActivityRef.current = Date.now(); } catch {}
       const before = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
       setHintCount((n) => n + 1);
       setShowHintsMenu(false);
@@ -638,6 +642,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
     setGuessAt(i, nextGuess.join("").trimEnd());
     setWasWrong(wasWrongAfter);
+    try { lastActivityRef.current = Date.now(); } catch {}
     setGuessCount((n) => n + 1);
     if (hadWrong) setWrongGuessCount((n) => n + 1);
     const scoreBefore = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
@@ -802,6 +807,36 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     if (letters && letters.length) typeChar(letters[letters.length - 1]);
     setIme("");
   }
+
+  // Inactivity coachmark (2 minutes) to nudge Lifelines - only resets on submit or lifeline use
+  useEffect(() => {
+    const id = setInterval(() => {
+      try {
+        if (lifelineNudgeShownRef.current) return;
+        if (showHowToPlay || showHintsMenu || showSettings || showQuickIntro || showRevealConfirm) return;
+        const idleMs = Date.now() - (lastActivityRef.current || 0);
+        if (idleMs >= 120000) {
+          const btn = lifelinesBtnRef.current;
+          if (btn) {
+            const r = btn.getBoundingClientRect();
+            const mark = document.createElement('div');
+            mark.style.position = 'fixed';
+            mark.style.left = (r.left + r.width / 2) + 'px';
+            mark.style.transform = 'translateX(-50%)';
+            mark.style.top = Math.max(8, r.bottom + 8) + 'px';
+            mark.style.zIndex = '9999';
+            mark.style.pointerEvents = 'none';
+            mark.className = 'px-2 py-1 rounded bg-emerald-700 text-white text-xs border border-emerald-500 shadow';
+            mark.textContent = 'Stuck? Try a Lifeline';
+            document.body.appendChild(mark);
+            setTimeout(() => { try { document.body.removeChild(mark); } catch {} }, 3000);
+            lifelineNudgeShownRef.current = true;
+          }
+        }
+      } catch {}
+    }, 10000);
+    return () => { clearInterval(id); };
+  }, [showHowToPlay, showHintsMenu, showSettings, showQuickIntro, showRevealConfirm]);
 
   // Minimal: close Lifelines/Settings when clicking/tapping outside
   useEffect(() => {
@@ -977,6 +1012,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         <div className="flex items-center gap-2">
           <div ref={lifelinesRef} className="relative">
             <button
+              ref={lifelinesBtnRef}
               onClick={() => setShowHintsMenu((v)=>!v)}
               className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
             >
