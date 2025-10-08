@@ -89,6 +89,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const submitBtnRef = useRef(null);
   const starsRef = useRef(null);
   const lastPointsRef = useRef(10);
+  const clueBarRef = useRef(null);
   const [dragStartRow, setDragStartRow] = useState(null);
   const [dragOverRow, setDragOverRow] = useState(null);
   const [diffTipShown, setDiffTipShown] = useState(() => {
@@ -365,7 +366,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   function revealAllAsYellowAndFill() {
     const newLock = lockColors.map((rowLock, r) => {
       const ans = (rows[r]?.answer || '').toUpperCase();
-      const len = ans.length;
+    const len = ans.length;
       const next = Array(len);
       for (let c = 0; c < len; c++) {
         const cur = rowLock?.[c] || null;
@@ -455,7 +456,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             onClick={() => {
               setLevel(jumpIndex);
               const firstOpen = nearestUnlockedInRow(jumpIndex, 0);
-              setCursor(firstOpen === -1 ? 0 : firstOpen);
+        setCursor(firstOpen === -1 ? 0 : firstOpen);
               if (!isMobile) inputRef.current?.focus();
             }}
             aria-label={`Jump to row ${n}`}
@@ -758,8 +759,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       return;
     }
 
-  // Row not solved → commit and prompt to keep going
-  setLockColors(colorsAfter);
+    // Row not solved → commit and prompt to keep going
+    setLockColors(colorsAfter);
   // Inhibit this toast when at 0 points so the loss-warning toast is visible
   if (!(pointsAfter === 0)) {
     showToast("Kept correct letters. Try filling the rest.", 2400, "warning");
@@ -798,6 +799,34 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     if (letters && letters.length) typeChar(letters[letters.length - 1]);
     setIme("");
   }
+
+  // One-time coachmark to highlight the clue bar for first-time players
+  // Show only after the How To modal has been closed the first time
+  useEffect(() => {
+    try {
+      if (showHowToPlay) return; // wait until How To is closed
+      if (localStorage.getItem('stepwords-clue-coach-shown') === '1') return;
+      const t = setTimeout(() => {
+        const el = clueBarRef.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        const mark = document.createElement('div');
+        mark.style.position = 'fixed';
+        // Center horizontally over the clue bar
+        mark.style.left = (r.left + r.width / 2) + 'px';
+        mark.style.transform = 'translateX(-50%)';
+        mark.style.top = Math.max(8, r.top - 28) + 'px';
+        mark.style.zIndex = '9999';
+        mark.style.pointerEvents = 'none';
+        mark.className = 'px-2 py-1 rounded bg-sky-700 text-white text-xs border border-sky-500 shadow';
+        mark.textContent = 'Your clue is here';
+        document.body.appendChild(mark);
+        setTimeout(() => { try { document.body.removeChild(mark); } catch {} }, 2600);
+        localStorage.setItem('stepwords-clue-coach-shown', '1');
+      }, 400);
+      return () => clearTimeout(t);
+    } catch {}
+  }, [showHowToPlay]);
 
   // On-screen keyboard handlers (mobile)
   const handleKeyPress = (key) => {
@@ -892,8 +921,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         <div className="text-xs sm:text-base text-gray-300 italic mb-2">
           {puzzle.title}
         </div>
-      </div>
-      
+        </div>
+
       <div className="w-full px-3 py-2 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20">
         <div className="flex items-center gap-2 text-xs text-gray-300">
           <div
@@ -908,13 +937,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             <span className={currentStars >= 1 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
             <span className={currentStars >= 2 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
             <span className={currentStars >= 3 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
-          </div>
+        </div>
           {pointsNow === 0 && (
             <div className="px-2 py-0.5 rounded border border-red-600 bg-red-900/40 text-red-300">
               Next misstep loses the game!
-            </div>
+      </div>
           )}
-          <button
+        <button
             className="px-2 py-0.5 inline-flex items-center justify-center rounded border border-gray-700 text-gray-300 hover:bg-gray-900/60 text-xs"
             aria-label="How do stars work?"
             onClick={() => showToast(`Lose a star for every 4 missteps or lifelines used. Next star lost in ${nextLossIn} ${nextLossIn === 1 ? 'misstep or lifeline used' : 'missteps or lifelines used'}.`, 5200, 'info')}
@@ -974,7 +1003,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     aria-label="Toggle light mode"
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.lightMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
-                  </button>
+        </button>
                 </label>
                 <div className="text-[10px] text-gray-400 mb-2">Invert colors for a light appearance.</div>
                 <label className="flex items-center justify-between py-1">
@@ -1025,7 +1054,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       {/* Top toast */}
       <Toast text={toast} variant={toastVariant} />
 
-      <div className="w-full px-3 py-2 sticky top-[48px] bg-black/80 backdrop-blur border-b border-gray-800 z-10">
+      <div ref={clueBarRef} className="w-full px-3 py-2 sticky top-[48px] bg-black/80 backdrop-blur border-b border-gray-800 z-10">
         <div className="flex items-center justify-between">
           <button
             onClick={() => moveLevel(-1)}
@@ -1207,7 +1236,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                   setShowLoss(false);
                 }}
               >Go to Archives</a>
-            </div>
+    </div>
           </div>
         </div>
       )}
