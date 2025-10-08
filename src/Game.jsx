@@ -86,6 +86,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [toast, setToast] = useState("");
   const [toastVariant, setToastVariant] = useState("info"); // info | success | warning
   const toastTimerRef = useRef(null);
+  // Minimal: refs to detect outside clicks for popovers
+  const lifelinesRef = useRef(null);
+  const settingsRef = useRef(null);
   const submitBtnRef = useRef(null);
   const starsRef = useRef(null);
   const lastPointsRef = useRef(10);
@@ -800,6 +803,26 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     setIme("");
   }
 
+  // Minimal: close Lifelines/Settings when clicking/tapping outside
+  useEffect(() => {
+    const handler = (e) => {
+      try {
+        if (showHintsMenu && lifelinesRef.current && !lifelinesRef.current.contains(e.target)) {
+          setShowHintsMenu(false);
+        }
+        if (showSettings && settingsRef.current && !settingsRef.current.contains(e.target)) {
+          setShowSettings(false);
+        }
+      } catch {}
+    };
+    document.addEventListener('mousedown', handler, true);
+    document.addEventListener('touchstart', handler, true);
+    return () => {
+      document.removeEventListener('mousedown', handler, true);
+      document.removeEventListener('touchstart', handler, true);
+    };
+  }, [showHintsMenu, showSettings]);
+
   // One-time coachmark to highlight the clue bar for first-time players
   // Show only after the How To modal has been closed the first time
   useEffect(() => {
@@ -952,7 +975,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         </div>
         
         <div className="flex items-center gap-2">
-          <div className="relative">
+          <div ref={lifelinesRef} className="relative">
             <button
               onClick={() => setShowHintsMenu((v)=>!v)}
               className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
@@ -960,7 +983,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               Lifelines
             </button>
             {showHintsMenu && (
-              <div className="absolute left-0 top-full mt-1 w-64 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-1 text-xs">
+              <div className="absolute right-0 top-full mt-1 w-56 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-2 text-xs">
                 <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineMiddleUsed} onClick={()=>useLifeline('edge_step')}>Reveal first, last, and step letter</button>
                 <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineFirstUsed} onClick={()=>useLifeline('first3')}>Reveal first {isQuick ? 2 : 3} letters</button>
                 <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineVowelsUsed} onClick={()=>useLifeline('mid3')}>Reveal {isQuick ? 2 : 3} middle letters</button>
@@ -975,7 +998,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             How to Play
           </button>
           {/* Settings gear moved to right */}
-          <div className="relative">
+          <div ref={settingsRef} className="relative">
             <button
               onClick={() => setShowSettings((v) => !v)}
               className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
