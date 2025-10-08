@@ -1069,7 +1069,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               setTimeout(() => inputRef.current?.focus(), 0);
             }
           }}
-          inputMode={(isMobile ? "none" : "latin")}
+          inputMode={"none"}
         enterKeyHint="done"
         autoCapitalize="none"
         autoComplete="off"
