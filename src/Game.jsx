@@ -978,7 +978,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   return (
     <>
     <div className={`w-screen h-[105vh] bg-black flex flex-col ${settings.lightMode ? 'filter invert hue-rotate-180' : ''}`}>
-      <div className="px-3 text-center pt-1">
+      <div className={`px-3 text-center ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0' : 'pt-1'}`}>
         {!headerCollapsed && (
         <>
         {puzzle.date && (
@@ -1004,7 +1004,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         )}
       </div>
 
-      <div className="w-full px-3 pt-0 pb-1 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20">
+      <div className="w-full px-3 h-8 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20">
         <div className="flex items-center gap-2 text-xs text-gray-300">
           <div
             ref={starsRef}
@@ -1136,7 +1136,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       {/* Top toast */}
       <Toast text={toast} variant={toastVariant} />
 
-      <div ref={clueBarRef} className="w-full px-3 py-2 sticky top-[48px] bg-black/80 backdrop-blur border-b border-gray-800 z-10">
+      <div ref={clueBarRef} className="w-full px-3 py-2 sticky top-[32px] bg-black/80 backdrop-blur border-b border-gray-800 z-10">
         <div className="flex items-center justify-between">
           <button
             onClick={() => moveLevel(-1)}
