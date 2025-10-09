@@ -47,7 +47,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-screen bg-black text-gray-100">
-      <header className="w-full px-2 py-1 border-b border-gray-800">
+      <header className="w-full px-2 pt-0 pb-1 border-b border-gray-800">
         <div className="grid grid-cols-3 items-center">
           <div className="justify-self-start">
             <Link to={isQuick ? "/" : "/quick"} className="text-[10px] text-emerald-400 hover:underline">
