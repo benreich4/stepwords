@@ -132,11 +132,11 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
       {/* Copyright notice */}
       {!collapsed && (
       <div className="px-3 py-1 text-xs text-gray-500 border-t border-gray-700">
-        <div className="flex justify-between items-center">
-          <span>© 2025 Stepwords™. All rights reserved.</span>
+        <div className="flex justify-between items-center gap-2 min-w-0">
+          <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[60vw]">© 2025 Stepwords™. All rights reserved.</span>
           <a 
             href="mailto:hello@stepwords.xyz"
-            className="text-sky-400 hover:underline"
+            className="text-sky-400 hover:underline whitespace-nowrap"
           >
             hello@stepwords.xyz
           </a>
