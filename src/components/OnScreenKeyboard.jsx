@@ -56,9 +56,10 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
       {/* Collapse handle (larger tap target; wrapper handles events) */}
       <div
         className="w-full flex items-center justify-center py-0.5"
-        onPointerDown={(e)=>{ e.preventDefault(); onToggleCollapse(!collapsed); }}
-        onTouchStart={(e)=>{ e.preventDefault(); e.stopPropagation(); onToggleCollapse(!collapsed); }}
-        onClick={(e)=>{ e.preventDefault(); onToggleCollapse(!collapsed); }}
+        role="button"
+        tabIndex={0}
+        onPointerUp={()=> onToggleCollapse(!collapsed)}
+        onKeyDown={(e)=>{ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleCollapse(!collapsed); } }}
       >
         <button
           ref={toggleRef}
