@@ -53,14 +53,16 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
 
   return (
     <div ref={rootRef} className="fixed bottom-0 left-0 right-0 w-full bg-gray-900 border-t border-gray-700 z-20" style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', userSelect: 'none' }}>
-      {/* Collapse handle */}
-      <div className="w-full flex items-center justify-center">
+      {/* Collapse handle (larger tap target; wrapper handles events) */}
+      <div
+        className="w-full flex items-center justify-center py-0.5"
+        onPointerDown={(e)=>{ e.preventDefault(); onToggleCollapse(!collapsed); }}
+        onTouchStart={(e)=>{ e.preventDefault(); e.stopPropagation(); onToggleCollapse(!collapsed); }}
+        onClick={(e)=>{ e.preventDefault(); onToggleCollapse(!collapsed); }}
+      >
         <button
           ref={toggleRef}
-          onPointerDown={(e)=>{ e.preventDefault(); onToggleCollapse(!collapsed); }}
-          onTouchStart={(e)=>{ e.preventDefault(); e.stopPropagation(); onToggleCollapse(!collapsed); }}
-          onClick={(e)=>{ e.preventDefault(); onToggleCollapse(!collapsed); }}
-          className="mt-0 mb-0 px-2 py-0.5 text-xs rounded border border-gray-700 text-gray-300 hover:bg-gray-800"
+          className="px-2 py-0.5 text-xs rounded border border-gray-700 text-gray-300 hover:bg-gray-800 pointer-events-none"
           aria-label={collapsed ? 'Expand keyboard' : 'Collapse keyboard'}
         >
           {collapsed ? '▲' : '▼'}
