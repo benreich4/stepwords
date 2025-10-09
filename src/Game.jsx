@@ -90,6 +90,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const lifelinesRef = useRef(null);
   const settingsRef = useRef(null);
   const submitBtnRef = useRef(null);
+  const collapseBtnRef = useRef(null);
   const starsRef = useRef(null);
   const lastPointsRef = useRef(10);
   const clueBarRef = useRef(null);
@@ -101,6 +102,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const lifelinesBtnRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
   const lifelineNudgeShownRef = useRef(false);
+  const [kbCollapsed, setKbCollapsed] = useState(() => {
+    try { return localStorage.getItem('stepwords-kb-collapsed') === '1'; } catch { return false; }
+  });
 
   function showToast(text, durationMs = 2500, variant = "info") {
     setToast(text || "");
@@ -1217,6 +1221,37 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           if (spacer) spacer.style.height = Math.max(0, Math.floor(h)) + 'px';
         }}
         submitButtonRef={submitBtnRef}
+        collapsed={kbCollapsed}
+        onToggleCollapse={(next) => {
+          try {
+            if (next) {
+              localStorage.setItem('stepwords-kb-collapsed','1');
+              // first-time coachmark
+              if (localStorage.getItem('stepwords-kb-collapse-coach') !== '1') {
+                const btn = collapseBtnRef.current;
+                if (btn) {
+                  const r = btn.getBoundingClientRect();
+                  const mark = document.createElement('div');
+                  mark.style.position = 'fixed';
+                  mark.style.left = (r.left + r.width / 2) + 'px';
+                  mark.style.transform = 'translateX(-50%)';
+                  mark.style.top = Math.max(8, r.top - 28) + 'px';
+                  mark.style.zIndex = '9999';
+                  mark.style.pointerEvents = 'none';
+                  mark.className = 'px-2 py-1 rounded bg-sky-700 text-white text-xs border border-sky-500 shadow';
+                  mark.textContent = 'Tap ▲ to uncollapse the keyboard';
+                  document.body.appendChild(mark);
+                  setTimeout(()=>{ try { document.body.removeChild(mark); } catch {} }, 2800);
+                  localStorage.setItem('stepwords-kb-collapse-coach','1');
+                }
+              }
+            } else {
+              localStorage.removeItem('stepwords-kb-collapsed');
+            }
+          } catch {}
+          setKbCollapsed(next);
+        }}
+        toggleRef={collapseBtnRef}
       />
    
       {showShare && (

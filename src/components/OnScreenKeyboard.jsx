@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, disabledKeys = new Set(), filteredLetters = null, onResize, submitReady = false, submitButtonRef = null }) {
+export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, disabledKeys = new Set(), filteredLetters = null, onResize, submitReady = false, submitButtonRef = null, collapsed = false, onToggleCollapse = () => {}, toggleRef = null }) {
   const rows = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
     ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
@@ -53,8 +53,23 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
 
   return (
     <div ref={rootRef} className="fixed bottom-0 left-0 right-0 w-full bg-gray-900 border-t border-gray-700 z-20" style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', userSelect: 'none' }}>
+      {/* Collapse handle */}
+      <div className="w-full flex items-center justify-center">
+        <button
+          ref={toggleRef}
+          onPointerDown={(e)=>{ e.preventDefault(); onToggleCollapse(!collapsed); }}
+          onTouchStart={(e)=>{ e.preventDefault(); e.stopPropagation(); onToggleCollapse(!collapsed); }}
+          onClick={(e)=>{ e.preventDefault(); onToggleCollapse(!collapsed); }}
+          className="mt-0 mb-0 px-2 py-0.5 text-xs rounded border border-gray-700 text-gray-300 hover:bg-gray-800"
+          aria-label={collapsed ? 'Expand keyboard' : 'Collapse keyboard'}
+        >
+          {collapsed ? '▲' : '▼'}
+        </button>
+      </div>
+
       {/* Keyboard rows */}
-      <div className="px-2 py-3">
+      {!collapsed && (
+      <div className="px-2 py-1">
         {rows.map((row, rowIndex) => (
           <div key={rowIndex} className="flex justify-center gap-1 mb-1">
             {row.map((key) => (
@@ -99,8 +114,10 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
           </div>
         ))}
       </div>
+      )}
       
       {/* Copyright notice */}
+      {!collapsed && (
       <div className="px-3 py-1 text-xs text-gray-500 border-t border-gray-700">
         <div className="flex justify-between items-center">
           <span>© 2025 Stepwords™. All rights reserved.</span>
@@ -112,6 +129,7 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
           </a>
         </div>
       </div>
+      )}
     </div>
   );
 }
