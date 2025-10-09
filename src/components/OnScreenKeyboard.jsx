@@ -1,6 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, disabledKeys = new Set(), filteredLetters = null, onResize, submitReady = false, submitButtonRef = null, collapsed = false, onToggleCollapse = () => {}, toggleRef = null }) {
+  const [isTiny, setIsTiny] = useState(() => {
+    try { return (typeof window !== 'undefined') && window.innerWidth <= 360; } catch { return false; }
+  });
+  useEffect(() => {
+    const onResize = () => {
+      try { setIsTiny(window.innerWidth <= 360); } catch {}
+    };
+    window.addEventListener('resize', onResize, { passive: true });
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const rows = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
     ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
@@ -72,9 +82,9 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
 
       {/* Keyboard rows */}
       {!collapsed && (
-      <div className="px-2 py-1">
+      <div className={`${isTiny ? 'px-1' : 'px-2'} py-1`}>
         {rows.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex justify-center gap-1 mb-1">
+          <div key={rowIndex} className={`flex justify-center ${isTiny ? 'gap-0.5' : 'gap-1'} mb-1`}>
             {row.map((key) => (
               <button
                 key={key}
@@ -106,7 +116,7 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
                 className={getKeyClass(key)}
                 style={{
                   WebkitTapHighlightColor: 'transparent',
-                  minWidth: key === 'SUBMIT' ? '70px' : key === 'BACKSPACE' ? '60px' : '32px',
+                  minWidth: key === 'SUBMIT' ? (isTiny ? '62px' : '70px') : key === 'BACKSPACE' ? (isTiny ? '54px' : '60px') : (isTiny ? '28px' : '32px'),
                   height: undefined
                 }}
                 tabIndex={-1}
