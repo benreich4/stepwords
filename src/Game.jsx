@@ -1052,7 +1052,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           </div>
           <button
             onClick={() => setShowHowToPlay(true)}
-            className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
+            className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 whitespace-nowrap overflow-hidden text-ellipsis max-w-[34vw] sm:max-w-none"
+            title="How to Play"
           >
             How to Play
           </button>

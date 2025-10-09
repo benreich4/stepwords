@@ -49,8 +49,8 @@ export default function App() {
     <div className="min-h-screen w-screen bg-black text-gray-100">
       <header className="w-full px-2 pt-0 pb-1 border-b border-gray-800">
         <div className="grid grid-cols-3 items-center">
-          <div className="justify-self-start">
-            <Link to={isQuick ? "/" : "/quick"} className="text-[10px] text-emerald-400 hover:underline">
+          <div className="justify-self-start min-w-0">
+            <Link to={isQuick ? "/" : "/quick"} className="text-[10px] text-emerald-400 hover:underline whitespace-nowrap overflow-hidden text-ellipsis max-w-[60vw] sm:max-w-none">
               {isQuick ? "Try today’s main puzzle" : "Try today’s quick puzzle"}
             </Link>
           </div>
@@ -70,8 +70,8 @@ export default function App() {
               {headerCollapsed ? '▼' : '▲'}
             </button>
           </div>
-          <div className="justify-self-end">
-            <Link to="/archives" className="text-[10px] text-gray-400 hover:text-gray-200 transition-colors">
+          <div className="justify-self-end min-w-0">
+            <Link to="/archives" className="text-[10px] text-gray-400 hover:text-gray-200 transition-colors whitespace-nowrap">
               Archives
             </Link>
           </div>
