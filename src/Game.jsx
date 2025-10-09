@@ -99,6 +99,24 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [diffTipShown, setDiffTipShown] = useState(() => {
     try { return localStorage.getItem('stepwords-diff-tip-shown') === '1'; } catch { return false; }
   });
+  const [headerCollapsed, setHeaderCollapsed] = useState(() => {
+    try { return localStorage.getItem('stepwords-header-collapsed') === '1'; } catch { return false; }
+  });
+
+  // Sync header collapse state with global header toggle (from App header button)
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'stepwords-header-collapsed') {
+        try { setHeaderCollapsed(localStorage.getItem('stepwords-header-collapsed') === '1'); } catch {}
+      }
+    };
+    const onCustom = () => {
+      try { setHeaderCollapsed(localStorage.getItem('stepwords-header-collapsed') === '1'); } catch {}
+    };
+    window.addEventListener('storage', onStorage);
+    document.addEventListener('stepwords-header-toggle', onCustom);
+    return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('stepwords-header-toggle', onCustom); };
+  }, []);
   const lifelinesBtnRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
   const lifelineNudgeShownRef = useRef(false);
@@ -960,8 +978,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   return (
     <>
     <div className={`w-screen h-[105vh] bg-black flex flex-col ${settings.lightMode ? 'filter invert hue-rotate-180' : ''}`}>
-      <div className="px-3 text-center pt-4">
-        {/* Smaller date on mobile */}
+      <div className="px-3 text-center pt-2">
+        {!headerCollapsed && (
+        <>
         {puzzle.date && (
           <div className="text-sm sm:text-lg md:text-xl font-bold text-gray-100 mb-1 flex items-center justify-center gap-3">
             {prevId && (
@@ -973,17 +992,17 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             )}
           </div>
         )}
-        {/* Author byline */}
         {puzzle.author && (
           <div className="text-xs sm:text-sm text-gray-400 mb-2">
             By {puzzle.author}
           </div>
         )}
-        {/* Puzzle title */}
         <div className="text-xs sm:text-base text-gray-300 italic mb-2">
           {puzzle.title}
         </div>
-        </div>
+        </>
+        )}
+      </div>
 
       <div className="w-full px-3 py-2 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20">
         <div className="flex items-center gap-2 text-xs text-gray-300">
