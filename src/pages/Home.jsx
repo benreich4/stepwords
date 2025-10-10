@@ -22,8 +22,8 @@ export default function Home() {
         
         // Only allow puzzles with date <= today (Eastern Time)
         const todayET = getTodayIsoInET();
-        const preview = isPreviewEnabled();
-        const available = list.filter(p => preview ? true : (p.date <= todayET));
+        // Always load today's puzzle on Home. Preview mode does not advance Home beyond today.
+        const available = list.filter(p => p.date <= todayET);
         if (available.length === 0) {
           setErr("No puzzles available yet today");
           setLoading(false);
