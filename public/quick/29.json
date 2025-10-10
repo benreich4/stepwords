@@ -1,0 +1,11 @@
+{
+  "id": "29",
+  "rows": [
+	  { "answer": "bad", 			"clue": "Not good (3)" },
+	  { "answer": "dabs", 			"clue": "Applies lightly (4)" },
+	  { "answer": "based", 			"clue": "Unapologetically confident, in Gen Z slang (5)" },
+	  { "answer": "biased", 		"clue": "Showing favoritism (6)" },
+	  { "answer": "bayside", 		"clue": "\"Saved by the Bell\" High School (7)" },
+	  { "answer": "abidesby", 		"clue": "Follows, as with rules (6,2)" }
+	]
+}

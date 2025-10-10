@@ -1,0 +1,12 @@
+{
+  "id": "30",
+  "rows": [
+	  { "answer": "ear", 			"clue": "Hearing organ (3)" },
+	  { "answer": "earl", 			"clue": "British nobleman (4)" },
+	  { "answer": "regal", 			"clue": "Fit for a king (5)" },
+	  { "answer": "algore", 			"clue": "2007 Nobel Peace Prize winner (2,4)" },
+	  { "answer": "legoart", 		"clue": "Work built brick by brick (4,3)" },
+	  { "answer": "waterlog", 		"clue": "Saturated completely (5,3)" },
+	  { "answer": "afterglow", 		"clue": "Light that lingers after sunset (5,4)" }
+	]
+}
