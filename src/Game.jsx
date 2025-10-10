@@ -1137,7 +1137,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       {/* Top toast */}
       <Toast text={toast} variant={toastVariant} />
 
-      <div ref={clueBarRef} className="w-full px-3 py-2 sticky top-[32px] bg-black/80 backdrop-blur border-b border-gray-800 z-10">
+      <div ref={clueBarRef} className="w-full px-3 py-2 sticky top-[32px] bg-gray-900/95 backdrop-blur border-b border-sky-900/60 z-10">
         <div className="flex items-center justify-between">
           <button
             onClick={() => moveLevel(-1)}
