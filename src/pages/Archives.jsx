@@ -250,8 +250,8 @@ export default function Archives() {
                 const icon = failed
                   ? '❌'
                   : (Number.isFinite(starScore)
-                    ? (isPerfectNow ? '🌟' : (starScore === 3 ? '✨' : (starScore === 2 ? '⭐' : (starScore === 1 ? '💫' : '☆'))))
-                    : (isPerfect ? '🌟' : (solved ? '⭐' : (hasProgress ? '👟' : '🪜'))));
+                    ? (isPerfectNow ? '🤩' : (starScore === 3 ? '🌟' : (starScore === 2 ? '⭐️' : (starScore === 1 ? '💫' : '☆'))))
+                    : (isPerfect ? '🤩' : (solved ? '⭐️' : (hasProgress ? '👟' : '🪜'))));
                 const color = failed
                   ? 'text-red-400'
                   : (Number.isFinite(starScore)
@@ -311,8 +311,8 @@ export default function Archives() {
                   const qIcon = qFailed
                     ? '❌'
                     : (Number.isFinite(qStarScore)
-                      ? (qIsPerfectNow ? '🌟' : (qStarScore === 3 ? '✨' : (qStarScore === 2 ? '⭐' : (qStarScore === 1 ? '💫' : '☆'))))
-                      : (qIsPerfect ? '🌟' : (qSolved ? '⭐' : (qHasProgress ? '👟' : '🪜'))));
+                      ? (qIsPerfectNow ? '🤩' : (qStarScore === 3 ? '🌟' : (qStarScore === 2 ? '⭐️' : (qStarScore === 1 ? '💫' : '☆'))))
+                      : (qIsPerfect ? '🤩' : (qSolved ? '⭐️' : (qHasProgress ? '👟' : '🪜'))));
                   const qColor = qFailed
                     ? 'text-red-400'
                     : (Number.isFinite(qStarScore)
@@ -330,9 +330,9 @@ export default function Archives() {
             </div>
             {/* Legend */}
             <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-[10px] text-gray-400">
-              <span className="flex items-center gap-1"><span className="text-yellow-300">🌟</span> Perfect</span>
-              <span className="flex items-center gap-1"><span className="text-yellow-300">✨</span> 3 stars</span>
-              <span className="flex items-center gap-1"><span className="text-yellow-300">⭐</span> 2 stars</span>
+              <span className="flex items-center gap-1"><span className="text-yellow-300">🤩</span> Perfect</span>
+              <span className="flex items-center gap-1"><span className="text-yellow-300">🌟</span> 3 stars</span>
+              <span className="flex items-center gap-1"><span className="text-yellow-300">⭐️</span> 2 stars</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">💫</span> 1 star</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">☆</span> 0 stars</span>
               <span className="flex items-center gap-1"><span className="text-red-400">❌</span> Failed</span>
