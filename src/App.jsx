@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 export default function App() {
   const location = useLocation();
   const isQuick = location.pathname.startsWith('/quick');
+  const isArchives = location.pathname.startsWith('/archives');
   const [headerCollapsed, setHeaderCollapsed] = useState(() => {
     try { return localStorage.getItem('stepwords-header-collapsed') === '1'; } catch { return false; }
   });
@@ -55,20 +56,22 @@ export default function App() {
             </Link>
           </div>
           <div className="justify-self-center">
-            <button
-              onClick={() => {
-                const next = !headerCollapsed;
-                setHeaderCollapsed(next);
-                try {
-                  if (next) localStorage.setItem('stepwords-header-collapsed','1'); else localStorage.removeItem('stepwords-header-collapsed');
-                } catch {}
-                try { document.dispatchEvent(new CustomEvent('stepwords-header-toggle')); } catch {}
-              }}
-              className="text-[10px] text-gray-400 px-2 py-0.5 rounded border border-gray-800 hover:bg-gray-900"
-              aria-label={headerCollapsed ? 'Expand header' : 'Collapse header'}
-            >
-              {headerCollapsed ? '▼' : '▲'}
-            </button>
+            {!isArchives && (
+              <button
+                onClick={() => {
+                  const next = !headerCollapsed;
+                  setHeaderCollapsed(next);
+                  try {
+                    if (next) localStorage.setItem('stepwords-header-collapsed','1'); else localStorage.removeItem('stepwords-header-collapsed');
+                  } catch {}
+                  try { document.dispatchEvent(new CustomEvent('stepwords-header-toggle')); } catch {}
+                }}
+                className="text-[10px] text-gray-400 px-2 py-0.5 rounded border border-gray-800 hover:bg-gray-900"
+                aria-label={headerCollapsed ? 'Expand header' : 'Collapse header'}
+              >
+                {headerCollapsed ? '▼' : '▲'}
+              </button>
+            )}
           </div>
           <div className="justify-self-end min-w-0">
             <Link to="/archives" className="text-[10px] text-gray-400 hover:text-gray-200 transition-colors whitespace-nowrap">
