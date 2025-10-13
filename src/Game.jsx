@@ -124,6 +124,17 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     try { return localStorage.getItem('stepwords-kb-collapsed') === '1'; } catch { return false; }
   });
 
+  // If this puzzle was previously lost (stars persisted as 0), reflect that in the banner
+  useEffect(() => {
+    try {
+      const key = `${puzzleNamespace}-stars`;
+      const map = JSON.parse(localStorage.getItem(key) || '{}');
+      if (map && Object.prototype.hasOwnProperty.call(map, puzzle.id) && map[puzzle.id] === 0) {
+        setDidFail(true);
+      }
+    } catch {}
+  }, [puzzleNamespace, puzzle.id]);
+
   function showToast(text, durationMs = 2500, variant = "info") {
     setToast(text || "");
     setToastVariant(variant || "info");
@@ -1021,8 +1032,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         </div>
           {pointsNow === 0 && (
             <div className="px-2 py-0.5 rounded border border-red-600 bg-red-900/40 text-red-300">
-              Next misstep loses the game!
-      </div>
+              {didFail ? 'You already lost.' : 'Next misstep loses the game!'}
+            </div>
           )}
         <button
             className="px-2 py-0.5 inline-flex items-center justify-center rounded border border-gray-700 text-gray-300 hover:bg-gray-900/60 text-xs"
