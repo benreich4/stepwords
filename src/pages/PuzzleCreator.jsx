@@ -63,6 +63,11 @@ const PuzzleCreatorSimple = () => {
     setSubmissionClues(newClues);
   };
 
+  const reverseWords = () => {
+    setSubmissionWords([...submissionWords].reverse());
+    setSubmissionClues([...submissionClues].reverse());
+  };
+
   const submitPuzzle = async () => {
     setSubmissionStatus('Submitting...');
 
@@ -181,13 +186,23 @@ const PuzzleCreatorSimple = () => {
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium">Words & Clues</h3>
-                  <button
-                    onClick={addWordRow}
-                    disabled={submissionWords.length >= 15}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm transition-colors"
-                  >
-                    + Add Word
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={reverseWords}
+                      disabled={submissionWords.length < 2}
+                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                      title="Reverse the order of all words and clues"
+                    >
+                      ↕️ Reverse
+                    </button>
+                    <button
+                      onClick={addWordRow}
+                      disabled={submissionWords.length >= 15}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                    >
+                      + Add Word
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
