@@ -112,18 +112,26 @@ const Explore = () => {
   }, [currentWord, wordDict]);
 
   const handleWordSelect = (word) => {
-    setPath([...path, currentWord]);
+    // Only add currentWord to path if it's not already in the path
+    // This prevents duplicates when navigating backwards
+    const newPath = path.includes(currentWord) ? path : [...path, currentWord];
+    setPath(newPath);
     setCurrentWord(word);
   };
 
   const handleBreadcrumbClick = (index) => {
-    const newPath = path.slice(0, index);
+    const newPath = path.slice(0, index + 1);
     setPath(newPath);
     setCurrentWord(newPath[newPath.length - 1] || '');
   };
 
   const handleInputChange = (e) => {
-    setCurrentWord(e.target.value.toLowerCase());
+    const newWord = e.target.value.toLowerCase();
+    setCurrentWord(newWord);
+    // Reset path when typing a new word
+    if (newWord !== currentWord) {
+      setPath([]);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -132,6 +140,7 @@ const Explore = () => {
       const sorted = currentWord.split('').sort().join('');
       if (wordDict[sorted] && wordDict[sorted].includes(currentWord)) {
         setPath([]);
+        // The currentWord is already set by handleInputChange
       }
     }
   };
