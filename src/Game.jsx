@@ -120,6 +120,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const lifelinesBtnRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
   const lifelineNudgeShownRef = useRef(false);
+  // Track progress (typing, locking, lifelines, submits) to nudge jumping ahead
+  const lastProgressRef = useRef(Date.now());
+  const jumpNudgeShownRef = useRef(false);
   const [kbCollapsed, setKbCollapsed] = useState(() => {
     try { return localStorage.getItem('stepwords-kb-collapsed') === '1'; } catch { return false; }
   });
@@ -459,6 +462,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const rem = 4 - (usedCount % 4);
     return rem === 0 ? 4 : rem;
   })();
+
+  // Consider puzzle solved if all rows are fully colored
+  const solvedNow = useMemo(() => isPuzzleSolved(lockColors, rows), [lockColors, rows]);
 
   // Clamp level if rows length changes or saved state was out of bounds
   useEffect(() => {
@@ -841,12 +847,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     setIme("");
   }
 
-  // Inactivity coachmark (2 minutes) to nudge Lifelines - only resets on submit or lifeline use
+  // Inactivity coachmark (now 1 minute) to nudge Lifelines - only resets on submit or lifeline use
   useEffect(() => {
     const id = setInterval(() => {
       try {
         if (lifelineNudgeShownRef.current) return;
         if (showHowToPlay || showHintsMenu || showSettings || showQuickIntro || showRevealConfirm) return;
+        if (solvedNow || didFail) return;
         const idleMs = Date.now() - (lastActivityRef.current || 0);
         if (idleMs >= 60000) {
           const btn = lifelinesBtnRef.current;
@@ -869,7 +876,32 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       } catch {}
     }, 10000);
     return () => { clearInterval(id); };
-  }, [showHowToPlay, showHintsMenu, showSettings, showQuickIntro, showRevealConfirm]);
+  }, [showHowToPlay, showHintsMenu, showSettings, showQuickIntro, showRevealConfirm, solvedNow, didFail]);
+
+  // Progress-based nudge: after 15s without progress, suggest jumping ahead
+  useEffect(() => {
+    const id = setInterval(() => {
+      try {
+        if (jumpNudgeShownRef.current) return;
+        if (showHowToPlay || showHintsMenu || showSettings || showQuickIntro || showRevealConfirm || showShare) return;
+        if (solvedNow || didFail) return;
+        const idleMs = Date.now() - (lastProgressRef.current || 0);
+        if (idleMs >= 15000) {
+          showToast("Stuck? Try jumping ahead to another word!", 2800, "info");
+          jumpNudgeShownRef.current = true;
+        }
+      } catch {}
+    }, 3000);
+    return () => { clearInterval(id); };
+  }, [showHowToPlay, showHintsMenu, showSettings, showQuickIntro, showRevealConfirm, showShare, solvedNow, didFail]);
+
+  // Reset progress timer and allow showing the nudge again when there is progress
+  useEffect(() => {
+    try {
+      lastProgressRef.current = Date.now();
+      jumpNudgeShownRef.current = false;
+    } catch {}
+  }, [guesses, lockColors, hintCount, wrongGuessCount]);
 
   // Minimal: close Lifelines/Settings when clicking/tapping outside
   useEffect(() => {
