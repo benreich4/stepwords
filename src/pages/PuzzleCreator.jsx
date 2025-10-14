@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const PuzzleCreatorSimple = () => {
@@ -10,6 +10,30 @@ const PuzzleCreatorSimple = () => {
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
 
   const navigate = useNavigate();
+
+  // Check for pre-populated data from Explore page
+  useEffect(() => {
+    const exploreWords = localStorage.getItem('explorePuzzleWords');
+    const exploreClues = localStorage.getItem('explorePuzzleClues');
+    
+    if (exploreWords && exploreClues) {
+      try {
+        const words = JSON.parse(exploreWords);
+        const clues = JSON.parse(exploreClues);
+        
+        if (words.length > 0) {
+          setSubmissionWords(words);
+          setSubmissionClues(clues);
+          
+          // Clear the localStorage data after using it
+          localStorage.removeItem('explorePuzzleWords');
+          localStorage.removeItem('explorePuzzleClues');
+        }
+      } catch (error) {
+        console.error('Error parsing explore puzzle data:', error);
+      }
+    }
+  }, []);
 
   const addWordRow = () => {
     if (submissionWords.length < 15) {

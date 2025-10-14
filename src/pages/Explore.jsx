@@ -415,14 +415,34 @@ const Explore = () => {
           </div>
         )}
 
-        {/* Back to Game */}
+        {/* Action Buttons */}
         <div className="mt-8 pt-6 border-t border-gray-700">
-          <button
-            onClick={() => navigate('/')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-          >
-            ← Back to Game
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={() => navigate('/')}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              ← Back to Game
+            </button>
+            {path.length > 0 && (
+              <button
+                onClick={() => {
+                  // Create a puzzle from the current path
+                  const puzzleWords = [...path, currentWord].filter(word => word.length > 0);
+                  const puzzleClues = puzzleWords.map(() => ''); // Empty clues for user to fill
+                  
+                  // Store in localStorage for the submission page to pick up
+                  localStorage.setItem('explorePuzzleWords', JSON.stringify(puzzleWords));
+                  localStorage.setItem('explorePuzzleClues', JSON.stringify(puzzleClues));
+                  
+                  navigate('/create');
+                }}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+              >
+                📝 Create Puzzle from Path
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
