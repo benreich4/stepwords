@@ -7,7 +7,6 @@ const PuzzleCreatorSimple = () => {
   const [submissionAuthor, setSubmissionAuthor] = useState('');
   // title is not used in current backend format
   const [submissionStatus, setSubmissionStatus] = useState('');
-  const [showSubmissionForm, setShowSubmissionForm] = useState(false);
 
   const navigate = useNavigate();
 
@@ -158,16 +157,9 @@ const PuzzleCreatorSimple = () => {
               Create and submit your own Stepwords puzzle for review. Each word must be an anagram of the previous word plus exactly one new letter.
             </p>
             
-            <button
-              onClick={() => setShowSubmissionForm(!showSubmissionForm)}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors mb-4"
-            >
-              {showSubmissionForm ? 'Hide Submission Form' : 'Show Submission Form'}
-            </button>
           </div>
 
-          {showSubmissionForm && (
-            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
+          <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
               {/* Puzzle Info */}
               <div className="mb-6">
                 <div>
@@ -268,7 +260,6 @@ const PuzzleCreatorSimple = () => {
                 )}
               </div>
             </div>
-          )}
         </div>
 
         {/* Back to Game */}
