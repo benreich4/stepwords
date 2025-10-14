@@ -138,7 +138,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     } catch {}
   }, [puzzleNamespace, puzzle.id]);
 
-  function showToast(text, durationMs = 2500, variant = "info") {
+  function showToast(text, durationMs = 4000, variant = "info") {
     setToast(text || "");
     setToastVariant(variant || "info");
     if (toastTimerRef.current) {
@@ -146,10 +146,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       toastTimerRef.current = null;
     }
     if (text) {
+      const effectiveDuration = Math.max(Number.isFinite(durationMs) ? durationMs : 0, 4000);
       toastTimerRef.current = setTimeout(() => {
         setToast("");
         toastTimerRef.current = null;
-      }, durationMs);
+      }, effectiveDuration);
     }
   }
   // Expose setters for drag diff to child grid (avoids prop drilling handlers)
