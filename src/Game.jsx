@@ -848,7 +848,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         if (lifelineNudgeShownRef.current) return;
         if (showHowToPlay || showHintsMenu || showSettings || showQuickIntro || showRevealConfirm) return;
         const idleMs = Date.now() - (lastActivityRef.current || 0);
-        if (idleMs >= 120000) {
+        if (idleMs >= 60000) {
           const btn = lifelinesBtnRef.current;
           if (btn) {
             const r = btn.getBoundingClientRect();
