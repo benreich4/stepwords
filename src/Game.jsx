@@ -21,6 +21,16 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const puzzleNamespace = isQuick ? 'quickstep' : 'stepwords';
   const puzzleKey = `${puzzleNamespace}-${puzzle.id || 'default'}`;
   
+  // Check if user is experienced (3+ main puzzles completed)
+  const isExperienced = useMemo(() => {
+    try {
+      const completed = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
+      return completed.length >= 3;
+    } catch {
+      return false;
+    }
+  }, []);
+  
   // Load saved state or initialize defaults
   const loadSavedState = () => {
     try {
@@ -850,6 +860,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   // Inactivity coachmark (now 1 minute) to nudge Lifelines - only resets on submit or lifeline use
   useEffect(() => {
+    if (isExperienced) return; // Skip coachmarks for experienced users
     const id = setInterval(() => {
       try {
         if (lifelineNudgeShownRef.current) return;
@@ -877,10 +888,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       } catch {}
     }, 10000);
     return () => { clearInterval(id); };
-  }, [showHowToPlay, showHintsMenu, showSettings, showQuickIntro, showRevealConfirm, solvedNow, didFail]);
+  }, [isExperienced, showHowToPlay, showHintsMenu, showSettings, showQuickIntro, showRevealConfirm, solvedNow, didFail]);
 
   // Progress-based nudge: after 15s without progress, suggest jumping ahead
   useEffect(() => {
+    if (isExperienced) return; // Skip skip-ahead toast for experienced users
     const id = setInterval(() => {
       try {
         if (jumpNudgeShownRef.current) return;
@@ -894,7 +906,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       } catch {}
     }, 3000);
     return () => { clearInterval(id); };
-  }, [showHowToPlay, showHintsMenu, showSettings, showQuickIntro, showRevealConfirm, showShare, solvedNow, didFail]);
+  }, [isExperienced, showHowToPlay, showHintsMenu, showSettings, showQuickIntro, showRevealConfirm, showShare, solvedNow, didFail]);
 
   // Reset progress timer and allow showing the nudge again when there is progress
   useEffect(() => {
@@ -927,6 +939,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // One-time coachmark to highlight the clue bar for first-time players
   // Show only after the How To modal has been closed the first time
   useEffect(() => {
+    if (isExperienced) return; // Skip coachmarks for experienced users
     try {
       if (showHowToPlay) return; // wait until How To is closed
       if (localStorage.getItem('stepwords-clue-coach-shown') === '1') return;
@@ -950,7 +963,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       }, 400);
       return () => clearTimeout(t);
     } catch {}
-  }, [showHowToPlay]);
+  }, [isExperienced, showHowToPlay]);
 
   // On-screen keyboard handlers (mobile)
   const handleKeyPress = (key) => {
