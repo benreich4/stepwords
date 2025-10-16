@@ -6,6 +6,7 @@ export default function Submissions() {
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
   const [copyingId, setCopyingId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
     document.title = "Stepwords - Submissions";
@@ -62,6 +63,34 @@ export default function Submissions() {
     }
   };
 
+  const deleteSubmission = async (id) => {
+    try {
+      if (id.startsWith('local-')) {
+        // Handle local submissions
+        const submissions = JSON.parse(localStorage.getItem('puzzleSubmissions') || '[]');
+        const index = parseInt(id.replace('local-', ''));
+        const updatedSubmissions = submissions.filter((_, i) => i !== index);
+        localStorage.setItem('puzzleSubmissions', JSON.stringify(updatedSubmissions));
+        
+        // Update the items list to reflect the deletion
+        setItems(prevItems => prevItems.filter(item => item.id !== id));
+      } else {
+        // Handle API submissions - would need a delete API endpoint
+        console.warn('API delete not implemented yet');
+        // For now, just remove from local state
+        setItems(prevItems => prevItems.filter(item => item.id !== id));
+      }
+    } catch (error) {
+      console.error('Failed to delete submission:', error);
+    } finally {
+      setDeleteConfirm(null);
+    }
+  };
+
+  const handleDeleteClick = (id, author) => {
+    setDeleteConfirm({ id, author });
+  };
+
   if (err) {
     return (
       <div className="px-4 py-6 text-gray-200">
@@ -96,11 +125,44 @@ export default function Submissions() {
                   {copyingId === it.id ? 'Copied!' : 'Copy JSON'}
                 </button>
                 <Link className="text-sky-400 text-sm hover:underline" to={`/submissions/${encodeURIComponent(it.id)}`}>Open</Link>
+                <button
+                  onClick={() => handleDeleteClick(it.id, it.author)}
+                  className="text-red-400 text-sm hover:underline"
+                >
+                  Delete
+                </button>
               </div>
             </li>
           ))}
         </ul>
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-100 mb-4">Delete Submission</h3>
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete the submission by <strong>{deleteConfirm.author || "Unknown author"}</strong>? 
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 text-gray-300 hover:text-gray-100 border border-gray-600 rounded hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteSubmission(deleteConfirm.id)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
