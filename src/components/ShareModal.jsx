@@ -83,18 +83,18 @@ export default function ShareModal({
           </div>
           <div className="mt-2">
           <Link 
-              to={isQuick ? "/" : "/quick"}
+              to={isQuick ? "/quick" : "/"}
               className="inline-block text-sm text-emerald-400 hover:underline"
             onClick={() => {
               try {
                 if (window.gtag && typeof window.gtag === 'function') {
-                  window.gtag('event', 'cta_navigate', { target: isQuick ? 'main' : 'quick', source: 'completion_modal', mode: isQuick ? 'quick' : 'main' });
+                  window.gtag('event', 'cta_navigate', { target: isQuick ? 'quick' : 'main', source: 'completion_modal', mode: isQuick ? 'quick' : 'main' });
                 }
               } catch {}
               try { onClose?.(); } catch {}
             }}
             >
-              {isQuick ? "Try today’s main Stepword puzzle" : "Try today’s Quick Stepword puzzle"}
+              {isQuick ? "Try today's main Stepword puzzle" : "Try today's Quick Stepword puzzle"}
             </Link>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function ShareModal({
                             ? "I solved today's Stepword Puzzle!"
                             : (puzzleDateText ? `I solved the Stepword Puzzle for ${puzzleDateText}!` : "I solved the Stepword Puzzle!")));
                   const starLine = (!didFail && Number.isFinite(stars)) ? `\nStars: ${'★'.repeat(Math.max(0,Math.min(3,stars||0)))}${'☆'.repeat(Math.max(0,3-(stars||0)))}` : '';
-                  const composed = `${header}${starLine}\n\n${shareText}\n\nhttps://stepwords.xyz`;
+                  const composed = `${header}${starLine}\n\n${shareText}\n\nhttps://stepwords.xyz${isQuick ? '/quick' : ''}`;
                   await navigator.clipboard.writeText(composed);
                   setNotice("Message copied to clipboard");
                 } catch {
