@@ -47,7 +47,7 @@ export default function ShareModal({
             <div className="text-lg font-semibold text-gray-100">{guessCount}/{rowsLength}</div>
           </div>
           <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
-            <div className="text-gray-400">Hints used</div>
+            <div className="text-gray-400">Lifelines used</div>
             <div className="text-lg font-semibold text-gray-100">{hintCount}</div>
           </div>
           {Number.isFinite(stars) && !didFail && (
