@@ -15,11 +15,18 @@ foreach ($files as $f) {
   if ($raw === false) continue;
   $data = json_decode($raw, true);
   $id = basename($f, '.json');
+  $lastWord = null;
+  if (isset($data['rows']) && is_array($data['rows']) && count($data['rows']) > 0) {
+    $lastRow = end($data['rows']);
+    $lastWord = isset($lastRow['answer']) ? $lastRow['answer'] : null;
+  }
+  
   $out[] = [
     'id' => $id,
     'filename' => basename($f),
     'author' => isset($data['author']) ? $data['author'] : null,
     'submittedAt' => isset($data['submittedAt']) ? $data['submittedAt'] : null,
+    'lastWord' => $lastWord,
   ];
 }
 usort($out, function($a, $b) { return strcmp($b['filename'], $a['filename']); });

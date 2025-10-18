@@ -25,12 +25,20 @@ export default function Submissions() {
         console.log('API not available, falling back to localStorage:', e.message);
         try {
           const submissions = JSON.parse(localStorage.getItem('puzzleSubmissions') || '[]');
-          const items = submissions.map((sub, index) => ({
-            id: `local-${index}`,
-            author: sub.author || 'Local User',
-            submittedAt: sub.submittedAt || new Date().toISOString(),
-            filename: `local-submission-${index}.json`
-          }));
+          const items = submissions.map((sub, index) => {
+            let lastWord = null;
+            if (sub.rows && Array.isArray(sub.rows) && sub.rows.length > 0) {
+              const lastRow = sub.rows[sub.rows.length - 1];
+              lastWord = lastRow.answer || null;
+            }
+            return {
+              id: `local-${index}`,
+              author: sub.author || 'Local User',
+              submittedAt: sub.submittedAt || new Date().toISOString(),
+              filename: `local-submission-${index}.json`,
+              lastWord: lastWord
+            };
+          });
           setItems(items);
         } catch (localError) {
           setErr('No submissions found (API unavailable and no local data)');
@@ -134,7 +142,12 @@ export default function Submissions() {
           {items.map((it) => (
             <li key={it.id} className="p-3 flex items-center justify-between">
               <div>
-                <div className="text-sm text-gray-100">{it.author || "(Unknown author)"}</div>
+                <div className="text-sm text-gray-100">
+                  {it.author || "(Unknown author)"}
+                  {it.lastWord && (
+                    <span className="ml-2 text-xs text-gray-400">• {it.lastWord}</span>
+                  )}
+                </div>
                 <div className="text-[11px] text-gray-400">{it.submittedAt || it.filename}</div>
               </div>
               <div className="flex gap-2">
