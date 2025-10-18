@@ -64,21 +64,42 @@ export default function Submissions() {
   };
 
   const deleteSubmission = async (id) => {
+    console.log('Delete submission called with ID:', id);
     try {
       if (id.startsWith('local-')) {
         // Handle local submissions
+        console.log('Deleting local submission');
         const submissions = JSON.parse(localStorage.getItem('puzzleSubmissions') || '[]');
         const index = parseInt(id.replace('local-', ''));
+        console.log('Local submissions before delete:', submissions.length);
         const updatedSubmissions = submissions.filter((_, i) => i !== index);
         localStorage.setItem('puzzleSubmissions', JSON.stringify(updatedSubmissions));
+        console.log('Local submissions after delete:', updatedSubmissions.length);
         
         // Update the items list to reflect the deletion
         setItems(prevItems => prevItems.filter(item => item.id !== id));
+        console.log('Updated items list');
       } else {
-        // Handle API submissions - would need a delete API endpoint
-        console.warn('API delete not implemented yet');
-        // For now, just remove from local state
-        setItems(prevItems => prevItems.filter(item => item.id !== id));
+        // Handle API submissions - try to call delete API
+        console.log('Deleting API submission');
+        try {
+          const response = await fetch(`/api/delete-submission.php?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+          });
+          
+          if (response.ok) {
+            console.log('API delete successful');
+            setItems(prevItems => prevItems.filter(item => item.id !== id));
+          } else {
+            console.warn('API delete failed:', response.status);
+            // Fallback: just remove from local state
+            setItems(prevItems => prevItems.filter(item => item.id !== id));
+          }
+        } catch (apiError) {
+          console.warn('API delete not available, removing from local state only:', apiError);
+          // Fallback: just remove from local state
+          setItems(prevItems => prevItems.filter(item => item.id !== id));
+        }
       }
     } catch (error) {
       console.error('Failed to delete submission:', error);
