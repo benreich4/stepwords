@@ -26,16 +26,27 @@ if (!$id) {
     exit();
 }
 
-// For now, just return success (since we don't have a database)
-// In a real implementation, you would:
-// 1. Validate the ID
-// 2. Delete from database
-// 3. Remove any associated files
+// Delete the submission file
+$submissionsDir = __DIR__ . '/submissions';
+$filename = $submissionsDir . '/' . $id . '.json';
 
-http_response_code(200);
-echo json_encode([
-    'success' => true,
-    'message' => 'Submission deleted successfully',
-    'id' => $id
-]);
+// Check if file exists
+if (!file_exists($filename)) {
+    http_response_code(404);
+    echo json_encode(['error' => 'Submission not found']);
+    exit();
+}
+
+// Delete the file
+if (unlink($filename)) {
+    http_response_code(200);
+    echo json_encode([
+        'success' => true,
+        'message' => 'Submission deleted successfully',
+        'id' => $id
+    ]);
+} else {
+    http_response_code(500);
+    echo json_encode(['error' => 'Failed to delete submission']);
+}
 ?>
