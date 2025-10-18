@@ -1,0 +1,30 @@
+{
+  "id": "37",
+  "rows": [
+    {
+      "answer": "ale",
+      "clue": "Brewed beverage (3)"
+    },
+    {
+      "answer": "meal",
+      "clue": "Breakfast, lunch, or dinner (4)"
+    },
+    {
+      "answer": "metal",
+      "clue": "Silverware material (5)"
+    },
+    {
+      "answer": "tamale",
+      "clue": "Lunch [2] option (from Mexico) (6)"
+    },
+    {
+      "answer": "oatmeal",
+      "clue": "Breakfast [2] option (from Quaker) (7)"
+    },
+    {
+      "answer": "meatloaf",
+      "clue": "Dinner [2] option (from beef) (8)"
+    }
+  ],
+  "submittedAt": "2025-10-18T16:03:17.881Z"
+}
