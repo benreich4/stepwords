@@ -123,7 +123,6 @@ export function LifelineMenu({
         <h3 className="text-sm font-semibold text-gray-100 mb-1">Word Starts</h3>
         {lifelineLevel === 0 ? (
           <div>
-            <p className="text-gray-400 text-sm mb-2">Click "Show Word Starts" to reveal word starts</p>
             <p className="text-gray-400 text-sm">Word starts are shown alphabetically.</p>
           </div>
         ) : (
