@@ -8,6 +8,7 @@ import QuickIntroModal from "./components/QuickIntroModal.jsx";
 import { formatDateWithDayOfWeek } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 import { useLifelines, LifelineMenu } from "./lib/lifelines.jsx";
+import { useReveal, RevealConfirmModal } from "./lib/reveal.jsx";
 // Inline analytics - no separate module needed
 export default function Game({ puzzle, isQuick = false, prevId = null, nextId = null }) {
   const rowsRaw = puzzle.rows || [];
@@ -55,6 +56,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           guessCount: parsed.guessCount || 0,
           wrongGuessCount: parsed.wrongGuessCount || 0,
           lifelineLevel: parsed.lifelineLevel || 0,
+          wordRevealed: parsed.wordRevealed || false,
         };
       }
     } catch (e) {
@@ -79,6 +81,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       guessCount: 0,
       wrongGuessCount: 0,
       lifelineLevel: 0,
+      wordRevealed: false,
     };
   };
 
@@ -221,6 +224,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [showLifelineMenu, setShowLifelineMenu] = useState(false);
   const [lifelineLevel, setLifelineLevel] = useState(savedState.lifelineLevel || 0);
   
+  // Reveal state
+  const [wordRevealed, setWordRevealed] = useState(savedState.wordRevealed || false);
+  
   // Lifeline functionality
   const { generatePrefixData, showPrefixes, extendPrefixes, canExtend } = useLifelines(
     rows, 
@@ -234,6 +240,24 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(() => setToast(""), duration || 2000);
     }
+  );
+  
+  // Reveal functionality
+  const { showWordRevealConfirm, setShowWordRevealConfirm, revealCurrentWord } = useReveal(
+    rows,
+    guesses,
+    setGuesses,
+    lockColors,
+    setLockColors,
+    level,
+    (message, duration, variant) => {
+      setToast(message);
+      setToastVariant(variant);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setToast(""), duration || 2000);
+    },
+    wordRevealed,
+    setWordRevealed
   );
   
 
@@ -412,6 +436,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         guessCount,
         wrongGuessCount,
         lifelineLevel,
+        wordRevealed,
       };
       localStorage.setItem(puzzleKey, JSON.stringify(stateToSave));
     } catch (e) {
@@ -422,14 +447,15 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Save state whenever it changes
   useEffect(() => {
     saveGameState();
-  }, [lockColors, level, guesses, cursor, wasWrong, hintCount, guessCount, wrongGuessCount, lifelineLevel]);
+  }, [lockColors, level, guesses, cursor, wasWrong, hintCount, guessCount, wrongGuessCount, lifelineLevel, wordRevealed]);
 
 
   const clue = rows[level]?.clue || "";
   const scoreBase = 10;
   const usedCount = hintCount + wrongGuessCount;
+  
   const pointsNow = Math.max(0, scoreBase - usedCount);
-  const currentStars = pointsNow >= 7 ? 3 : pointsNow >= 4 ? 2 : pointsNow >= 1 ? 1 : 0;
+  const currentStars = wordRevealed ? 0 : (pointsNow >= 7 ? 3 : pointsNow >= 4 ? 2 : pointsNow >= 1 ? 1 : 0);
   const nextLossIn = (() => {
     if (currentStars === 0) return 1;
     const rem = 4 - (usedCount % 4);
@@ -1038,6 +1064,15 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               canExtend={canExtend}
             />
           </div>
+          {/* Reveal Word button */}
+          <button
+            onClick={() => setShowWordRevealConfirm(true)}
+            className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
+            aria-label="Reveal Word"
+            title="Reveal current word (0 stars max)"
+          >
+            🔍
+          </button>
           <button
             onClick={() => setShowHowToPlay(true)}
             className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
@@ -1320,6 +1355,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       {showQuickIntro && (
         <QuickIntroModal onClose={() => { setShowQuickIntro(false); try { localStorage.setItem('quickstep-intro-shown','1'); } catch {} }} />
       )}
+      {/* Reveal confirmation modal */}
+      <RevealConfirmModal
+        showRevealConfirm={showRevealConfirm}
+        setShowRevealConfirm={setShowRevealConfirm}
+        revealCurrentWord={revealCurrentWord}
+      />
+
       {showLoss && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-sm rounded-lg border border-gray-700 bg-gray-900 p-4 text-gray-200">
