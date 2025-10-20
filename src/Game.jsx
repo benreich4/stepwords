@@ -104,6 +104,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const toastTimerRef = useRef(null);
   // Minimal: refs to detect outside clicks for popovers
   const settingsRef = useRef(null);
+  const lifelineRef = useRef(null);
   const submitBtnRef = useRef(null);
   const collapseBtnRef = useRef(null);
   const starsRef = useRef(null);
@@ -910,6 +911,23 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     };
   }, [showSettings]);
 
+  // Close Lifeline (Hints) menu when clicking/tapping outside
+  useEffect(() => {
+    const handler = (e) => {
+      try {
+        if (showLifelineMenu && lifelineRef.current && !lifelineRef.current.contains(e.target)) {
+          setShowLifelineMenu(false);
+        }
+      } catch {}
+    };
+    document.addEventListener('mousedown', handler, true);
+    document.addEventListener('touchstart', handler, true);
+    return () => {
+      document.removeEventListener('mousedown', handler, true);
+      document.removeEventListener('touchstart', handler, true);
+    };
+  }, [showLifelineMenu]);
+
   // One-time coachmark to highlight the clue bar for first-time players
   // Show only after the How To modal has been closed the first time
   useEffect(() => {
@@ -938,6 +956,36 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       return () => clearTimeout(t);
     } catch {}
   }, [isExperienced, showHowToPlay]);
+
+  // One-time coachmark to highlight the Hints button after 60s (for new players)
+  useEffect(() => {
+    if (isExperienced) return; // Skip coachmarks for experienced users
+    try {
+      if (localStorage.getItem('stepwords-hints-coach-shown') === '1') return;
+      const t = setTimeout(() => {
+        if (showHowToPlay || showSettings || showQuickIntro || showRevealConfirm || showShare) return;
+        if (solvedNow || didFail) return;
+        if (hintCount > 0) return; // Already used hints
+        const el = lifelineRef.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        const mark = document.createElement('div');
+        mark.style.position = 'fixed';
+        // Center horizontally over the Hints button
+        mark.style.left = (r.left + r.width / 2) + 'px';
+        mark.style.transform = 'translateX(-50%)';
+        mark.style.top = Math.max(8, r.top - 28) + 'px';
+        mark.style.zIndex = '9999';
+        mark.style.pointerEvents = 'none';
+        mark.className = 'px-2 py-1 rounded bg-sky-700 text-white text-xs border border-sky-500 shadow';
+        mark.textContent = 'Try looking at the word starts';
+        document.body.appendChild(mark);
+        setTimeout(() => { try { document.body.removeChild(mark); } catch {} }, 2600);
+        localStorage.setItem('stepwords-hints-coach-shown', '1');
+      }, 60000);
+      return () => clearTimeout(t);
+    } catch {}
+  }, [isExperienced, showHowToPlay, showSettings, showQuickIntro, showRevealConfirm, showShare, solvedNow, didFail, hintCount]);
 
   // On-screen keyboard handlers (mobile)
   const handleKeyPress = (key) => {
@@ -1059,7 +1107,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         
         <div className="flex items-center gap-2">
           {/* Lifeline button */}
-          <div className="relative">
+          <div ref={lifelineRef} className="relative">
             <button
               onClick={() => setShowLifelineMenu((v) => !v)}
               className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
