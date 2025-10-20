@@ -54,13 +54,13 @@ export default function HowToPlayModal({ onClose }) {
           </div>
           
           <div className="space-y-2 text-sm">
-            <ul className="list-disc list-inside space-y-1 ml-4">
+            <ul className="list-disc list-inside space-y-1 ml-2">
               <li>Correct letters turn <span className="text-green-400">green</span>;  Ones that required multiple guesses or hints turn <span className="text-yellow-400">yellow</span>.</li>
               <li>Submit a row with <strong>Enter</strong> or <strong>Submit</strong>.</li>
-              <li><strong>Hard mode</strong>: hides 🪜 step locations by default.</li>
-              <li><strong>Easy mode</strong>: filters the on‑screen keyboard.</li>
+              <li><strong>Hard mode</strong>: hides 🪜 step locations</li>
+              <li><strong>Easy mode</strong>: filters the keyboard.</li>
               <li><strong>Stars</strong>: Achieve more stars the fewer missteps and hints used. Use too many and you lose the game!</li>
-              <li><strong>Quick Stepword</strong>: a shorter daily warm‑up.</li>
+              <li><strong>Quick Stepword</strong>: a daily warm‑up.</li>
             </ul>
           </div>
           <p className="text-gray-400 text-xs">
