@@ -242,23 +242,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     }
   );
   
-  // Reveal functionality
-  const { showWordRevealConfirm, setShowWordRevealConfirm, revealCurrentWord } = useReveal(
-    rows,
-    guesses,
-    setGuesses,
-    lockColors,
-    setLockColors,
-    level,
-    (message, duration, variant) => {
-      setToast(message);
-      setToastVariant(variant);
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = setTimeout(() => setToast(""), duration || 2000);
-    },
-    wordRevealed,
-    setWordRevealed
-  );
   
 
   // Function to get letters used in all answers
@@ -453,6 +436,36 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const clue = rows[level]?.clue || "";
   const scoreBase = 10;
   const usedCount = hintCount + wrongGuessCount;
+  
+  // Reveal functionality
+  const { showWordRevealConfirm, setShowWordRevealConfirm, revealCurrentWord } = useReveal(
+    rows,
+    guesses,
+    setGuesses,
+    lockColors,
+    setLockColors,
+    level,
+    (message, duration, variant) => {
+      setToast(message);
+      setToastVariant(variant);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setToast(""), duration || 2000);
+    },
+    wordRevealed,
+    setWordRevealed,
+    isPuzzleSolved,
+    buildEmojiShareGridFrom,
+    setShareText,
+    setStars,
+    setDidFail,
+    setShowShare,
+    hintCount,
+    wrongGuessCount,
+    scoreBase,
+    puzzleNamespace,
+    puzzle,
+    isQuick
+  );
   
   const pointsNow = Math.max(0, scoreBase - usedCount);
   const currentStars = wordRevealed ? 0 : (pointsNow >= 7 ? 3 : pointsNow >= 4 ? 2 : pointsNow >= 1 ? 1 : 0);
@@ -704,7 +717,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     // Warn when score reaches 0 (but not loss yet)
     const usedAfter = hintCount + newWrongTotal;
     const pointsAfter = Math.max(0, scoreBase - usedAfter);
-    const starsAfter = pointsAfter >= 7 ? 3 : pointsAfter >= 4 ? 2 : pointsAfter >= 1 ? 1 : 0;
+    const starsAfter = wordRevealed ? 0 : (pointsAfter >= 7 ? 3 : pointsAfter >= 4 ? 2 : pointsAfter >= 1 ? 1 : 0);
     if (starsAfter === 0 && pointsAfter === 0) {
       // show coachmark warning only when reaching 0 stars
       showToast('Next misstep loses the game!', 3000, 'warning');
@@ -739,7 +752,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         setShareText(share);
         // Compute and persist stars from final score
         const finalScore = Math.max(0, scoreBase - (hintCount + newWrongTotal));
-        const awarded = finalScore >= 7 ? 3 : (finalScore >= 4 ? 2 : (finalScore >= 1 ? 1 : 0));
+        const awarded = wordRevealed ? 0 : (finalScore >= 7 ? 3 : (finalScore >= 4 ? 2 : (finalScore >= 1 ? 1 : 0)));
         setStars(awarded);
         setDidFail(false);
         try {
@@ -1357,8 +1370,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       )}
       {/* Reveal confirmation modal */}
       <RevealConfirmModal
-        showRevealConfirm={showRevealConfirm}
-        setShowRevealConfirm={setShowRevealConfirm}
+        showWordRevealConfirm={showWordRevealConfirm}
+        setShowWordRevealConfirm={setShowWordRevealConfirm}
         revealCurrentWord={revealCurrentWord}
       />
 

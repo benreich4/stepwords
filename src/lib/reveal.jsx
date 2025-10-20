@@ -11,9 +11,21 @@ import { useState } from 'react';
  * @param {Function} showToast - Function to show toast messages
  * @param {boolean} wordRevealed - Whether a word has been revealed
  * @param {Function} setWordRevealed - Function to update wordRevealed state
+ * @param {Function} isPuzzleSolved - Function to check if puzzle is solved
+ * @param {Function} buildEmojiShareGridFrom - Function to build share text
+ * @param {Function} setShareText - Function to set share text
+ * @param {Function} setStars - Function to set stars
+ * @param {Function} setDidFail - Function to set failure state
+ * @param {Function} setShowShare - Function to show share modal
+ * @param {number} hintCount - Number of hints used
+ * @param {number} wrongGuessCount - Number of wrong guesses
+ * @param {number} scoreBase - Base score (usually 10)
+ * @param {string} puzzleNamespace - Namespace for localStorage
+ * @param {Object} puzzle - Puzzle object with id
+ * @param {boolean} isQuick - Whether this is a quick puzzle
  * @returns {Object} Reveal state and functions
  */
-export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, level, showToast, wordRevealed, setWordRevealed) {
+export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, level, showToast, wordRevealed, setWordRevealed, isPuzzleSolved, buildEmojiShareGridFrom, setShareText, setStars, setDidFail, setShowShare, hintCount, wrongGuessCount, scoreBase, puzzleNamespace, puzzle, isQuick) {
   const [showWordRevealConfirm, setShowWordRevealConfirm] = useState(false);
 
   // Reveal word function
@@ -29,15 +41,63 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
       const newLockColors = [...lockColors];
       const rowColors = new Array(currentWord.length).fill('Y'); // All yellow for revealed word
       newLockColors[level] = rowColors;
-      setLockColors(newLockColors);
       
       // Mark as revealed (only set to true on first reveal)
       if (!wordRevealed) {
         setWordRevealed(true);
       }
       
-      // Show success message
-      showToast(`Word revealed: ${currentWord.toUpperCase()}`, 2000, "info");
+      // Check if puzzle is now solved
+      if (isPuzzleSolved(newLockColors, rows)) {
+        setLockColors(newLockColors);
+        
+        showToast("🎉 You solved all the Stepwords!", 2800, "success");
+        const share = buildEmojiShareGridFrom(rows, newLockColors);
+        setShareText(share);
+        
+        // Compute and persist stars from final score (capped at 0 due to reveal)
+        const finalScore = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
+        const awarded = 0; // Always 0 stars when using reveal
+        setStars(awarded);
+        setDidFail(false);
+        
+        try {
+          const key = `${puzzleNamespace}-stars`;
+          const map = JSON.parse(localStorage.getItem(key) || '{}');
+          map[puzzle.id] = awarded;
+          localStorage.setItem(key, JSON.stringify(map));
+        } catch {}
+        
+        // Mark puzzle as completed
+        try {
+          const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
+          if (!completedPuzzles.includes(puzzle.id)) {
+            completedPuzzles.push(puzzle.id);
+            localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
+          }
+        } catch {}
+        
+        setShowShare(true);
+        
+        // Track game completion
+        try {
+          if (window.gtag && typeof window.gtag === 'function') {
+            window.gtag('event', 'game_completed', {
+              puzzle_id: puzzle.id || 'unknown',
+              hints_used: hintCount,
+              wrong_guesses: wrongGuessCount,
+              final_score: finalScore,
+              stars: awarded,
+              mode: isQuick ? 'quick' : 'main',
+              revealed: true
+            });
+          }
+        } catch {}
+      } else {
+        // Just update the colors if puzzle isn't solved yet
+        setLockColors(newLockColors);
+        showToast(`Word revealed: ${currentWord.toUpperCase()}`, 2000, "info");
+      }
     }
   };
 
