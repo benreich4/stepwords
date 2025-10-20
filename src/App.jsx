@@ -48,12 +48,31 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-screen bg-black text-gray-100">
-      <header className="w-full px-2 pt-0 pb-1 border-b border-gray-800">
+      <header className="w-full px-2 py-1 border-b border-gray-800">
         <div className="grid grid-cols-3 items-center">
           <div className="justify-self-start min-w-0">
-            <Link to={isQuick ? "/" : "/quick"} className="text-[10px] text-emerald-400 hover:underline whitespace-nowrap overflow-hidden text-ellipsis max-w-[60vw] sm:max-w-none">
-              {isQuick ? "Try today’s main puzzle" : "Try today’s quick puzzle"}
-            </Link>
+            <div className="flex items-center gap-1">
+              <Link 
+                to="/" 
+                className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
+                  !isQuick 
+                    ? 'bg-blue-600 border-blue-500 text-white' 
+                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                Main
+              </Link>
+              <Link 
+                to="/quick" 
+                className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
+                  isQuick 
+                    ? 'bg-blue-600 border-blue-500 text-white' 
+                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                Quick
+              </Link>
+            </div>
           </div>
           <div className="justify-self-center">
             {!isArchives && (
@@ -74,7 +93,10 @@ export default function App() {
             )}
           </div>
           <div className="justify-self-end min-w-0">
-            <Link to="/archives" className="text-[10px] text-gray-400 hover:text-gray-200 transition-colors whitespace-nowrap">
+            <Link 
+              to="/archives" 
+              className="px-2 py-0.5 rounded text-[10px] border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white transition-colors whitespace-nowrap flex items-center justify-center"
+            >
               Archives
             </Link>
           </div>
