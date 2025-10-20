@@ -61,6 +61,18 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
     setLifelineLevel(1);
     setHintCount(n => n + 1);
     showToast("Revealed 1-letter word starts", 2000, "info");
+    
+    // Track initial hint usage (extending from 0 to 1)
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'hint_used', {
+          hint_type: 'extend_word_starts',
+          puzzle_id: puzzle.id || 'unknown',
+          mode: isQuick ? 'quick' : 'main',
+          hint_level: 1
+        });
+      }
+    } catch {}
   };
 
   const extendPrefixes = () => {
@@ -68,6 +80,18 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
       setLifelineLevel(lifelineLevel + 1);
       setHintCount(n => n + 1);
       showToast(`Revealed ${lifelineLevel + 1}-letter word starts`, 2000, "info");
+      
+      // Track extend hint usage
+      try {
+        if (window.gtag && typeof window.gtag === 'function') {
+          window.gtag('event', 'hint_used', {
+            hint_type: 'extend_word_starts',
+            puzzle_id: puzzle.id || 'unknown',
+            mode: isQuick ? 'quick' : 'main',
+            hint_level: lifelineLevel + 1
+          });
+        }
+      } catch {}
     }
   };
 

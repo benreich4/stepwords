@@ -32,6 +32,17 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
   const revealCurrentWord = () => {
     const currentWord = rows[level]?.answer || "";
     if (currentWord) {
+      // Track reveal usage
+      try {
+        if (window.gtag && typeof window.gtag === 'function') {
+          window.gtag('event', 'reveal_word_used', {
+            puzzle_id: puzzle.id || 'unknown',
+            mode: isQuick ? 'quick' : 'main',
+            word_level: level + 1,
+            total_words: rows.length
+          });
+        }
+      } catch {}
       // Fill in the current word
       const newGuesses = [...guesses];
       newGuesses[level] = currentWord;
