@@ -7,6 +7,7 @@ import Toast from "./components/Toast.jsx";
 import QuickIntroModal from "./components/QuickIntroModal.jsx";
 import { formatDateWithDayOfWeek } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
+import { useLifelines, LifelineMenu } from "./lib/lifelines.jsx";
 // Inline analytics - no separate module needed
 export default function Game({ puzzle, isQuick = false, prevId = null, nextId = null }) {
   const rowsRaw = puzzle.rows || [];
@@ -53,6 +54,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           hintCount: parsed.hintCount || 0,
           guessCount: parsed.guessCount || 0,
           wrongGuessCount: parsed.wrongGuessCount || 0,
+          lifelineLevel: parsed.lifelineLevel || 0,
         };
       }
     } catch (e) {
@@ -76,6 +78,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       hintCount: 0,
       guessCount: 0,
       wrongGuessCount: 0,
+      lifelineLevel: 0,
     };
   };
 
@@ -97,7 +100,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [toastVariant, setToastVariant] = useState("info"); // info | success | warning
   const toastTimerRef = useRef(null);
   // Minimal: refs to detect outside clicks for popovers
-  const lifelinesRef = useRef(null);
   const settingsRef = useRef(null);
   const submitBtnRef = useRef(null);
   const collapseBtnRef = useRef(null);
@@ -127,10 +129,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     document.addEventListener('stepwords-header-toggle', onCustom);
     return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('stepwords-header-toggle', onCustom); };
   }, []);
-  const lifelinesBtnRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
-  const lifelineNudgeShownRef = useRef(false);
-  // Track progress (typing, locking, lifelines, submits) to nudge jumping ahead
+  // Track progress (typing, locking, submits) to nudge jumping ahead
   const lastProgressRef = useRef(Date.now());
   const jumpNudgeShownRef = useRef(false);
   const [kbCollapsed, setKbCollapsed] = useState(() => {
@@ -196,11 +196,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   }, [settings]);
   const [showSettings, setShowSettings] = useState(false);
   // Easy mode now saved globally in settings (like hardMode)
-  // Legacy hint fields kept for save compatibility; now using Lifelines (first/middle/last thirds, vowels)
+  // Legacy hint fields kept for save compatibility
   const [hintsUsed] = useState(savedState.hintsUsed || { initialLetters: false, stepLetters: false, filterKeyboard: false });
   const [rowsInitialHintUsed] = useState(savedState.rowsInitialHintUsed || rows.map(() => false));
   const [rowsStepHintUsed] = useState(savedState.rowsStepHintUsed || rows.map(() => false));
-  // Colors now simplified: 'G' for correct, 'Y' for lifeline-revealed or previously incorrect
+  // Colors now simplified: 'G' for correct, 'Y' for hint-revealed or previously incorrect
   const [wasWrong, setWasWrong] = useState(savedState.wasWrong);
   // Session stats
   const [hintCount, setHintCount] = useState(savedState.hintCount);
@@ -211,12 +211,30 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [shareText, setShareText] = useState("");
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showRevealConfirm, setShowRevealConfirm] = useState(false);
-  const [showHintsMenu, setShowHintsMenu] = useState(false);
   const [showQuickIntro, setShowQuickIntro] = useState(false);
   const [gameStartTime] = useState(Date.now());
   const [showLoss, setShowLoss] = useState(false);
   const [stars, setStars] = useState(null);
   const [didFail, setDidFail] = useState(false);
+  
+  // Lifeline state
+  const [showLifelineMenu, setShowLifelineMenu] = useState(false);
+  const [lifelineLevel, setLifelineLevel] = useState(savedState.lifelineLevel || 0);
+  
+  // Lifeline functionality
+  const { generatePrefixData, showPrefixes, extendPrefixes, canExtend } = useLifelines(
+    rows, 
+    lockColors, 
+    lifelineLevel, 
+    setLifelineLevel, 
+    setHintCount, 
+    (message, duration, variant) => {
+      setToast(message);
+      setToastVariant(variant);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setToast(""), duration || 2000);
+    }
+  );
   
 
   // Function to get letters used in all answers
@@ -338,11 +356,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     localStorage.setItem('stepwords-how-to-play', 'true');
   };
 
-  // Lifelines (once per puzzle): first/middle/last thirds, vowels
-  const [lifelineFirstUsed, setLifelineFirstUsed] = useState(savedState.lifelineFirstUsed || false);
-  const [lifelineMiddleUsed, setLifelineMiddleUsed] = useState(savedState.lifelineMiddleUsed || false);
-  const [lifelineLastUsed, setLifelineLastUsed] = useState(savedState.lifelineLastUsed || false);
-  const [lifelineVowelsUsed, setLifelineVowelsUsed] = useState(savedState.lifelineVowelsUsed || false);
+  const showStarsInfo = () => {
+    showToast(`Lose a star for every 4 missteps. Next star lost in ${nextLossIn} ${nextLossIn === 1 ? 'misstep' : 'missteps'}.`, 5200, 'info');
+  };
+
 
   function revealIndicesInCurrentRow(indices) {
     const i = level;
@@ -364,58 +381,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     setGuesses(newGuesses);
   }
 
-  function useLifeline(kind) {
-    const i = level;
-    const ans = rows[i]?.answer?.toUpperCase?.() || "";
-    const len = ans.length;
-    if (!len) return;
-    let used = false;
-    if (kind === 'first3' && !lifelineFirstUsed) {
-      const count = Math.min(isQuick ? 2 : 3, len);
-      const idx = Array.from({ length: count }, (_, k) => k);
-      revealIndicesInCurrentRow(idx);
-      setLifelineFirstUsed(true);
-      used = true;
-      showToast(`Revealed first ${count} letters.`, 2000, "info");
-    } else if (kind === 'edge_step' && !lifelineMiddleUsed) {
-      const indices = new Set();
-      indices.add(0);
-      if (len - 1 >= 0) indices.add(len - 1);
-      const sIdx = Array.isArray(stepIdx) ? stepIdx[i] : undefined;
-      if (Number.isFinite(sIdx) && sIdx >= 0 && sIdx < len) indices.add(sIdx);
-      revealIndicesInCurrentRow(Array.from(indices));
-      setLifelineMiddleUsed(true);
-      used = true;
-      showToast("Revealed first, last, and step letter.", 2200, "info");
-    } else if (kind === 'last3' && !lifelineLastUsed) {
-      const count = Math.min(isQuick ? 2 : 3, len);
-      const start = Math.max(0, len - count);
-      const idx = Array.from({ length: count }, (_, k) => start + k);
-      revealIndicesInCurrentRow(idx);
-      setLifelineLastUsed(true);
-      used = true;
-      showToast(`Revealed last ${count} letters.`, 2000, "info");
-    } else if (kind === 'mid3' && !lifelineVowelsUsed) {
-      const count = Math.min(isQuick ? 2 : 3, len);
-      const start = Math.max(0, Math.floor((len - count) / 2));
-      const idx = Array.from({ length: count }, (_, k) => start + k);
-      revealIndicesInCurrentRow(idx);
-      setLifelineVowelsUsed(true);
-      used = true;
-      showToast(`Revealed ${count} middle letters.`, 2000, "info");
-    }
-    if (used) {
-      try { lastActivityRef.current = Date.now(); } catch {}
-      const before = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
-      setHintCount((n) => n + 1);
-      setShowHintsMenu(false);
-      const after = Math.max(0, scoreBase - (hintCount + 1 + wrongGuessCount));
-      if (before > 0 && after === 0) {
-        showToast('Score is 0. Next misstep ends the game.', 2800, 'warning');
-      }
-      try { if (window.gtag && typeof window.gtag==='function') { window.gtag('event','lifeline_used',{ lifeline: kind, puzzle_id: puzzle.id||'unknown', mode: isQuick?'quick':'main' }); } } catch {}
-    }
-  }
 
   function revealAllAsYellowAndFill() {
     const newLock = lockColors.map((rowLock, r) => {
@@ -443,13 +408,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         guesses,
         cursor,
         wasWrong,
-        lifelineFirstUsed,
-        lifelineMiddleUsed,
-        lifelineLastUsed,
-        lifelineVowelsUsed,
         hintCount,
         guessCount,
         wrongGuessCount,
+        lifelineLevel,
       };
       localStorage.setItem(puzzleKey, JSON.stringify(stateToSave));
     } catch (e) {
@@ -460,7 +422,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Save state whenever it changes
   useEffect(() => {
     saveGameState();
-  }, [lockColors, level, guesses, cursor, wasWrong, hintsUsed, hintCount, guessCount, wrongGuessCount]);
+  }, [lockColors, level, guesses, cursor, wasWrong, hintCount, guessCount, wrongGuessCount, lifelineLevel]);
 
 
   const clue = rows[level]?.clue || "";
@@ -760,7 +722,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           map[puzzle.id] = awarded;
           localStorage.setItem(key, JSON.stringify(map));
         } catch {}
-        // Record perfect (score 10 and no lifelines used)
+        // Record perfect (score 10 and no hints used)
         try {
           if (finalScore === 10 && hintCount === 0) {
             const pkey = `${puzzleNamespace}-perfect`;
@@ -858,37 +820,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     setIme("");
   }
 
-  // Inactivity coachmark (now 1 minute) to nudge Lifelines - only resets on submit or lifeline use
-  useEffect(() => {
-    if (isExperienced) return; // Skip coachmarks for experienced users
-    const id = setInterval(() => {
-      try {
-        if (lifelineNudgeShownRef.current) return;
-        if (showHowToPlay || showHintsMenu || showSettings || showQuickIntro || showRevealConfirm) return;
-        if (solvedNow || didFail) return;
-        const idleMs = Date.now() - (lastActivityRef.current || 0);
-        if (idleMs >= 60000) {
-          const btn = lifelinesBtnRef.current;
-          if (btn) {
-            const r = btn.getBoundingClientRect();
-            const mark = document.createElement('div');
-            mark.style.position = 'fixed';
-            mark.style.left = (r.left + r.width / 2) + 'px';
-            mark.style.transform = 'translateX(-50%)';
-            mark.style.top = Math.max(8, r.bottom + 8) + 'px';
-            mark.style.zIndex = '9999';
-            mark.style.pointerEvents = 'none';
-            mark.className = 'px-2 py-1 rounded bg-emerald-700 text-white text-xs border border-emerald-500 shadow';
-            mark.textContent = 'Stuck? Try a Lifeline';
-            document.body.appendChild(mark);
-            setTimeout(() => { try { document.body.removeChild(mark); } catch {} }, 3000);
-            lifelineNudgeShownRef.current = true;
-          }
-        }
-      } catch {}
-    }, 10000);
-    return () => { clearInterval(id); };
-  }, [isExperienced, showHowToPlay, showHintsMenu, showSettings, showQuickIntro, showRevealConfirm, solvedNow, didFail]);
 
   // Progress-based nudge: after 15s without progress, suggest jumping ahead
   useEffect(() => {
@@ -896,7 +827,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const id = setInterval(() => {
       try {
         if (jumpNudgeShownRef.current) return;
-        if (showHowToPlay || showHintsMenu || showSettings || showQuickIntro || showRevealConfirm || showShare) return;
+        if (showHowToPlay || showSettings || showQuickIntro || showRevealConfirm || showShare) return;
         if (solvedNow || didFail) return;
         const idleMs = Date.now() - (lastProgressRef.current || 0);
         if (idleMs >= 15000) {
@@ -906,7 +837,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       } catch {}
     }, 3000);
     return () => { clearInterval(id); };
-  }, [isExperienced, showHowToPlay, showHintsMenu, showSettings, showQuickIntro, showRevealConfirm, showShare, solvedNow, didFail]);
+  }, [isExperienced, showHowToPlay, showSettings, showQuickIntro, showRevealConfirm, showShare, solvedNow, didFail]);
 
   // Reset progress timer and allow showing the nudge again when there is progress
   useEffect(() => {
@@ -916,13 +847,17 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     } catch {}
   }, [guesses, lockColors, hintCount, wrongGuessCount]);
 
-  // Minimal: close Lifelines/Settings when clicking/tapping outside
+  // Close lifeline menu when settings are opened
+  useEffect(() => {
+    if (showSettings) {
+      setShowLifelineMenu(false);
+    }
+  }, [showSettings]);
+
+  // Minimal: close Settings when clicking/tapping outside
   useEffect(() => {
     const handler = (e) => {
       try {
-        if (showHintsMenu && lifelinesRef.current && !lifelinesRef.current.contains(e.target)) {
-          setShowHintsMenu(false);
-        }
         if (showSettings && settingsRef.current && !settingsRef.current.contains(e.target)) {
           setShowSettings(false);
         }
@@ -934,7 +869,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       document.removeEventListener('mousedown', handler, true);
       document.removeEventListener('touchstart', handler, true);
     };
-  }, [showHintsMenu, showSettings]);
+  }, [showSettings]);
 
   // One-time coachmark to highlight the clue bar for first-time players
   // Show only after the How To modal has been closed the first time
@@ -1069,8 +1004,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             title="Current stars"
             role="button"
             tabIndex={0}
-            onClick={() => showToast(`Lose a star for every 4 missteps or lifelines used. Next star lost in ${nextLossIn} missteps or lifelines used.`, 5200, 'info')}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showToast(`Lose a star for every 4 missteps or lifelines used. Next star lost in ${nextLossIn} missteps or lifelines used.`, 5200, 'info'); } }}
+            onClick={showStarsInfo}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showStarsInfo(); } }}
           >
             <span className={currentStars >= 1 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
             <span className={currentStars >= 2 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
@@ -1081,44 +1016,40 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               {didFail ? 'You already lost.' : 'Next misstep loses the game!'}
             </div>
           )}
-        <button
-            className="px-2 py-0.5 inline-flex items-center justify-center rounded border border-gray-700 text-gray-300 hover:bg-gray-900/60 text-xs"
-            aria-label="How do stars work?"
-            onClick={() => showToast(`Lose a star for every 4 missteps or lifelines used. Next star lost in ${nextLossIn} ${nextLossIn === 1 ? 'misstep or lifeline used' : 'missteps or lifelines used'}.`, 5200, 'info')}
-          >?
-          </button>
         </div>
         
         <div className="flex items-center gap-2">
-          <div ref={lifelinesRef} className="relative">
+          {/* Lifeline button */}
+          <div className="relative">
             <button
-              ref={lifelinesBtnRef}
-              onClick={() => setShowHintsMenu((v)=>!v)}
-              className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
+              onClick={() => setShowLifelineMenu((v) => !v)}
+              className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
+              aria-label="Hints"
             >
-              Lifelines
+              💡
             </button>
-            {showHintsMenu && (
-              <div className="absolute right-0 top-full mt-1 w-56 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-2 text-xs">
-                <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineMiddleUsed} onClick={()=>useLifeline('edge_step')}>Reveal first, last, and step letter</button>
-                <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineFirstUsed} onClick={()=>useLifeline('first3')}>Reveal first {isQuick ? 2 : 3} letters</button>
-                <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineVowelsUsed} onClick={()=>useLifeline('mid3')}>Reveal {isQuick ? 2 : 3} middle letters</button>
-                <button className="w-full text-left px-2 py-1 hover:bg-gray-700 rounded disabled:opacity-40" disabled={lifelineLastUsed} onClick={()=>useLifeline('last3')}>Reveal last {isQuick ? 2 : 3} letters</button>
-              </div>
-            )}
+            <LifelineMenu
+              showLifelineMenu={showLifelineMenu}
+              setShowLifelineMenu={setShowLifelineMenu}
+              lifelineLevel={lifelineLevel}
+              generatePrefixData={generatePrefixData}
+              showPrefixes={showPrefixes}
+              extendPrefixes={extendPrefixes}
+              canExtend={canExtend}
+            />
           </div>
           <button
             onClick={() => setShowHowToPlay(true)}
-            className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 whitespace-nowrap overflow-hidden text-ellipsis max-w-[34vw] sm:max-w-none"
+            className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
             title="How to Play"
           >
-            How to Play
+            ?
           </button>
           {/* Settings gear moved to right */}
           <div ref={settingsRef} className="relative">
             <button
               onClick={() => setShowSettings((v) => !v)}
-              className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40"
+              className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
               aria-label="Settings"
             >
               ⚙️

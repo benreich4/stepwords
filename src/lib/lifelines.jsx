@@ -18,16 +18,16 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
     const prefixData = {};
     const solvedWords = new Set();
     
-    // Track which words are solved (all letters are green)
+    // Track which words are solved (all letters are colored, not null/undefined)
     rows.forEach((row, index) => {
       const rowColors = lockColors[index];
-      if (rowColors && rowColors.every(color => color === 'G')) {
+      if (rowColors && rowColors.every(Boolean)) {
         solvedWords.add(row.answer.toLowerCase());
       }
     });
     
     // Generate prefixes for each level
-    for (let level = 1; level <= 5; level++) {
+    for (let level = 1; level <= 3; level++) {
       const prefixCounts = {};
       
       rows.forEach(row => {
@@ -60,14 +60,14 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
   const showPrefixes = () => {
     setLifelineLevel(1);
     setHintCount(n => n + 1);
-    showToast("Revealed 1-letter prefixes", 2000, "info");
+    showToast("Revealed 1-letter word starts", 2000, "info");
   };
 
   const extendPrefixes = () => {
-    if (lifelineLevel < 5) {
+    if (lifelineLevel < 3) {
       setLifelineLevel(lifelineLevel + 1);
       setHintCount(n => n + 1);
-      showToast(`Revealed ${lifelineLevel + 1}-letter prefixes`, 2000, "info");
+      showToast(`Revealed ${lifelineLevel + 1}-letter word starts`, 2000, "info");
     }
   };
 
@@ -75,7 +75,7 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
     generatePrefixData,
     showPrefixes,
     extendPrefixes,
-    canExtend: lifelineLevel < 5
+    canExtend: lifelineLevel < 3
   };
 }
 
@@ -94,15 +94,18 @@ export function LifelineMenu({
   if (!showLifelineMenu) return null;
 
   return (
-    <div data-lifeline-menu className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-2 text-xs min-w-fit">
+    <div data-lifeline-menu className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-3 text-sm min-w-fit">
       <div className="mb-2">
-        <h3 className="text-xs font-semibold text-gray-100 mb-1">Word Prefixes</h3>
+        <h3 className="text-sm font-semibold text-gray-100 mb-1">Word Starts</h3>
         {lifelineLevel === 0 ? (
-          <p className="text-gray-400 text-xs">Click "Show Prefixes" to reveal word prefixes</p>
+          <div>
+            <p className="text-gray-400 text-sm mb-2">Click "Show Word Starts" to reveal word starts</p>
+            <p className="text-gray-400 text-sm">Word starts are shown alphabetically.</p>
+          </div>
         ) : (
           <div>
-            <div className="mb-1 text-gray-300 text-xs">
-              {lifelineLevel}-letter prefixes:
+            <div className="mb-1 text-gray-300 text-sm">
+              {lifelineLevel}-letter word starts:
             </div>
             <div className="space-y-1">
               {generatePrefixData[lifelineLevel]?.map(({ prefix, total, solved }) => (
@@ -113,7 +116,7 @@ export function LifelineMenu({
                       return (
                         <div 
                           key={i} 
-                          className={`w-3.5 h-3.5 border flex items-center justify-center text-white text-xs font-semibold ${
+                          className={`w-4 h-4 border flex items-center justify-center text-white text-sm font-semibold ${
                             isFullySolved 
                               ? 'bg-green-600 border-green-500' 
                               : 'bg-yellow-600 border-yellow-500'
@@ -125,12 +128,15 @@ export function LifelineMenu({
                     })}
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className={`text-xs ${solved === total ? 'text-green-400' : 'text-gray-400'}`}>
+                    <span className={`text-sm ${solved === total ? 'text-green-400' : 'text-gray-400'}`}>
                       {solved}/{total} word{solved !== 1 && total !== 1 ? 's' : ''}
                     </span>
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="mt-2 pt-2 border-t border-gray-700">
+              <p className="text-gray-500 text-xs">Shown alphabetically</p>
             </div>
           </div>
         )}
@@ -139,22 +145,22 @@ export function LifelineMenu({
         {lifelineLevel === 0 ? (
           <button
             onClick={showPrefixes}
-            className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs whitespace-nowrap"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm whitespace-nowrap"
           >
-            Show Prefixes
+            Show Word Starts
           </button>
         ) : (
           <button
             onClick={extendPrefixes}
             disabled={!canExtend}
-            className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-xs whitespace-nowrap"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm whitespace-nowrap"
           >
-            Extend Prefixes
+            {lifelineLevel >= 3 ? "Fully Extended" : "Extend Word Starts"}
           </button>
         )}
         <button
           onClick={() => setShowLifelineMenu(false)}
-          className="px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 text-xs whitespace-nowrap"
+          className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm whitespace-nowrap"
         >
           Close
         </button>
