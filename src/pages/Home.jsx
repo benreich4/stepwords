@@ -8,6 +8,7 @@ export default function Home() {
   const [puzzle, setPuzzle] = useState(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
+  const [nav, setNav] = useState({ prevId: null, nextId: null });
 
   useEffect(() => {
     document.title = "Stepword Puzzles";
@@ -22,6 +23,7 @@ export default function Home() {
         
         // Only allow puzzles with date <= today (Eastern Time)
         const todayET = getTodayIsoInET();
+        const preview = isPreviewEnabled();
         // Always load today's puzzle on Home. Preview mode does not advance Home beyond today.
         const available = list.filter(p => p.date <= todayET);
         if (available.length === 0) {
@@ -32,6 +34,19 @@ export default function Home() {
         // Sort by date desc among available
         const sortedPuzzles = available.sort((a, b) => (a.date < b.date ? 1 : -1));
         const mostRecent = sortedPuzzles[0];
+
+        // Compute prev/next ids within availability (same logic as PuzzlePage)
+        const idx = list.findIndex((p) => String(p.id) === String(mostRecent.id));
+        let prevId = null, nextId = null;
+        if (idx > 0) {
+          const prev = list[idx - 1];
+          if (prev && (preview || prev.date <= todayET)) prevId = String(prev.id);
+        }
+        if (idx >= 0 && idx + 1 < list.length) {
+          const next = list[idx + 1];
+          if (next && (preview || next.date <= todayET)) nextId = String(next.id);
+        }
+        setNav({ prevId, nextId });
         
         // Load the most recent puzzle
         return loadPuzzleById(mostRecent.id);
@@ -75,5 +90,5 @@ export default function Home() {
     );
   }
 
-  return <Game puzzle={puzzle} />;
+  return <Game puzzle={puzzle} prevId={nav.prevId} nextId={nav.nextId} />;
 }
