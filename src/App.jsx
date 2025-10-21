@@ -1,9 +1,10 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 // Inline analytics - no separate module needed
 import { useEffect, useState } from "react";
 
 export default function App() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isQuick = location.pathname.startsWith('/quick');
   const isArchives = location.pathname.startsWith('/archives');
   const [headerCollapsed, setHeaderCollapsed] = useState(() => {
@@ -34,6 +35,18 @@ export default function App() {
       }
     } catch (_err) { void 0; }
   }, [location]);
+
+  // First-visit redirect: on the very first app load, send users to Quick
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('stepwords-first-visit') === '1') return;
+      // mark before navigating to avoid loops
+      localStorage.setItem('stepwords-first-visit', '1');
+      if (!isQuick) {
+        navigate('/quick', { replace: true });
+      }
+    } catch {}
+  }, []);
 
   // Preview token handler: visiting ?preview=on sets a local flag for early access
   useEffect(() => {
