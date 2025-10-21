@@ -1,12 +1,17 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-// Inline analytics - no separate module needed
 import { useEffect, useState } from "react";
+import { fetchManifest } from "./lib/puzzles.js";
+import { fetchQuickManifest } from "./lib/quickPuzzles.js";
+import { getTodayIsoInET } from "./lib/date.js";
+// Inline analytics - no separate module needed
 
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const isQuick = location.pathname.startsWith('/quick');
   const isArchives = location.pathname.startsWith('/archives');
+  const [mainTarget, setMainTarget] = useState("/");
+  const [quickTarget, setQuickTarget] = useState("/quick");
   const [headerCollapsed, setHeaderCollapsed] = useState(() => {
     try { return localStorage.getItem('stepwords-header-collapsed') === '1'; } catch { return false; }
   });
@@ -48,6 +53,64 @@ export default function App() {
     } catch {}
   }, []);
 
+  // Keep date when switching between Main and Quick
+  useEffect(() => {
+    let cancelled = false;
+    const path = location.pathname;
+    const segments = path.split('/').filter(Boolean);
+    const onMainPuzzle = !isQuick && segments.length === 1 && segments[0] && !["archives","create","explore","submissions"].includes(segments[0]);
+    const onQuickPuzzle = isQuick && segments.length === 2 && segments[0] === 'quick' && segments[1];
+
+    const today = getTodayIsoInET();
+
+    if (onMainPuzzle) {
+      const mainId = segments[0];
+      Promise.all([fetchManifest(), fetchQuickManifest()])
+        .then(([mainList, quickList]) => {
+          if (cancelled) return;
+          const mainMeta = mainList.find(p => String(p.id) === String(mainId));
+          const date = mainMeta?.date;
+          const q = date ? quickList.find(qp => qp.date === date) : null;
+          setQuickTarget(q ? `/quick/${q.id}` : "/quick");
+          setMainTarget(`/${mainId}`);
+        })
+        .catch(() => {
+          if (!cancelled) { setQuickTarget("/quick"); setMainTarget(`/${mainId}`); }
+        });
+      return () => { cancelled = true; };
+    }
+
+    if (onQuickPuzzle) {
+      const quickId = segments[1];
+      Promise.all([fetchManifest(), fetchQuickManifest()])
+        .then(([mainList, quickList]) => {
+          if (cancelled) return;
+          const quickMeta = quickList.find(p => String(p.id) === String(quickId));
+          const date = quickMeta?.date;
+          const m = date ? mainList.find(mp => mp.date === date) : null;
+          setMainTarget(m ? `/${m.id}` : "/");
+          setQuickTarget(`/quick/${quickId}`);
+        })
+        .catch(() => {
+          if (!cancelled) { setMainTarget("/"); setQuickTarget(`/quick/${quickId}`); }
+        });
+      return () => { cancelled = true; };
+    }
+
+    // On index pages, link to today's corresponding puzzle when available
+    Promise.all([fetchManifest(), fetchQuickManifest()])
+      .then(([mainList, quickList]) => {
+        if (cancelled) return;
+        const mToday = mainList.find(p => p.date === today);
+        const qToday = quickList.find(p => p.date === today);
+        setMainTarget(mToday ? `/${mToday.id}` : "/");
+        setQuickTarget(qToday ? `/quick/${qToday.id}` : "/quick");
+      })
+      .catch(() => { if (!cancelled) { setMainTarget("/"); setQuickTarget("/quick"); } });
+
+    return () => { cancelled = true; };
+  }, [location.pathname]);
+
   // Preview token handler: visiting ?preview=on sets a local flag for early access
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -66,7 +129,7 @@ export default function App() {
           <div className="justify-self-start min-w-0">
             <div className="flex items-center gap-1">
               <Link 
-                to="/" 
+                to={mainTarget} 
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
                   !isQuick 
                     ? 'bg-blue-600 border-blue-500 text-white' 
@@ -76,7 +139,7 @@ export default function App() {
                 Main
               </Link>
               <Link 
-                to="/quick" 
+                to={quickTarget} 
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
                   isQuick 
                     ? 'bg-blue-600 border-blue-500 text-white' 
