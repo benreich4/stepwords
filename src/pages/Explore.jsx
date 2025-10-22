@@ -151,9 +151,9 @@ const Explore = () => {
     
     setSuggesting(true);
     
-    // Filter words by minimum length and shuffle
+    // Filter words by exact length and shuffle
     const candidates = wordList
-      .filter(word => word.length >= minLength)
+      .filter(word => word.length === minLength)
       .sort(() => Math.random() - 0.5); // Shuffle
     
     let bestWord = null;
@@ -179,7 +179,7 @@ const Explore = () => {
       setPath([]);
     } else {
       // If no word with chain >= 5 found, show a message
-      alert(`No words found with chains of length 5+ for minimum length ${minLength}. Tested ${testCount} candidates. Try lowering the minimum length.`);
+      alert(`No words found with chains of length 5+ for length ${minLength}. Tested ${testCount} candidates. Try a different length.`);
     }
     
     setSuggesting(false);
@@ -284,7 +284,7 @@ const Explore = () => {
               </div>
               <div className="flex gap-2">
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Min Length:</label>
+                  <label className="block text-xs text-gray-400 mb-1">Length:</label>
                   <input
                     type="number"
                     value={minLength}
