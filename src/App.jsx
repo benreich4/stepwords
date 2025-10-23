@@ -124,7 +124,20 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-screen bg-black text-gray-100">
-      <header className="w-full px-2 py-1 border-b border-gray-800">
+      <header
+        className="w-full px-2 py-1 border-b border-gray-800"
+        onClick={(e) => {
+          // Toggle collapse when clicking the header bar background, but ignore clicks on interactive elements
+          const tgt = e.target;
+          if (tgt && (tgt.closest('a') || tgt.closest('button'))) return;
+          const next = !headerCollapsed;
+          setHeaderCollapsed(next);
+          try {
+            if (next) localStorage.setItem('stepwords-header-collapsed','1'); else localStorage.removeItem('stepwords-header-collapsed');
+          } catch {}
+          try { document.dispatchEvent(new CustomEvent('stepwords-header-toggle')); } catch {}
+        }}
+      >
         <div className="grid grid-cols-3 items-center">
           <div className="justify-self-start min-w-0">
             <div className="flex items-center gap-1">
