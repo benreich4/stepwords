@@ -118,7 +118,7 @@ export function LifelineMenu({
   if (!showLifelineMenu) return null;
 
   return (
-    <div data-lifeline-menu className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-3 text-sm min-w-fit">
+    <div data-lifeline-menu className="absolute right-0 top-full mt-1 min-w-[220px] rounded-lg border border-gray-700 bg-gray-900/95 backdrop-blur-sm p-3 text-sm shadow-xl ring-1 ring-white/10 menu-pop-in">
       <div className="mb-2">
         <h3 className="text-sm font-semibold text-gray-100 mb-1">Word Starts</h3>
         {lifelineLevel === 0 ? (
@@ -169,7 +169,7 @@ export function LifelineMenu({
         {lifelineLevel === 0 ? (
           <button
             onClick={showPrefixes}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm whitespace-nowrap"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             Show Word Starts
           </button>
@@ -177,14 +177,14 @@ export function LifelineMenu({
           <button
             onClick={extendPrefixes}
             disabled={!canExtend}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm whitespace-nowrap"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             {lifelineLevel >= 3 ? "Fully Extended" : "Extend Word Starts"}
           </button>
         )}
         <button
           onClick={() => setShowLifelineMenu(false)}
-          className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm whitespace-nowrap"
+          className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           Close
         </button>

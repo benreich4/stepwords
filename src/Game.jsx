@@ -1078,7 +1078,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   return (
     <>
     <div className={`w-screen h-[105vh] bg-black flex flex-col ${settings.lightMode ? 'filter invert hue-rotate-180' : ''}`}>
-      <div className={`px-3 text-center ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0' : 'pt-1'}`}>
+      <div className={`px-3 text-center transition-all duration-300 ease-out ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0 opacity-0' : 'pt-1 opacity-100'}`}>
         {!headerCollapsed && (
         <>
         {puzzle.date && (
@@ -1104,7 +1104,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         )}
       </div>
 
-      <div className="w-full px-3 h-8 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20">
+      <div className="w-full px-3 h-8 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20 transition-[height,background-color] duration-300 ease-out">
         <div className="flex items-center gap-2 text-xs text-gray-300">
           <div
             ref={starsRef}
@@ -1157,9 +1157,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               🔍
             </button>
             {showRevealMenu && (
-              <div className="absolute right-0 top-full mt-1 w-44 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-1 text-xs">
+              <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-gray-700 bg-gray-900/95 backdrop-blur-sm shadow-xl ring-1 ring-white/10 p-1 text-xs menu-pop-in">
                 <button
-                  className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-700"
+                  className="w-full text-left px-2 py-2 rounded-md hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   onClick={() => {
                     setShowRevealMenu(false);
                     setShowWordRevealConfirm(true);
@@ -1168,7 +1168,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                   Reveal word
                 </button>
                 <button
-                  className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-700"
+                  className="w-full text-left px-2 py-2 rounded-md hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   onClick={() => {
                     setShowRevealMenu(false);
                     setShowRevealConfirm(true);
@@ -1176,7 +1176,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                 >
                   Reveal letter
                 </button>
-                <div className="px-2 py-1 text-[10px] text-gray-400 border-t border-gray-700 mt-1">
+                <div className="px-2 py-1.5 text-[10px] text-gray-400 border-t border-gray-700 mt-1">
                   Reveals limit your maximum score to 0 stars.
                 </div>
               </div>
@@ -1199,7 +1199,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               ⚙️
             </button>
             {showSettings && (
-              <div className="absolute right-0 top-full mt-1 w-56 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-2 text-xs">
+              <div className="absolute right-0 top-full mt-1 w-60 rounded-lg border border-gray-700 bg-gray-900/95 backdrop-blur-sm shadow-xl ring-1 ring-white/10 p-2 text-xs menu-pop-in">
                 <label className="flex items-center justify-between py-1">
                   <span className="text-gray-300">Light mode</span>
                   <button
@@ -1214,7 +1214,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                         }
                       } catch {}
                     }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.lightMode ? 'bg-sky-500' : 'bg-gray-600'}`}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.lightMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
                     aria-label="Toggle light mode"
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.lightMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
@@ -1435,17 +1435,17 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       {/* Reveal confirm modal */}
       {showRevealConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-sm rounded-lg border border-gray-700 bg-gray-900 p-4 text-gray-200">
+          <div className="w-full max-w-sm rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-5 text-gray-200 shadow-2xl ring-1 ring-white/10">
             <div className="text-sm mb-3">Reveal currently selected space? This will limit your maximum score to 0 stars.</div>
             <div className="flex justify-end gap-2 text-sm">
               <button
-                className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-300 hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 onClick={() => setShowRevealConfirm(false)}
               >
                 Cancel
               </button>
               <button
-                className="px-3 py-1.5 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+                className="px-3 py-1.5 rounded-md bg-sky-600 text-white hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 onClick={() => {
                   revealTileAt(level, cursor);
                   setShowRevealConfirm(false);

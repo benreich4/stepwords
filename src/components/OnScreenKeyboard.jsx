@@ -49,6 +49,9 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
   };
 
   const rootRef = useRef(null);
+  const contentOuterRef = useRef(null);
+  const contentInnerRef = useRef(null);
+  const [contentHeight, setContentHeight] = useState(0);
   useEffect(() => {
     if (!rootRef.current) return;
     const el = rootRef.current;
@@ -61,8 +64,25 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
     return () => ro.disconnect();
   }, [onResize]);
 
+  // Measure inner content height for animated collapse/expand (max-height)
+  useEffect(() => {
+    if (!contentInnerRef.current) return;
+    const node = contentInnerRef.current;
+    const measure = () => {
+      try {
+        const h = node.scrollHeight;
+        setContentHeight(h);
+      } catch {}
+    };
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(node);
+    // initial
+    measure();
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div ref={rootRef} className="fixed bottom-0 left-0 right-0 w-full bg-gray-900 border-t border-gray-700 z-20" style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', userSelect: 'none' }}>
+    <div ref={rootRef} className="fixed bottom-0 left-0 right-0 w-full bg-gray-900 border-t border-gray-700 z-20 transition-[height,background-color] duration-300 ease-out" style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', userSelect: 'none' }}>
       {/* Collapse handle (larger tap target; wrapper handles events) */}
       <div
         className="w-full flex items-center justify-center py-0.5"
@@ -80,69 +100,72 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
         </button>
       </div>
 
-      {/* Keyboard rows */}
-      {!collapsed && (
-      <div className={`${isTiny ? 'px-1' : 'px-2'} py-1`}>
-        {rows.map((row, rowIndex) => (
-          <div key={rowIndex} className={`flex justify-center ${isTiny ? 'gap-0.5' : 'gap-1'} mb-1`}>
-            {row.map((key) => (
-              <button
-                key={key}
-                ref={key === 'SUBMIT' ? submitButtonRef : null}
-                onPointerDown={(e) => {
-                  // Use pointer for mouse/pen; touch handled in onTouchStart to avoid missed taps on iOS
-                  if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
-                  e.preventDefault();
-                  const isDisabled = disabledKeys.has(key);
-                  const isSpecial = (key === 'SUBMIT' || key === 'BACKSPACE');
-                  const isFiltered = filteredLetters && !filteredLetters.includes(key);
-                  if (!isDisabled && (isSpecial || !isFiltered)) {
-                    handleKeyClick(key);
-                  }
-                }}
-                onTouchStart={(e) => {
-                  // Dedicated touch handler for iOS Chrome/Safari to improve rapid-tap reliability
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const isDisabled = disabledKeys.has(key);
-                  const isSpecial = (key === 'SUBMIT' || key === 'BACKSPACE');
-                  const isFiltered = filteredLetters && !filteredLetters.includes(key);
-                  if (!isDisabled && (isSpecial || !isFiltered)) {
-                    handleKeyClick(key);
-                  }
-                }}
-                onTouchMove={(e) => { e.preventDefault(); }}
-                disabled={disabledKeys.has(key) || (!['SUBMIT','BACKSPACE'].includes(key) && (filteredLetters && !filteredLetters.includes(key)))}
-                className={getKeyClass(key)}
-                style={{
-                  WebkitTapHighlightColor: 'transparent',
-                  minWidth: key === 'SUBMIT' ? (isTiny ? '62px' : '70px') : key === 'BACKSPACE' ? (isTiny ? '54px' : '60px') : (isTiny ? '28px' : '32px'),
-                  height: undefined
-                }}
-                tabIndex={-1}
-              >
-                {key === 'BACKSPACE' ? '⌫' : key}
-              </button>
+      {/* Keyboard content (animated collapse/expand via max-height & opacity) */}
+      <div
+        ref={contentOuterRef}
+        className="transition-all duration-300 ease-out overflow-hidden"
+        style={{ maxHeight: collapsed ? 0 : contentHeight, opacity: collapsed ? 0 : 1 }}
+      >
+        <div ref={contentInnerRef}>
+          <div className={`${isTiny ? 'px-1' : 'px-2'} py-1 ${collapsed ? '' : 'kb-pop-in'}`}>
+            {rows.map((row, rowIndex) => (
+              <div key={rowIndex} className={`flex justify-center ${isTiny ? 'gap-0.5' : 'gap-1'} mb-1`}>
+                {row.map((key) => (
+                  <button
+                    key={key}
+                    ref={key === 'SUBMIT' ? submitButtonRef : null}
+                    onPointerDown={(e) => {
+                      // Use pointer for mouse/pen; touch handled in onTouchStart to avoid missed taps on iOS
+                      if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+                      e.preventDefault();
+                      const isDisabled = disabledKeys.has(key);
+                      const isSpecial = (key === 'SUBMIT' || key === 'BACKSPACE');
+                      const isFiltered = filteredLetters && !filteredLetters.includes(key);
+                      if (!isDisabled && (isSpecial || !isFiltered)) {
+                        handleKeyClick(key);
+                      }
+                    }}
+                    onTouchStart={(e) => {
+                      // Dedicated touch handler for iOS Chrome/Safari to improve rapid-tap reliability
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const isDisabled = disabledKeys.has(key);
+                      const isSpecial = (key === 'SUBMIT' || key === 'BACKSPACE');
+                      const isFiltered = filteredLetters && !filteredLetters.includes(key);
+                      if (!isDisabled && (isSpecial || !isFiltered)) {
+                        handleKeyClick(key);
+                      }
+                    }}
+                    onTouchMove={(e) => { e.preventDefault(); }}
+                    disabled={disabledKeys.has(key) || (!['SUBMIT','BACKSPACE'].includes(key) && (filteredLetters && !filteredLetters.includes(key)))}
+                    className={getKeyClass(key)}
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      minWidth: key === 'SUBMIT' ? (isTiny ? '62px' : '70px') : key === 'BACKSPACE' ? (isTiny ? '54px' : '60px') : (isTiny ? '28px' : '32px'),
+                      height: undefined
+                    }}
+                    tabIndex={-1}
+                  >
+                    {key === 'BACKSPACE' ? '⌫' : key}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
-        ))}
-      </div>
-      )}
-      
-      {/* Copyright notice */}
-      {!collapsed && (
-      <div className="px-3 py-1 text-xs text-gray-500 border-t border-gray-700">
-        <div className="flex justify-between items-center gap-2 min-w-0">
-          <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[60vw]">© 2025 Stepwords™. All rights reserved.</span>
-          <a 
-            href="mailto:hello@stepwords.xyz"
-            className="text-sky-400 hover:underline whitespace-nowrap"
-          >
-            hello@stepwords.xyz
-          </a>
+          {/* Copyright notice */}
+          <div className={`px-3 py-1 text-xs text-gray-500 border-t border-gray-700 ${collapsed ? '' : 'kb-pop-in'}`} style={{ animationDelay: collapsed ? undefined : '60ms' }}>
+            <div className="flex justify-between items-center gap-2 min-w-0">
+              <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[60vw]">© 2025 Stepwords™. All rights reserved.</span>
+              <a 
+                href="mailto:hello@stepwords.xyz"
+                className="text-sky-400 hover:underline whitespace-nowrap"
+              >
+                hello@stepwords.xyz
+              </a>
+            </div>
+          </div>
         </div>
       </div>
-      )}
     </div>
   );
 }

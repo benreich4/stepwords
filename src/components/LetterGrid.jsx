@@ -253,6 +253,7 @@ export default function LetterGrid({
                   isDiffMissing={Boolean(diffMissingMask?.[col])}
                   isDiffFilled={Boolean(fromFilledMask?.[col]) || (isIntermediateStep && col === stepPos && lockColors[i][stepPos] != null)}
                   isDiffAll={isHoldingOnly && longPressStartRowRef.current === i}
+                  delayMs={col * 28}
                 />
               ))}
             </div>

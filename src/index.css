@@ -2,3 +2,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Simple open animation for menus (mount animation) */
+@keyframes fade-scale-in {
+  from { opacity: 0; transform: scale(0.98) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.menu-pop-in {
+  animation: fade-scale-in 150ms ease-out both;
+}
+
+/* Keyboard content pop-in (slightly slower and more salient) */
+@keyframes slide-up-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.kb-pop-in {
+  animation: slide-up-in 300ms ease-out both;
+}

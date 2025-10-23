@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 export default function LetterBox({
   char = "",
   state = null,          // null or 'G' | 'Y'
@@ -9,12 +11,13 @@ export default function LetterBox({
   isDiffMissing = false, // highlight as a missing/unfilled letter in comparison row
   isDiffFilled = false,  // deemphasize letters already filled in comparison row
   isDiffAll = false,     // deemphasize entire row (initial hold before selecting target)
+  delayMs = 0,           // transition delay per tile for staggered animations
 }) {
   const COLOR_CLASSES = {
-    G: "bg-green-600 border-green-500 text-white",
-    Y: "bg-yellow-400 border-yellow-400 text-black",
+    G: "bg-green-600 border-green-500 text-white transition-colors duration-200",
+    Y: "bg-yellow-400 border-yellow-400 text-black transition-colors duration-200",
   };
-  const EMPTY_CLASSES = "bg-gray-900 border-gray-700 text-gray-200";
+  const EMPTY_CLASSES = "bg-gray-900 border-gray-700 text-gray-200 transition-colors duration-200";
   const stateClass = state ? (COLOR_CLASSES[state] || EMPTY_CLASSES) : EMPTY_CLASSES;
 
   // Calculate dynamic tile size based on viewport and word length, with sane min/max caps
@@ -28,17 +31,30 @@ export default function LetterBox({
   const base =
     "relative inline-flex items-center justify-center border rounded-[6px] box-border " +
     "select-none uppercase font-bold leading-none " +
-    "aspect-square";
+    "aspect-square transition-all duration-150 will-change-transform";
   const hasChar = Boolean(char && char !== " ");
+
+  // Pop effect when state changes to a colored state
+  const prevStateRef = useRef(state);
+  const [isPopping, setIsPopping] = useState(false);
+  useEffect(() => {
+    if (state && state !== prevStateRef.current) {
+      setIsPopping(true);
+      const t = setTimeout(() => setIsPopping(false), 160);
+      return () => clearTimeout(t);
+    }
+    prevStateRef.current = state;
+  }, [state]);
 
   return (
     <button 
       type="button" 
       onClick={onClick} 
-      className={`${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''}`}
+      className={`${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''} ${isPopping ? 'scale-105' : ''}`}
       style={{
         width: tileSize,
         fontSize: textSize,
+        transitionDelay: `${delayMs}ms`,
       }}
     >
       <span>{char}</span>
