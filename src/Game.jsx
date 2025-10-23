@@ -105,6 +105,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Minimal: refs to detect outside clicks for popovers
   const settingsRef = useRef(null);
   const lifelineRef = useRef(null);
+  const revealRef = useRef(null);
   const submitBtnRef = useRef(null);
   const collapseBtnRef = useRef(null);
   const starsRef = useRef(null);
@@ -199,6 +200,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode })); } catch {}
   }, [settings]);
   const [showSettings, setShowSettings] = useState(false);
+  const [showRevealMenu, setShowRevealMenu] = useState(false);
   // Easy mode now saved globally in settings (like hardMode)
   // Legacy hint fields kept for save compatibility
   const [hintsUsed] = useState(savedState.hintsUsed || { initialLetters: false, stepLetters: false, filterKeyboard: false });
@@ -284,7 +286,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     showToast("Revealed letter.", 2000, "info");
     try {
       if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'hint_used', { hint_type: 'reveal_letter', puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' });
+        window.gtag('event', 'reveal_used', { reveal_type: 'reveal_letter', puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' });
       }
     } catch {}
   }
@@ -930,6 +932,23 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     };
   }, [showLifelineMenu]);
 
+  // Close Reveal (magnifier) menu when clicking/tapping outside
+  useEffect(() => {
+    const handler = (e) => {
+      try {
+        if (showRevealMenu && revealRef.current && !revealRef.current.contains(e.target)) {
+          setShowRevealMenu(false);
+        }
+      } catch {}
+    };
+    document.addEventListener('mousedown', handler, true);
+    document.addEventListener('touchstart', handler, true);
+    return () => {
+      document.removeEventListener('mousedown', handler, true);
+      document.removeEventListener('touchstart', handler, true);
+    };
+  }, [showRevealMenu]);
+
   // One-time coachmark to highlight the clue bar for first-time players
   // Show only after the How To modal has been closed the first time
   useEffect(() => {
@@ -1128,14 +1147,41 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             />
           </div>
           {/* Reveal Word button */}
-          <button
-            onClick={() => setShowWordRevealConfirm(true)}
-            className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
-            aria-label="Reveal Word"
-            title="Reveal current word (0 stars max)"
-          >
-            🔍
-          </button>
+          <div ref={revealRef} className="relative">
+            <button
+              onClick={() => setShowRevealMenu((v) => !v)}
+              className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
+              aria-label="Reveal options"
+              title="Reveal options"
+            >
+              🔍
+            </button>
+            {showRevealMenu && (
+              <div className="absolute right-0 top-full mt-1 w-44 bg-gray-800 border border-gray-600 rounded-md shadow-lg p-1 text-xs">
+                <button
+                  className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-700"
+                  onClick={() => {
+                    setShowRevealMenu(false);
+                    setShowWordRevealConfirm(true);
+                  }}
+                >
+                  Reveal word
+                </button>
+                <button
+                  className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-700"
+                  onClick={() => {
+                    setShowRevealMenu(false);
+                    setShowRevealConfirm(true);
+                  }}
+                >
+                  Reveal letter
+                </button>
+                <div className="px-2 py-1 text-[10px] text-gray-400 border-t border-gray-700 mt-1">
+                  Reveals limit your maximum score to 0 stars.
+                </div>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setShowHowToPlay(true)}
             className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
@@ -1390,7 +1436,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       {showRevealConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-sm rounded-lg border border-gray-700 bg-gray-900 p-4 text-gray-200">
-            <div className="text-sm mb-3">Reveal currently selected space?</div>
+            <div className="text-sm mb-3">Reveal currently selected space? This will limit your maximum score to 0 stars.</div>
             <div className="flex justify-end gap-2 text-sm">
               <button
                 className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-300 hover:bg-gray-800"
