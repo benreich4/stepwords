@@ -116,11 +116,18 @@ const PuzzleCreatorSimple = () => {
     }
 
     try {
-      const rows = submissionWords.map((word, i) => ({
-        answer: (word || '').toLowerCase().trim(),
-        clue: (submissionClues[i] || '').trim(),
-        breakdown: (submissionBreakdowns[i] || '').trim(),
-      }));
+      const rows = submissionWords.map((word, i) => {
+        const answer = (word || '').toLowerCase().trim();
+        const breakdownRaw = (submissionBreakdowns[i] || '').trim();
+        const breakdownTight = breakdownRaw.replace(/\s+/g, '');
+        const baseClue = (submissionClues[i] || '').trim();
+        const clue = breakdownTight ? `${baseClue} (${breakdownTight})` : baseClue;
+        return {
+          answer,
+          clue,
+          breakdown: breakdownRaw,
+        };
+      });
       const puzzleData = {
         author: submissionAuthor.trim(),
         rows,
