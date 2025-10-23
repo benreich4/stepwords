@@ -10,7 +10,7 @@ import { useMemo } from 'react';
  * @param {Function} showToast - Function to show toast messages
  * @returns {Object} Lifeline state and functions
  */
-export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, setHintCount, showToast) {
+export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, setHintCount, showToast, puzzle, isQuick) {
   // Generate prefix data for lifeline system
   const generatePrefixData = useMemo(() => {
     if (!rows || rows.length === 0) return {};

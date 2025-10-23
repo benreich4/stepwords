@@ -240,7 +240,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       setToastVariant(variant);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(() => setToast(""), duration || 2000);
-    }
+    },
+    puzzle,
+    isQuick
   );
   
   
