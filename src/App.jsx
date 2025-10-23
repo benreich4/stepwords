@@ -131,7 +131,7 @@ export default function App() {
               <Link 
                 to={mainTarget} 
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
-                  !isQuick 
+                  (!isQuick && !isArchives)
                     ? 'bg-blue-600 border-blue-500 text-white' 
                     : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
                 }`}
@@ -141,7 +141,7 @@ export default function App() {
               <Link 
                 to={quickTarget} 
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
-                  isQuick 
+                  (isQuick && !isArchives)
                     ? 'bg-blue-600 border-blue-500 text-white' 
                     : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
                 }`}
