@@ -4,9 +4,12 @@ import { useNavigate } from 'react-router-dom';
 const PuzzleCreatorSimple = () => {
   const [submissionWords, setSubmissionWords] = useState(['', '', '', '', '']);
   const [submissionClues, setSubmissionClues] = useState(['', '', '', '', '']);
+  const [submissionBreakdowns, setSubmissionBreakdowns] = useState(['', '', '', '', '']);
+  const [breakdownTouched, setBreakdownTouched] = useState([false, false, false, false, false]);
   const [submissionAuthor, setSubmissionAuthor] = useState('');
   // title is not used in current backend format
   const [submissionStatus, setSubmissionStatus] = useState('');
+  const [copying, setCopying] = useState(false);
 
   const navigate = useNavigate();
 
@@ -23,6 +26,8 @@ const PuzzleCreatorSimple = () => {
         if (words.length > 0) {
           setSubmissionWords(words);
           setSubmissionClues(clues);
+          setSubmissionBreakdowns(words.map(w => String((w || '').length)));
+          setBreakdownTouched(Array(words.length).fill(false));
           
           // Clear the localStorage data after using it
           localStorage.removeItem('explorePuzzleWords');
@@ -38,6 +43,8 @@ const PuzzleCreatorSimple = () => {
     if (submissionWords.length < 15) {
       setSubmissionWords([...submissionWords, '']);
       setSubmissionClues([...submissionClues, '']);
+      setSubmissionBreakdowns([...submissionBreakdowns, '']);
+      setBreakdownTouched([...breakdownTouched, false]);
     }
   };
 
@@ -45,15 +52,28 @@ const PuzzleCreatorSimple = () => {
     if (submissionWords.length > 1) {
       const newWords = submissionWords.filter((_, i) => i !== index);
       const newClues = submissionClues.filter((_, i) => i !== index);
+      const newBreakdowns = submissionBreakdowns.filter((_, i) => i !== index);
+      const newTouched = breakdownTouched.filter((_, i) => i !== index);
       setSubmissionWords(newWords);
       setSubmissionClues(newClues);
+      setSubmissionBreakdowns(newBreakdowns);
+      setBreakdownTouched(newTouched);
     }
   };
 
   const updateWord = (index, value) => {
+    const prevLen = (submissionWords[index] || '').length;
     const newWords = [...submissionWords];
     newWords[index] = value;
     setSubmissionWords(newWords);
+    // Auto-default breakdown to current word length until user edits
+    const bd = submissionBreakdowns[index] || '';
+    const touched = breakdownTouched[index] || false;
+    if (!touched || bd === '' || bd === String(prevLen)) {
+      const next = [...submissionBreakdowns];
+      next[index] = String((value || '').length);
+      setSubmissionBreakdowns(next);
+    }
   };
 
   const updateClue = (index, value) => {
@@ -62,9 +82,20 @@ const PuzzleCreatorSimple = () => {
     setSubmissionClues(newClues);
   };
 
+  const updateBreakdown = (index, value) => {
+    const newB = [...submissionBreakdowns];
+    newB[index] = value;
+    setSubmissionBreakdowns(newB);
+    const touched = [...breakdownTouched];
+    touched[index] = true;
+    setBreakdownTouched(touched);
+  };
+
   const reverseWords = () => {
     setSubmissionWords([...submissionWords].reverse());
     setSubmissionClues([...submissionClues].reverse());
+    setSubmissionBreakdowns([...submissionBreakdowns].reverse());
+    setBreakdownTouched([...breakdownTouched].reverse());
   };
 
   const submitPuzzle = async () => {
@@ -88,6 +119,7 @@ const PuzzleCreatorSimple = () => {
       const rows = submissionWords.map((word, i) => ({
         answer: (word || '').toLowerCase().trim(),
         clue: (submissionClues[i] || '').trim(),
+        breakdown: (submissionBreakdowns[i] || '').trim(),
       }));
       const puzzleData = {
         author: submissionAuthor.trim(),
@@ -122,6 +154,8 @@ const PuzzleCreatorSimple = () => {
       setTimeout(() => {
         setSubmissionWords(['', '', '', '', '']);
         setSubmissionClues(['', '', '', '', '']);
+        setSubmissionBreakdowns(['', '', '', '', '']);
+        setBreakdownTouched([false, false, false, false, false]);
         setSubmissionAuthor('');
         setSubmissionTitle('');
         setSubmissionStatus('');
@@ -137,15 +171,38 @@ const PuzzleCreatorSimple = () => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Puzzle Creator</h1>
-          <p className="text-gray-400">Create and submit your own Stepwords puzzles</p>
-          <div className="mt-4">
-            <a 
-              href="/explore" 
-              className="text-blue-400 hover:text-blue-300 underline"
-            >
-              Explore word chains →
-            </a>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Puzzle Creator</h1>
+              <p className="text-gray-400">Create and submit your own Stepwords puzzles</p>
+              <div className="mt-4">
+                <a 
+                  href="/explore" 
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  Explore word chains →
+                </a>
+              </div>
+            </div>
+            <div className="mt-1">
+              <button
+                onClick={async () => {
+                  try {
+                    setCopying(true);
+                    const words = submissionWords.map(w => (w || '').trim()).filter(Boolean);
+                    await navigator.clipboard.writeText(words.join(', '));
+                    setTimeout(() => setCopying(false), 900);
+                  } catch {
+                    setCopying(false);
+                  }
+                }}
+                className="px-3 py-1.5 text-xs rounded border border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700 disabled:opacity-50"
+                disabled={copying}
+                title="Copy all words as a comma-separated list"
+              >
+                {copying ? 'Copied!' : 'Copy words'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -222,7 +279,18 @@ const PuzzleCreatorSimple = () => {
                           className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
                         />
                       </div>
-                      <div className="md:col-span-9">
+                      <div className="md:col-span-2">
+                        <label className="block text-xs text-gray-400 mb-1 whitespace-nowrap">Word breakdown</label>
+                        <input
+                          type="text"
+                          value={submissionBreakdowns[index]}
+                          onChange={(e) => updateBreakdown(index, e.target.value)}
+                          placeholder={`${(word || '').length}`}
+                          title={'e.g. "5" or "3,4"'}
+                          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                        />
+                      </div>
+                      <div className="md:col-span-7">
                         <label className="block text-xs text-gray-400 mb-1">Clue</label>
                         <input
                           type="text"
