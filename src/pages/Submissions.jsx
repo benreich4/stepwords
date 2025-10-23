@@ -7,6 +7,7 @@ export default function Submissions() {
   const [items, setItems] = useState([]);
   const [copyingId, setCopyingId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [showLastWords, setShowLastWords] = useState(false);
 
   useEffect(() => {
     document.title = "Stepwords - Submissions";
@@ -134,7 +135,15 @@ export default function Submissions() {
   return (
     <div className="px-4 py-6 text-gray-200">
       <div className="max-w-xl mx-auto">
-        <div className="mb-3 text-lg font-semibold">Submissions</div>
+        <div className="mb-2 text-lg font-semibold">Submissions</div>
+        <div className="mb-3">
+          <button
+            onClick={() => setShowLastWords((v) => !v)}
+            className="px-3 py-1.5 text-xs rounded border border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700"
+          >
+            {showLastWords ? 'Hide last words' : 'Show last words'}
+          </button>
+        </div>
         {!items.length && (
           <div className="text-gray-400">No submissions found.</div>
         )}
@@ -144,7 +153,7 @@ export default function Submissions() {
               <div>
                 <div className="text-sm text-gray-100">
                   {it.author || "(Unknown author)"}
-                  {it.lastWord && (
+                  {showLastWords && it.lastWord && (
                     <span className="ml-2 text-xs text-gray-400">• {it.lastWord}</span>
                   )}
                 </div>
