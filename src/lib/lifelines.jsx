@@ -12,12 +12,13 @@ import { useMemo } from 'react';
  */
 export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, setHintCount, showToast, puzzle, isQuick) {
   // Generate prefix data for lifeline system
-  const generatePrefixData = useMemo(() => {
-    if (!rows || rows.length === 0) return {};
-    
+  const { generatePrefixData, maxLevel } = useMemo(() => {
+    if (!rows || rows.length === 0) return { generatePrefixData: {}, maxLevel: 0 };
+
+    const maxLen = rows.reduce((m, r) => Math.max(m, (r?.answer || '').length), 0);
     const prefixData = {};
     const solvedWords = new Set();
-    
+
     // Track which words are solved (all letters are colored, not null/undefined)
     rows.forEach((row, index) => {
       const rowColors = lockColors[index];
@@ -25,43 +26,38 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
         solvedWords.add(row.answer.toLowerCase());
       }
     });
-    
-    // Generate prefixes for each level
-    for (let level = 1; level <= 3; level++) {
-      const prefixCounts = {};
-      
+
+    // Generate tokens for each level up to max word length
+    for (let level = 1; level <= maxLen; level++) {
+      const tokenCounts = {};
+
       rows.forEach(row => {
-        const word = row.answer.toLowerCase();
-        if (word.length >= level) {
-          const prefix = word.substring(0, level);
-          if (!prefixCounts[prefix]) {
-            prefixCounts[prefix] = { total: 0, solved: 0 };
-          }
-          prefixCounts[prefix].total++;
-          
-          // Check if this word is solved
-          if (solvedWords.has(word)) {
-            prefixCounts[prefix].solved++;
-          }
+        const word = (row.answer || '').toLowerCase();
+        if (!word) return;
+        const token = word.slice(0, Math.min(level, word.length)); // full word if shorter than level
+        if (!tokenCounts[token]) {
+          tokenCounts[token] = { total: 0, solved: 0 };
         }
+        tokenCounts[token].total++;
+        if (solvedWords.has(word)) tokenCounts[token].solved++;
       });
-      
+
       // Convert to array and sort alphabetically
-      const sortedPrefixes = Object.entries(prefixCounts)
+      const sorted = Object.entries(tokenCounts)
         .map(([prefix, counts]) => ({ prefix, ...counts }))
         .sort((a, b) => a.prefix.localeCompare(b.prefix));
-      
-      prefixData[level] = sortedPrefixes;
+
+      prefixData[level] = sorted;
     }
-    
-    return prefixData;
+
+    return { generatePrefixData: prefixData, maxLevel: maxLen };
   }, [rows, lockColors]);
 
   const showPrefixes = () => {
     setLifelineLevel(1);
     setHintCount(n => n + 1);
     showToast("Revealed 1-letter word starts", 2000, "info");
-    
+
     // Track initial hint usage (extending from 0 to 1)
     try {
       if (window.gtag && typeof window.gtag === 'function') {
@@ -76,11 +72,12 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
   };
 
   const extendPrefixes = () => {
-    if (lifelineLevel < 3) {
-      setLifelineLevel(lifelineLevel + 1);
+    if (lifelineLevel < maxLevel) {
+      const nextLevel = lifelineLevel + 1;
+      setLifelineLevel(nextLevel);
       setHintCount(n => n + 1);
-      showToast(`Revealed ${lifelineLevel + 1}-letter word starts`, 2000, "info");
-      
+      showToast(`Revealed ${nextLevel}-letter word starts`, 2000, "info");
+
       // Track extend hint usage
       try {
         if (window.gtag && typeof window.gtag === 'function') {
@@ -88,7 +85,7 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
             hint_type: 'extend_word_starts',
             puzzle_id: puzzle.id || 'unknown',
             mode: isQuick ? 'quick' : 'main',
-            hint_level: lifelineLevel + 1
+            hint_level: nextLevel
           });
         }
       } catch {}
@@ -99,7 +96,7 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
     generatePrefixData,
     showPrefixes,
     extendPrefixes,
-    canExtend: lifelineLevel < 3
+    canExtend: lifelineLevel < maxLevel
   };
 }
 
@@ -129,7 +126,7 @@ export function LifelineMenu({
         ) : (
           <div>
             <div className="mb-1 text-gray-300 text-sm">
-              {lifelineLevel}-letter word starts:
+              Up to {lifelineLevel}-letter word starts:
             </div>
             <div className="space-y-1">
               {generatePrefixData[lifelineLevel]?.map(({ prefix, total, solved }) => (
@@ -179,7 +176,7 @@ export function LifelineMenu({
             disabled={!canExtend}
             className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
-            {lifelineLevel >= 3 ? "Fully Extended" : "Extend Word Starts"}
+            {canExtend ? "Extend Word Starts" : "Fully Extended"}
           </button>
         )}
         <button
