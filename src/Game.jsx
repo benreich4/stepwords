@@ -1454,9 +1454,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           stars={stars}
           didFail={didFail}
           elapsedTime={!hideZeroTime ? formatElapsed(elapsedMs) : null}
-          onClose={() => {
-            setShowShare(false);
-            // Track share action
+          onShare={() => {
             try {
               if (window.gtag && typeof window.gtag === 'function') {
                 window.gtag('event', 'puzzle_shared', {
@@ -1466,6 +1464,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                 });
               }
             } catch (_err) { void 0; }
+          }}
+          onClose={() => {
+            setShowShare(false);
           }}
         />
       )}

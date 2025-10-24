@@ -12,6 +12,7 @@ export default function ShareModal({
   stars = null,
   didFail = false,
   elapsedTime = null,
+  onShare = null,
 }) {
   const [notice, setNotice] = useState("");
   // Determine if this is today's puzzle in ET
@@ -120,6 +121,9 @@ export default function ShareModal({
           <div className="flex gap-2 items-center">
             <button
               onClick={async () => {
+                try {
+                  onShare && onShare();
+                } catch {}
                 try {
                   const header = didFail
                     ? (isQuick
