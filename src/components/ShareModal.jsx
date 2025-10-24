@@ -11,6 +11,7 @@ export default function ShareModal({
   isQuick = false,
   stars = null,
   didFail = false,
+  elapsedTime = null,
 }) {
   const [notice, setNotice] = useState("");
   // Determine if this is today's puzzle in ET
@@ -31,6 +32,8 @@ export default function ShareModal({
     }
   })();
 
+  const hasTime = Boolean(elapsedTime && !didFail);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-6">
       <div className="w-full max-w-lg rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-5 shadow-2xl max-h-[85vh] overflow-y-auto">
@@ -41,7 +44,7 @@ export default function ShareModal({
           )}
         </div>
 
-        <div className="mb-3 grid grid-cols-2 gap-2 text-sm">
+        <div className={`mb-3 grid gap-2 text-sm ${hasTime ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
             <div className="text-gray-400">Guesses</div>
             <div className="text-lg font-semibold text-gray-100">{guessCount}/{rowsLength}</div>
@@ -50,8 +53,14 @@ export default function ShareModal({
             <div className="text-gray-400">Hints used</div>
             <div className="text-lg font-semibold text-gray-100">{hintCount}</div>
           </div>
+          {hasTime && (
+            <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
+              <div className="text-gray-400">Time</div>
+              <div className="text-lg font-semibold text-gray-100">{elapsedTime}</div>
+            </div>
+          )}
           {Number.isFinite(stars) && !didFail && (
-            <div className="col-span-2 rounded-lg border border-gray-700 bg-gray-900/60 p-3 flex items-center justify-between">
+            <div className={`${hasTime ? 'col-span-3' : 'col-span-2'} rounded-lg border border-gray-700 bg-gray-900/60 p-3 flex items-center justify-between`}>
               <div className="text-gray-400">Stars</div>
               <div className="text-xl font-semibold text-yellow-300">{'★'.repeat(Math.max(0,Math.min(3,stars||0)))}{'☆'.repeat(Math.max(0,3-(stars||0)))}</div>
             </div>
@@ -128,7 +137,8 @@ export default function ShareModal({
                             ? "I solved today's Stepword Puzzle!"
                             : (puzzleDateText ? `I solved the Stepword Puzzle for ${puzzleDateText}!` : "I solved the Stepword Puzzle!")));
                   const starLine = (!didFail && Number.isFinite(stars)) ? `\nStars: ${'★'.repeat(Math.max(0,Math.min(3,stars||0)))}${'☆'.repeat(Math.max(0,3-(stars||0)))}` : '';
-                  const composed = `${header}${starLine}\n\n${shareText}\n\nhttps://stepwords.xyz${isQuick ? '/quick' : ''}`;
+                  const timeLine = (elapsedTime && !didFail) ? `\nTime: ${elapsedTime}` : '';
+                  const composed = `${header}${starLine}${timeLine}\n\n${shareText}\n\nhttps://stepwords.xyz${isQuick ? '/quick' : ''}`;
                   await navigator.clipboard.writeText(composed);
                   setNotice("Message copied to clipboard");
                 } catch {

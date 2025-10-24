@@ -9,6 +9,7 @@ import { formatDateWithDayOfWeek } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 import { useLifelines, LifelineMenu } from "./lib/lifelines.jsx";
 import { useReveal, RevealConfirmModal } from "./lib/reveal.jsx";
+import { usePuzzleTimer } from "./lib/timer.js";
 // Inline analytics - no separate module needed
 export default function Game({ puzzle, isQuick = false, prevId = null, nextId = null }) {
   const rowsRaw = puzzle.rows || [];
@@ -57,6 +58,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           wrongGuessCount: parsed.wrongGuessCount || 0,
           lifelineLevel: parsed.lifelineLevel || 0,
           wordRevealed: parsed.wordRevealed || false,
+          elapsedMs: Number.isFinite(parsed.elapsedMs) ? parsed.elapsedMs : 0,
+          timerFinished: parsed.timerFinished === true,
         };
       }
     } catch (e) {
@@ -82,6 +85,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       wrongGuessCount: 0,
       lifelineLevel: 0,
       wordRevealed: false,
+      elapsedMs: 0,
+      timerFinished: false,
     };
   };
 
@@ -119,6 +124,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [headerCollapsed, setHeaderCollapsed] = useState(() => {
     try { return localStorage.getItem('stepwords-header-collapsed') === '1'; } catch { return false; }
   });
+
+  // Determine if this puzzle was already completed or failed before timer fields existed
+  // const hideTimerDueToLegacy = useMemo(() => shouldHideTimerForLegacy(puzzleNamespace, puzzle.id, savedState.hadTimerFields), [puzzleNamespace, puzzle.id, savedState.hadTimerFields]);
 
   // Sync header collapse state with global header toggle (from App header button)
   useEffect(() => {
@@ -168,6 +176,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       }, effectiveDuration);
     }
   }
+
   // Expose setters for drag diff to child grid (avoids prop drilling handlers)
   useEffect(() => {
     window.__setDragStartRow = (v) => {
@@ -222,7 +231,23 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [showLoss, setShowLoss] = useState(false);
   const [stars, setStars] = useState(null);
   const [didFail, setDidFail] = useState(false);
-  
+  // Timer via hook
+  const { elapsedMs, running: timerRunning, finished: timerFinished, start: startTimer, pause: pauseTimer, stop: stopTimer, format: formatElapsed } = usePuzzleTimer(savedState.elapsedMs || 0, savedState.timerFinished || false);
+
+  // Pause/resume on visibility change (after timer hook is ready)
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden) pauseTimer(); else if (!timerFinished) startTimer();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [timerFinished]);
+
+  // Stop timer when puzzle finished or failed
+  useEffect(() => {
+    if (showShare || didFail) stopTimer();
+  }, [showShare, didFail]);
+
   // Lifeline state
   const [showLifelineMenu, setShowLifelineMenu] = useState(false);
   const [lifelineLevel, setLifelineLevel] = useState(savedState.lifelineLevel || 0);
@@ -425,6 +450,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         wrongGuessCount,
         lifelineLevel,
         wordRevealed,
+        elapsedMs,
+        timerFinished,
       };
       localStorage.setItem(puzzleKey, JSON.stringify(stateToSave));
     } catch (e) {
@@ -435,8 +462,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Save state whenever it changes
   useEffect(() => {
     saveGameState();
-  }, [lockColors, level, guesses, cursor, wasWrong, hintCount, guessCount, wrongGuessCount, lifelineLevel, wordRevealed]);
-
+  }, [lockColors, level, guesses, cursor, wasWrong, hintCount, guessCount, wrongGuessCount, lifelineLevel, wordRevealed, elapsedMs, timerFinished]);
 
   const clue = rows[level]?.clue || "";
   const scoreBase = 10;
@@ -469,7 +495,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     scoreBase,
     puzzleNamespace,
     puzzle,
-    isQuick
+    isQuick,
+    elapsedMs,
+    formatElapsed(elapsedMs)
   );
   
   const pointsNow = Math.max(0, scoreBase - usedCount);
@@ -479,6 +507,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const rem = 4 - (usedCount % 4);
     return rem === 0 ? 4 : rem;
   })();
+
+  const hideZeroTime = timerFinished && elapsedMs < 1000;
 
   // Consider puzzle solved if all rows are fully colored
   const solvedNow = useMemo(() => isPuzzleSolved(lockColors, rows), [lockColors, rows]);
@@ -788,7 +818,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               total_guesses: guessCount,
               wrong_guesses: wrongGuessCount,
               completion_time: Date.now() - (gameStartTime || Date.now()),
-              mode: isQuick ? 'quick' : 'main'
+              mode: isQuick ? 'quick' : 'main',
+              solve_time_ms: elapsedMs,
+              solve_time_display: formatElapsed(elapsedMs),
             });
           }
         } catch (_err) { void 0; }
@@ -1119,6 +1151,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             <span className={currentStars >= 2 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
             <span className={currentStars >= 3 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
         </div>
+        {!hideZeroTime && (
+          <div className="ml-2 px-2 py-0.5 rounded border border-gray-700 bg-gray-900/40 text-xs font-mono tabular-nums text-gray-300 select-none" title="Elapsed time">
+            {formatElapsed(elapsedMs)}
+          </div>
+        )}
           {pointsNow === 0 && (
             <div className="px-2 py-0.5 rounded border border-red-600 bg-red-900/40 text-red-300">
               {didFail ? 'You already lost.' : 'Next misstep loses the game!'}
@@ -1416,6 +1453,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           isQuick={isQuick}
           stars={stars}
           didFail={didFail}
+          elapsedTime={!hideZeroTime ? formatElapsed(elapsedMs) : null}
           onClose={() => {
             setShowShare(false);
             // Track share action

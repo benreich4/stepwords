@@ -23,9 +23,11 @@ import { useState } from 'react';
  * @param {string} puzzleNamespace - Namespace for localStorage
  * @param {Object} puzzle - Puzzle object with id
  * @param {boolean} isQuick - Whether this is a quick puzzle
+ * @param {number} elapsedMs - Elapsed timer milliseconds
+ * @param {string} elapsedDisplay - Formatted elapsed time
  * @returns {Object} Reveal state and functions
  */
-export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, level, showToast, wordRevealed, setWordRevealed, isPuzzleSolved, buildEmojiShareGridFrom, setShareText, setStars, setDidFail, setShowShare, hintCount, wrongGuessCount, scoreBase, puzzleNamespace, puzzle, isQuick) {
+export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, level, showToast, wordRevealed, setWordRevealed, isPuzzleSolved, buildEmojiShareGridFrom, setShareText, setStars, setDidFail, setShowShare, hintCount, wrongGuessCount, scoreBase, puzzleNamespace, puzzle, isQuick, elapsedMs, elapsedDisplay) {
   const [showWordRevealConfirm, setShowWordRevealConfirm] = useState(false);
 
   // Reveal word function
@@ -101,7 +103,9 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
               final_score: finalScore,
               stars: awarded,
               mode: isQuick ? 'quick' : 'main',
-              revealed: true
+              revealed: true,
+              solve_time_ms: elapsedMs,
+              solve_time_display: elapsedDisplay,
             });
           }
         } catch {}
