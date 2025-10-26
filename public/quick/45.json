@@ -1,0 +1,31 @@
+{
+  "id": "45",
+  "rows": [
+    {
+      "answer": "son",
+      "clue": "Male child (3)",
+      "breakdown": "3"
+    },
+    {
+      "answer": "song",
+      "clue": "Spotify selection (4)",
+      "breakdown": "4"
+    },
+    {
+      "answer": "gongs",
+      "clue": "Instruments hit with mallets (5)",
+      "breakdown": "5"
+    },
+    {
+      "answer": "goings",
+      "clue": "Comings and ___ (6)",
+      "breakdown": "6"
+    },
+    {
+      "answer": "noggins",
+      "clue": "Heads, informally (7)",
+      "breakdown": "7"
+    }
+  ],
+  "submittedAt": "2025-10-26T19:52:18.790Z"
+}

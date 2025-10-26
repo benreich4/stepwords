@@ -1,0 +1,41 @@
+{
+  "id": "58",
+  "rows": [
+    {
+      "answer": "eat",
+      "clue": "Have a meal (3)",
+      "breakdown": "3"
+    },
+    {
+      "answer": "neat",
+      "clue": "Tidy (4)",
+      "breakdown": "4"
+    },
+    {
+      "answer": "meant",
+      "clue": "Intended (5)",
+      "breakdown": "5"
+    },
+    {
+      "answer": "mental",
+      "clue": "Crazy (6)",
+      "breakdown": "6"
+    },
+    {
+      "answer": "nflteam",
+      "clue": "Jets, e.g. (3,4)",
+      "breakdown": "3,4"
+    },
+    {
+      "answer": "mintleaf",
+      "clue": "Mojito garnish (4,4)",
+      "breakdown": "4,4"
+    },
+    {
+      "answer": "twinflame",
+      "clue": "Soulmate (4,5)",
+      "breakdown": "4,5"
+    }
+  ],
+  "submittedAt": "2025-10-26T19:59:16.732Z"
+}
