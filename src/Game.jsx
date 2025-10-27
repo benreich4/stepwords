@@ -57,6 +57,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           guessCount: parsed.guessCount || 0,
           wrongGuessCount: parsed.wrongGuessCount || 0,
           lifelineLevel: parsed.lifelineLevel || 0,
+          lifelinesUsed: parsed.lifelinesUsed || {
+            first3: false,
+            last3: false,
+            middle3: false,
+            firstLastStep: false
+          },
           wordRevealed: parsed.wordRevealed || false,
           elapsedMs: Number.isFinite(parsed.elapsedMs) ? parsed.elapsedMs : 0,
           timerFinished: parsed.timerFinished === true,
@@ -84,6 +90,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       guessCount: 0,
       wrongGuessCount: 0,
       lifelineLevel: 0,
+      lifelinesUsed: {
+        first3: false,
+        last3: false,
+        middle3: false,
+        firstLastStep: false
+      },
       wordRevealed: false,
       elapsedMs: 0,
       timerFinished: false,
@@ -110,7 +122,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Minimal: refs to detect outside clicks for popovers
   const settingsRef = useRef(null);
   const lifelineRef = useRef(null);
-  const revealRef = useRef(null);
   const submitBtnRef = useRef(null);
   const collapseBtnRef = useRef(null);
   const starsRef = useRef(null);
@@ -209,7 +220,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode })); } catch {}
   }, [settings]);
   const [showSettings, setShowSettings] = useState(false);
-  const [showRevealMenu, setShowRevealMenu] = useState(false);
   // Easy mode now saved globally in settings (like hardMode)
   // Legacy hint fields kept for save compatibility
   const [hintsUsed] = useState(savedState.hintsUsed || { initialLetters: false, stepLetters: false, filterKeyboard: false });
@@ -225,7 +235,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [showShare, setShowShare] = useState(false);
   const [shareText, setShareText] = useState("");
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [showRevealConfirm, setShowRevealConfirm] = useState(false);
   const [showQuickIntro, setShowQuickIntro] = useState(false);
   const [gameStartTime] = useState(Date.now());
   const [showLoss, setShowLoss] = useState(false);
@@ -251,6 +260,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Lifeline state
   const [showLifelineMenu, setShowLifelineMenu] = useState(false);
   const [lifelineLevel, setLifelineLevel] = useState(savedState.lifelineLevel || 0);
+  const [lifelinesUsed, setLifelinesUsed] = useState(savedState.lifelinesUsed || {
+    first3: false,
+    last3: false,
+    middle3: false,
+    firstLastStep: false
+  });
   
   // Reveal state
   const [wordRevealed, setWordRevealed] = useState(savedState.wordRevealed || false);
@@ -272,7 +287,154 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     isQuick
   );
   
-  
+  function revealSpecificIndices(indices) {
+    if (!Array.isArray(indices) || indices.length === 0) return;
+    // Act on current level
+    const i = level;
+    const ans = rows[i]?.answer?.toUpperCase?.() || "";
+    const len = ans.length;
+    const valid = indices.filter((c) => Number.isFinite(c) && c >= 0 && c < len);
+    if (!valid.length) return;
+    const newLockColors = lockColors.map((rc) => rc.slice());
+    const rowLock = newLockColors[i] ? newLockColors[i].slice() : Array(len).fill(null);
+    const curChars = (guesses[i] || "").toUpperCase().padEnd(len, " ").slice(0, len).split("");
+    valid.forEach((c) => { if (!rowLock[c]) rowLock[c] = "Y"; curChars[c] = ans[c]; });
+    newLockColors[i] = rowLock;
+    const newGuesses = guesses.slice();
+    newGuesses[i] = curChars.join("").trimEnd();
+    setLockColors(newLockColors);
+    setGuesses(newGuesses);
+    setHintCount((n) => n + 2); // costs 2 missteps
+    showToast("Revealed letters.", 2000, "info");
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'hint_used', { hint_type: 'lifeline_reveal', puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' });
+      }
+    } catch {}
+  }
+
+  const handleRevealFirst3 = () => {
+    if (lifelinesUsed.first3) return;
+    const i = level; const len = rows[i]?.answer?.length || 0;
+    const numLetters = isQuick ? 2 : 3;
+    const idx = Array.from({length: numLetters}, (_, k) => k).filter(c=>c < len);
+    revealSpecificIndices(idx);
+    setLifelinesUsed(prev => ({ ...prev, first3: true }));
+    setHintCount(n => n + 2);
+    
+    // Track lifeline usage
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'hint_used', {
+          hint_type: isQuick ? 'lifeline_first2' : 'lifeline_first3',
+          puzzle_id: puzzle.id || 'unknown',
+          mode: isQuick ? 'quick' : 'main'
+        });
+      }
+    } catch {}
+  };
+  const handleRevealLast3 = () => {
+    if (lifelinesUsed.last3) return;
+    const i = level; const len = rows[i]?.answer?.length || 0;
+    const numLetters = isQuick ? 2 : 3;
+    const start = Math.max(0, len - numLetters);
+    const idx = Array.from({length: Math.min(numLetters, len)}, (_,k)=> start + k);
+    revealSpecificIndices(idx);
+    setLifelinesUsed(prev => ({ ...prev, last3: true }));
+    setHintCount(n => n + 2);
+    
+    // Track lifeline usage
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'hint_used', {
+          hint_type: isQuick ? 'lifeline_last2' : 'lifeline_last3',
+          puzzle_id: puzzle.id || 'unknown',
+          mode: isQuick ? 'quick' : 'main'
+        });
+      }
+    } catch {}
+  };
+  const handleRevealMiddle3 = () => {
+    if (lifelinesUsed.middle3) return;
+    const i = level; const len = rows[i]?.answer?.length || 0;
+    if (len === 0) return;
+    const numLetters = isQuick ? 2 : 3;
+    
+    if (len <= numLetters) { 
+      revealSpecificIndices(Array.from({length: len}, (_,k)=>k)); 
+      setLifelinesUsed(prev => ({ ...prev, middle3: true }));
+      setHintCount(n => n + 2);
+      
+      // Track lifeline usage
+      try {
+        if (window.gtag && typeof window.gtag === 'function') {
+          window.gtag('event', 'hint_used', {
+            hint_type: isQuick ? 'lifeline_middle2' : 'lifeline_middle3',
+            puzzle_id: puzzle.id || 'unknown',
+            mode: isQuick ? 'quick' : 'main'
+          });
+        }
+      } catch {}
+      return; 
+    }
+    
+    const mid = Math.floor(len/2);
+    let idx;
+    if (isQuick) {
+      // For quick: middle 2 letters
+      idx = len % 2 === 1 ? [mid-1, mid] : [mid-1, mid];
+    } else {
+      // For main: middle 3 letters
+      idx = len % 2 === 1 ? [mid-1, mid, mid+1] : [mid-2, mid-1, mid];
+    }
+    const valid = idx.filter(c=> c>=0 && c<len);
+    revealSpecificIndices(valid);
+    setLifelinesUsed(prev => ({ ...prev, middle3: true }));
+    setHintCount(n => n + 2);
+    
+    // Track lifeline usage
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'hint_used', {
+          hint_type: isQuick ? 'lifeline_middle2' : 'lifeline_middle3',
+          puzzle_id: puzzle.id || 'unknown',
+          mode: isQuick ? 'quick' : 'main'
+        });
+      }
+    } catch {}
+  };
+  const handleRevealFirstLastStep = () => {
+    if (lifelinesUsed.firstLastStep) return;
+    const i = level; const len = rows[i]?.answer?.length || 0;
+    if (len === 0) return;
+    const first = 0; const last = len - 1;
+    const step = stepIdx?.[i] ?? -1;
+    
+    let idx;
+    if (isQuick) {
+      // For quick: first and last letters only (no step)
+      idx = [first, last];
+    } else {
+      // For main: first, last, and step letters
+      idx = [first, last, ...(step>=0 ? [step] : [])];
+    }
+    const uniq = Array.from(new Set(idx)).filter(c=> c>=0 && c<len);
+    revealSpecificIndices(uniq);
+    setLifelinesUsed(prev => ({ ...prev, firstLastStep: true }));
+    setHintCount(n => n + 2);
+    
+    // Track lifeline usage
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'hint_used', {
+          hint_type: isQuick ? 'lifeline_first_last' : 'lifeline_first_last_step',
+          puzzle_id: puzzle.id || 'unknown',
+          mode: isQuick ? 'quick' : 'main'
+        });
+      }
+    } catch {}
+  };
+
 
   // Function to get letters used in all answers
   const lettersUsedInAnswers = useMemo(() => {
@@ -449,6 +611,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         guessCount,
         wrongGuessCount,
         lifelineLevel,
+        lifelinesUsed,
         wordRevealed,
         elapsedMs,
         timerFinished,
@@ -462,7 +625,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Save state whenever it changes
   useEffect(() => {
     saveGameState();
-  }, [lockColors, level, guesses, cursor, wasWrong, hintCount, guessCount, wrongGuessCount, lifelineLevel, wordRevealed, elapsedMs, timerFinished]);
+  }, [lockColors, level, guesses, cursor, wasWrong, hintCount, guessCount, wrongGuessCount, lifelineLevel, lifelinesUsed, wordRevealed, elapsedMs, timerFinished]);
 
   const clue = rows[level]?.clue || "";
   const scoreBase = 10;
@@ -903,7 +1066,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const id = setInterval(() => {
       try {
         if (jumpNudgeShownRef.current) return;
-        if (showHowToPlay || showSettings || showQuickIntro || showRevealConfirm || showShare) return;
+        if (showHowToPlay || showSettings || showQuickIntro || showShare) return;
         if (solvedNow || didFail) return;
         const idleMs = Date.now() - (lastProgressRef.current || 0);
         if (idleMs >= 15000) {
@@ -913,7 +1076,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       } catch {}
     }, 3000);
     return () => { clearInterval(id); };
-  }, [isExperienced, showHowToPlay, showSettings, showQuickIntro, showRevealConfirm, showShare, solvedNow, didFail]);
+  }, [isExperienced, showHowToPlay, showSettings, showQuickIntro, showShare, solvedNow, didFail]);
 
   // Reset progress timer and allow showing the nudge again when there is progress
   useEffect(() => {
@@ -964,23 +1127,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     };
   }, [showLifelineMenu]);
 
-  // Close Reveal (magnifier) menu when clicking/tapping outside
-  useEffect(() => {
-    const handler = (e) => {
-      try {
-        if (showRevealMenu && revealRef.current && !revealRef.current.contains(e.target)) {
-          setShowRevealMenu(false);
-        }
-      } catch {}
-    };
-    document.addEventListener('mousedown', handler, true);
-    document.addEventListener('touchstart', handler, true);
-    return () => {
-      document.removeEventListener('mousedown', handler, true);
-      document.removeEventListener('touchstart', handler, true);
-    };
-  }, [showRevealMenu]);
-
   // One-time coachmark to highlight the clue bar for first-time players
   // Show only after the How To modal has been closed the first time
   useEffect(() => {
@@ -1016,7 +1162,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     try {
       if (localStorage.getItem('stepwords-hints-coach-shown') === '1') return;
       const t = setTimeout(() => {
-        if (showHowToPlay || showSettings || showQuickIntro || showRevealConfirm || showShare) return;
+        if (showHowToPlay || showSettings || showQuickIntro || showShare) return;
         if (solvedNow || didFail) return;
         if (hintCount > 0) return; // Already used hints
         const el = lifelineRef.current;
@@ -1038,7 +1184,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       }, 60000);
       return () => clearTimeout(t);
     } catch {}
-  }, [isExperienced, showHowToPlay, showSettings, showQuickIntro, showRevealConfirm, showShare, solvedNow, didFail, hintCount]);
+  }, [isExperienced, showHowToPlay, showSettings, showQuickIntro, showShare, solvedNow, didFail, hintCount]);
 
   // On-screen keyboard handlers (mobile)
   const handleKeyPress = (key) => {
@@ -1181,43 +1327,35 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               showPrefixes={showPrefixes}
               extendPrefixes={extendPrefixes}
               canExtend={canExtend}
+              lifelinesUsed={lifelinesUsed}
+              isQuick={isQuick}
+              onRevealFirst3={handleRevealFirst3}
+              onRevealLast3={handleRevealLast3}
+              onRevealMiddle3={handleRevealMiddle3}
+              onRevealFirstLastStep={handleRevealFirstLastStep}
+              onGiveUpReveal={(type) => {
+                if (type === 'letter') {
+                  // Reveal letter immediately without confirmation
+                  revealTileAt(level, cursor);
+                  setHintCount(n => n + 1);
+                  
+                  // Track letter reveal usage
+                  try {
+                    if (window.gtag && typeof window.gtag === 'function') {
+                      window.gtag('event', 'hint_used', {
+                        hint_type: 'reveal_letter',
+                        puzzle_id: puzzle.id || 'unknown',
+                        mode: isQuick ? 'quick' : 'main'
+                      });
+                    }
+                  } catch {}
+                } else if (type === 'word') {
+                  setShowWordRevealConfirm(true);
+                } else {
+                  setShowWordRevealConfirm(true);
+                }
+              }}
             />
-          </div>
-          {/* Reveal Word button */}
-          <div ref={revealRef} className="relative">
-            <button
-              onClick={() => setShowRevealMenu((v) => !v)}
-              className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
-              aria-label="Reveal options"
-              title="Reveal options"
-            >
-              🔍
-            </button>
-            {showRevealMenu && (
-              <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-gray-700 bg-gray-900/95 backdrop-blur-sm shadow-xl ring-1 ring-white/10 p-1 text-xs menu-pop-in">
-                <button
-                  className="w-full text-left px-2 py-2 rounded-md hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-                  onClick={() => {
-                    setShowRevealMenu(false);
-                    setShowWordRevealConfirm(true);
-                  }}
-                >
-                  Reveal word
-                </button>
-                <button
-                  className="w-full text-left px-2 py-2 rounded-md hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-                  onClick={() => {
-                    setShowRevealMenu(false);
-                    setShowRevealConfirm(true);
-                  }}
-                >
-                  Reveal letter
-                </button>
-                <div className="px-2 py-1.5 text-[10px] text-gray-400 border-t border-gray-700 mt-1">
-                  Reveals limit your maximum score to 0 stars.
-                </div>
-              </div>
-            )}
           </div>
           <button
             onClick={() => setShowHowToPlay(true)}
@@ -1471,31 +1609,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         />
       )}
 
-      {/* Reveal confirm modal */}
-      {showRevealConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-5 text-gray-200 shadow-2xl ring-1 ring-white/10">
-            <div className="text-sm mb-3">Reveal currently selected space? This will limit your maximum score to 0 stars.</div>
-            <div className="flex justify-end gap-2 text-sm">
-              <button
-                className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-300 hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-                onClick={() => setShowRevealConfirm(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-3 py-1.5 rounded-md bg-sky-600 text-white hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-                onClick={() => {
-                  revealTileAt(level, cursor);
-                  setShowRevealConfirm(false);
-                }}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showHowToPlay && (
         <HowToPlayModal onClose={handleCloseHowToPlay} />

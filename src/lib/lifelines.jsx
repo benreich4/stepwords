@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 /**
  * Custom hook for lifeline functionality
@@ -110,82 +110,139 @@ export function LifelineMenu({
   generatePrefixData, 
   showPrefixes, 
   extendPrefixes, 
-  canExtend 
+  canExtend,
+  lifelinesUsed,
+  isQuick,
+  onRevealFirst3,
+  onRevealLast3,
+  onRevealMiddle3,
+  onRevealFirstLastStep,
+  onGiveUpReveal
 }) {
   if (!showLifelineMenu) return null;
 
+  const [view, setView] = useState('root'); // 'root' | 'starts' | 'lifelines' | 'reveal'
+
+  const goRoot = () => setView('root');
+
   return (
     <div data-lifeline-menu className="absolute right-0 top-full mt-1 min-w-[220px] rounded-lg border border-gray-700 bg-gray-900/95 backdrop-blur-sm p-3 text-sm shadow-xl ring-1 ring-white/10 menu-pop-in">
-      <div className="mb-2">
-        <h3 className="text-sm font-semibold text-gray-100 mb-1">Word Starts</h3>
-        {lifelineLevel === 0 ? (
-          <div>
-            <p className="text-gray-400 text-sm mb-1">Reveal one or more of the first letters of each answer.</p>
-            <p className="text-gray-500 text-xs">Shown alphabetically</p>
+      {view === 'root' && (
+        <div className="space-y-2 menu-pop-in">
+          <button onClick={() => setView('starts')} className="w-full text-left px-3 py-2 rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800">Word starts</button>
+          <button onClick={() => setView('lifelines')} className="w-full text-left px-3 py-2 rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800">Lifelines</button>
+          <button onClick={() => setView('reveal')} className="w-full text-left px-3 py-2 rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800">Reveal</button>
+          <div className="flex justify-end">
+            <button onClick={() => setShowLifelineMenu(false)} className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">Close</button>
           </div>
-        ) : (
-          <div>
-            <div className="mb-1 text-gray-300 text-sm">
-              Up to {lifelineLevel}-letter word starts:
-            </div>
-            <div className="space-y-1">
-              {generatePrefixData[lifelineLevel]?.map(({ prefix, total, solved }) => (
-                <div key={prefix} className="flex items-center gap-1.5">
-                  <div className="flex gap-0.5">
-                    {prefix.split('').map((letter, i) => {
-                      const isFullySolved = solved === total;
-                      return (
-                        <div 
-                          key={i} 
-                          className={`w-4 h-4 border flex items-center justify-center text-white text-sm font-semibold ${
-                            isFullySolved 
-                              ? 'bg-green-600 border-green-500' 
-                              : 'bg-yellow-600 border-yellow-500'
-                          }`}
-                        >
-                          {letter.toUpperCase()}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className={`text-sm ${solved === total ? 'text-green-400' : 'text-gray-400'}`}>
-                      {solved}/{total} word{solved !== 1 && total !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 pt-2 border-t border-gray-700">
-              <p className="text-gray-500 text-xs">Shown alphabetically</p>
-            </div>
+        </div>
+      )}
+
+      {view === 'starts' && (
+        <div className="menu-pop-in">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-100">Word Starts</h3>
+            <button onClick={goRoot} className="text-xs text-sky-400 hover:underline">← Back</button>
           </div>
-        )}
-      </div>
-      <div className="flex gap-1">
-        {lifelineLevel === 0 ? (
-          <button
-            onClick={showPrefixes}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-          >
-            Show Word Starts
-          </button>
-        ) : (
-          <button
-            onClick={extendPrefixes}
-            disabled={!canExtend}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-          >
-            {canExtend ? "Extend Word Starts" : "Fully Extended"}
-          </button>
-        )}
-        <button
-          onClick={() => setShowLifelineMenu(false)}
-          className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-        >
-          Close
-        </button>
-      </div>
+          {lifelineLevel === 0 ? (
+            <div className="mb-2">
+              <p className="text-gray-400 text-sm mb-1">Reveal one or more of the first letters of each answer.</p>
+              <p className="text-gray-500 text-xs">Shown alphabetically.</p>
+            </div>
+          ) : (
+            <div className="mb-2">
+              <div className="mb-1 text-gray-300 text-sm">Up to {lifelineLevel}-letter word starts:</div>
+              <div className="space-y-1">
+                {generatePrefixData[lifelineLevel]?.map(({ prefix, total, solved }) => (
+                  <div key={prefix} className="flex items-center gap-1.5">
+                    <div className="flex gap-0.5">
+                      {prefix.split('').map((letter, i) => {
+                        const isFullySolved = solved === total;
+                        return (
+                          <div key={i} className={`w-4 h-4 border flex items-center justify-center text-white text-sm font-semibold ${isFullySolved ? 'bg-green-600 border-green-500' : 'bg-yellow-600 border-yellow-500'}`}>
+                            {letter.toUpperCase()}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <span className={`text-sm ${solved === total ? 'text-green-400' : 'text-gray-400'}`}>{solved}/{total} word{solved !== 1 && total !== 1 ? 's' : ''}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="mt-2 pt-2 border-t border-gray-700 text-xs text-gray-500 mb-2">Each extension counts as 1 misstep.</div>
+          <div className="flex justify-end gap-2">
+            {lifelineLevel === 0 ? (
+              <button onClick={showPrefixes} className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm min-h-[36px] flex items-center">Show</button>
+            ) : (
+              <button onClick={extendPrefixes} disabled={!canExtend} className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm min-h-[36px] flex items-center">{canExtend ? 'Extend' : 'Fully Extended'}</button>
+            )}
+            <button onClick={goRoot} className="px-3 py-2 border border-gray-700 rounded-md text-sm hover:bg-gray-800 min-h-[36px] flex items-center">Back</button>
+          </div>
+        </div>
+      )}
+
+      {view === 'lifelines' && (
+        <div className="menu-pop-in">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-100">Lifelines</h3>
+            <button onClick={goRoot} className="text-xs text-sky-400 hover:underline">← Back</button>
+          </div>
+          <div className="text-sm font-medium text-gray-300 mb-2">Reveal:</div>
+          <div className="grid grid-cols-1 gap-1 mb-2">
+            <button 
+              onClick={onRevealFirst3} 
+              disabled={lifelinesUsed?.first3}
+              className="px-3 py-2 min-h-[40px] text-left rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800 disabled:bg-gray-800/30 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 flex items-center"
+            >
+              First {isQuick ? '2' : '3'} letters {lifelinesUsed?.first3 && "(Used)"}
+            </button>
+            <button 
+              onClick={onRevealLast3} 
+              disabled={lifelinesUsed?.last3}
+              className="px-3 py-2 min-h-[40px] text-left rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800 disabled:bg-gray-800/30 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 flex items-center"
+            >
+              Last {isQuick ? '2' : '3'} letters {lifelinesUsed?.last3 && "(Used)"}
+            </button>
+            <button 
+              onClick={onRevealMiddle3} 
+              disabled={lifelinesUsed?.middle3}
+              className="px-3 py-2 min-h-[40px] text-left rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800 disabled:bg-gray-800/30 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 flex items-center"
+            >
+              Middle {isQuick ? '2' : '3'} letters {lifelinesUsed?.middle3 && "(Used)"}
+            </button>
+            <button 
+              onClick={onRevealFirstLastStep} 
+              disabled={lifelinesUsed?.firstLastStep}
+              className="px-3 py-2 min-h-[40px] text-left rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800 disabled:bg-gray-800/30 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 flex items-center"
+            >
+              {isQuick ? 'First/last letters' : 'First/last/step letters'} {lifelinesUsed?.firstLastStep && "(Used)"}
+            </button>
+          </div>
+          <div className="mt-2 pt-2 border-t border-gray-700 text-xs text-gray-500 mb-2">Each lifeline counts as 2 missteps.</div>
+          <div className="flex justify-end">
+            <button onClick={goRoot} className="px-3 py-1.5 border border-gray-700 rounded-md text-sm hover:bg-gray-800">Back</button>
+          </div>
+        </div>
+      )}
+
+      {view === 'reveal' && (
+        <div className="menu-pop-in">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-100">Reveal</h3>
+            <button onClick={goRoot} className="text-xs text-sky-400 hover:underline">← Back</button>
+          </div>
+          <div className="grid grid-cols-1 gap-1 mb-2">
+            <button onClick={() => { onGiveUpReveal && onGiveUpReveal('letter'); }} className="px-3 py-1.5 text-left rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800">Reveal letter</button>
+            <button onClick={() => { onGiveUpReveal && onGiveUpReveal('word'); }} className="px-3 py-1.5 text-left rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800">Reveal word</button>
+          </div>
+          <div className="mt-2 pt-2 border-t border-gray-700 text-xs text-gray-500 mb-2">Revealing a letter counts as 1 misstep. Revealing a word limits your maximum to 0 stars.</div>
+          <div className="flex justify-end">
+            <button onClick={goRoot} className="px-3 py-1.5 border border-gray-700 rounded-md text-sm hover:bg-gray-800">Back</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
