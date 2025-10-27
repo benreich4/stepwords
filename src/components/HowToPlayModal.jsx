@@ -1,9 +1,23 @@
 import { computeStepIndices } from "../lib/gameUtils.js";
+import { getTodayIsoInET } from "../lib/date.js";
 
 export default function HowToPlayModal({ onClose }) {
   const exampleWords = ["SOW", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"];
   const exampleRows = exampleWords.map(w => ({ answer: w }));
   const exampleStepIdx = computeStepIndices(exampleRows);
+  
+  // Check if we should show jack-o'-lantern instead of ladder for Halloween dates
+  const getStepEmoji = () => {
+    const today = getTodayIsoInET();
+    const [year, month, day] = today.split('-').map(Number);
+    
+    // Check if date is between 10/28 and 10/31 (inclusive)
+    if (month === 10 && day >= 28 && day <= 31) {
+      return '🎃';
+    }
+    
+    return '🪜';
+  };
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 px-4 py-4 overflow-y-auto">
       <div className="w-full max-w-2xl rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-6 shadow-2xl my-auto">
@@ -40,7 +54,7 @@ export default function HowToPlayModal({ onClose }) {
                       <span>{letter}</span>
                       {i >= 1 && j === exampleStepIdx[i] && (
                         <span className="pointer-events-none absolute bottom-[1px] right-[1px] select-none text-[10px] leading-none" aria-hidden>
-                          🪜
+                          {getStepEmoji()}
                         </span>
                       )}
                     </div>
@@ -49,7 +63,7 @@ export default function HowToPlayModal({ onClose }) {
               ))}
             </div>
             <div className="text-xs text-gray-500 mt-3">
-              The 🪜 shows where the new letter was added!
+              The {getStepEmoji()} shows where the new letter was added!
             </div>
           </div>
           
@@ -57,7 +71,7 @@ export default function HowToPlayModal({ onClose }) {
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>Correct letters turn <span className="text-green-400">green</span>;  Ones that required multiple guesses or hints turn <span className="text-yellow-400">yellow</span>.</li>
               <li>Submit a row with <strong>Enter</strong> or <strong>Submit</strong>.</li>
-              <li><strong>Hard mode</strong>: hides 🪜 step locations</li>
+              <li><strong>Hard mode</strong>: hides {getStepEmoji()} step locations</li>
               <li><strong>Easy mode</strong>: filters the keyboard.</li>
               <li><strong>Stars</strong>: Achieve more stars the fewer missteps and hints used. Use too many and you lose the game!</li>
               <li><strong>Quick Stepword</strong>: a daily warm‑up.</li>

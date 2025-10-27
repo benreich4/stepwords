@@ -1408,7 +1408,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     }}
                   />
                 </label>
-                <div className="text-[10px] text-gray-400 mb-2">Hides step locations (🪜) until revealed. Saved as your default.</div>
+                <div className="text-[10px] text-gray-400 mb-2">Hides step locations ({getTodayIsoInET().split('-')[1] === '10' && parseInt(getTodayIsoInET().split('-')[2]) >= 28 && parseInt(getTodayIsoInET().split('-')[2]) <= 31 ? '🎃' : '🪜'}) until revealed. Saved as your default.</div>
 
                 <label className="flex items-center justify-between py-1">
                   <span className="text-gray-300">Easy mode</span>

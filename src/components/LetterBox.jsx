@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getTodayIsoInET } from '../lib/date.js';
 
 export default function LetterBox({
   char = "",
@@ -34,6 +35,19 @@ export default function LetterBox({
     "aspect-square transition-all duration-150 will-change-transform";
   const hasChar = Boolean(char && char !== " ");
 
+  // Check if we should show jack-o'-lantern instead of ladder for Halloween dates
+  const getStepEmoji = () => {
+    const today = getTodayIsoInET();
+    const [year, month, day] = today.split('-').map(Number);
+    
+    // Check if date is between 10/28 and 10/31 (inclusive)
+    if (month === 10 && day >= 28 && day <= 31) {
+      return '🎃';
+    }
+    
+    return '🪜';
+  };
+
   // Pop effect when state changes to a colored state
   const prevStateRef = useRef(state);
   const [isPopping, setIsPopping] = useState(false);
@@ -64,14 +78,14 @@ export default function LetterBox({
         <span className="pointer-events-none absolute inset-[2px] rounded-[4px] border-2 border-sky-400" />
       )}
 
-      {/* 🪜 Step badge (always visible for step squares, per your request) */}
+      {/* Step badge (always visible for step squares, per your request) */}
       {showStep && (
         <span
           className="pointer-events-none absolute bottom-[1px] right-[1px] select-none
                      text-[8px] sm:text-[10px] md:text-[11px] leading-none"
           aria-hidden
         >
-          🪜
+          {getStepEmoji()}
         </span>
       )}
     </button>

@@ -146,12 +146,12 @@ export function LifelineMenu({
           </div>
           {lifelineLevel === 0 ? (
             <div className="mb-2">
-              <p className="text-gray-400 text-sm mb-1">Reveal one or more of the first letters of each answer.</p>
-              <p className="text-gray-500 text-xs">Shown alphabetically.</p>
+              <p className="text-gray-400 text-sm mb-1">Reveal the starting letters for all the answers, shown alphabetically.</p>
             </div>
           ) : (
             <div className="mb-2">
               <div className="mb-1 text-gray-300 text-sm">Up to {lifelineLevel}-letter word starts:</div>
+              <div className="mb-2 text-gray-500 text-xs">Shown alphabetically.</div>
               <div className="space-y-1">
                 {generatePrefixData[lifelineLevel]?.map(({ prefix, total, solved }) => (
                   <div key={prefix} className="flex items-center gap-1.5">
