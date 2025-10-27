@@ -320,13 +320,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const idx = Array.from({length: numLetters}, (_, k) => k).filter(c=>c < len);
     revealSpecificIndices(idx);
     setLifelinesUsed(prev => ({ ...prev, first3: true }));
-    setHintCount(n => n + 2);
     
     // Track lifeline usage
     try {
       if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'hint_used', {
-          hint_type: isQuick ? 'lifeline_first2' : 'lifeline_first3',
+        window.gtag('event', 'lifeline_used', {
+          lifeline_type: isQuick ? 'first2' : 'first3',
           puzzle_id: puzzle.id || 'unknown',
           mode: isQuick ? 'quick' : 'main'
         });
@@ -341,13 +340,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const idx = Array.from({length: Math.min(numLetters, len)}, (_,k)=> start + k);
     revealSpecificIndices(idx);
     setLifelinesUsed(prev => ({ ...prev, last3: true }));
-    setHintCount(n => n + 2);
     
     // Track lifeline usage
     try {
       if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'hint_used', {
-          hint_type: isQuick ? 'lifeline_last2' : 'lifeline_last3',
+        window.gtag('event', 'lifeline_used', {
+          lifeline_type: isQuick ? 'last2' : 'last3',
           puzzle_id: puzzle.id || 'unknown',
           mode: isQuick ? 'quick' : 'main'
         });
@@ -363,7 +361,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     if (len <= numLetters) { 
       revealSpecificIndices(Array.from({length: len}, (_,k)=>k)); 
       setLifelinesUsed(prev => ({ ...prev, middle3: true }));
-      setHintCount(n => n + 2);
       
       // Track lifeline usage
       try {
@@ -390,13 +387,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const valid = idx.filter(c=> c>=0 && c<len);
     revealSpecificIndices(valid);
     setLifelinesUsed(prev => ({ ...prev, middle3: true }));
-    setHintCount(n => n + 2);
     
     // Track lifeline usage
     try {
       if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'hint_used', {
-          hint_type: isQuick ? 'lifeline_middle2' : 'lifeline_middle3',
+        window.gtag('event', 'lifeline_used', {
+          lifeline_type: isQuick ? 'middle2' : 'middle3',
           puzzle_id: puzzle.id || 'unknown',
           mode: isQuick ? 'quick' : 'main'
         });
@@ -421,13 +417,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const uniq = Array.from(new Set(idx)).filter(c=> c>=0 && c<len);
     revealSpecificIndices(uniq);
     setLifelinesUsed(prev => ({ ...prev, firstLastStep: true }));
-    setHintCount(n => n + 2);
     
     // Track lifeline usage
     try {
       if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'hint_used', {
-          hint_type: isQuick ? 'lifeline_first_last' : 'lifeline_first_last_step',
+        window.gtag('event', 'lifeline_used', {
+          lifeline_type: isQuick ? 'first_last' : 'first_last_step',
           puzzle_id: puzzle.id || 'unknown',
           mode: isQuick ? 'quick' : 'main'
         });
@@ -469,11 +464,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
     setLockColors(newLockColors);
     setGuesses(newGuesses);
-    setHintCount((n) => n + 1);
+    setHintCount((n) => n + 2);
     showToast("Revealed letter.", 2000, "info");
     try {
       if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'reveal_used', { reveal_type: 'reveal_letter', puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' });
+        window.gtag('event', 'reveal_used', { reveal_type: 'letter', puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' });
       }
     } catch {}
   }
@@ -1337,13 +1332,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                 if (type === 'letter') {
                   // Reveal letter immediately without confirmation
                   revealTileAt(level, cursor);
-                  setHintCount(n => n + 2);
                   
                   // Track letter reveal usage
                   try {
                     if (window.gtag && typeof window.gtag === 'function') {
-                      window.gtag('event', 'hint_used', {
-                        hint_type: 'reveal_letter',
+                      window.gtag('event', 'reveal_used', {
+                        reveal_type: 'letter',
                         puzzle_id: puzzle.id || 'unknown',
                         mode: isQuick ? 'quick' : 'main'
                       });

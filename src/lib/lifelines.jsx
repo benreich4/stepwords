@@ -61,8 +61,8 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
     // Track initial hint usage (extending from 0 to 1)
     try {
       if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'hint_used', {
-          hint_type: 'extend_word_starts',
+        window.gtag('event', 'word_extension_used', {
+          extension_type: 'initial',
           puzzle_id: puzzle.id || 'unknown',
           mode: isQuick ? 'quick' : 'main',
           hint_level: 1
@@ -81,10 +81,10 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
       // Track extend hint usage
       try {
         if (window.gtag && typeof window.gtag === 'function') {
-          window.gtag('event', 'hint_used', {
-            hint_type: 'extend_word_starts',
-            puzzle_id: puzzle.id || 'unknown',
-            mode: isQuick ? 'quick' : 'main',
+        window.gtag('event', 'word_extension_used', {
+          extension_type: 'extend',
+          puzzle_id: puzzle.id || 'unknown',
+          mode: isQuick ? 'quick' : 'main',
             hint_level: nextLevel
           });
         }

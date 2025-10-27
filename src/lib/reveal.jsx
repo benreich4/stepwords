@@ -38,7 +38,7 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
       try {
         if (window.gtag && typeof window.gtag === 'function') {
           window.gtag('event', 'reveal_used', {
-            reveal_type: 'reveal_word',
+            reveal_type: 'word',
             puzzle_id: puzzle.id || 'unknown',
             mode: isQuick ? 'quick' : 'main',
             word_level: level + 1,
