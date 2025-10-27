@@ -189,6 +189,7 @@ export function LifelineMenu({
             <h3 className="text-sm font-semibold text-gray-100">Lifelines</h3>
             <button onClick={goRoot} className="text-xs text-sky-400 hover:underline">← Back</button>
           </div>
+          <div className="text-xs text-gray-500 mb-1">Each lifeline can only be used once per puzzle.</div>
           <div className="text-sm font-medium text-gray-300 mb-2">Reveal:</div>
           <div className="grid grid-cols-1 gap-1 mb-2">
             <button 
@@ -237,7 +238,7 @@ export function LifelineMenu({
             <button onClick={() => { onGiveUpReveal && onGiveUpReveal('letter'); }} className="px-3 py-1.5 text-left rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800">Reveal letter</button>
             <button onClick={() => { onGiveUpReveal && onGiveUpReveal('word'); }} className="px-3 py-1.5 text-left rounded-md border border-gray-700 bg-gray-900/60 hover:bg-gray-800">Reveal word</button>
           </div>
-          <div className="mt-2 pt-2 border-t border-gray-700 text-xs text-gray-500 mb-2">Revealing a letter counts as 1 misstep. Revealing a word limits your maximum to 0 stars.</div>
+          <div className="mt-2 pt-2 border-t border-gray-700 text-xs text-gray-500 mb-2">Revealing a letter counts as 2 missteps. Revealing a word limits your maximum to 0 stars.</div>
           <div className="flex justify-end">
             <button onClick={goRoot} className="px-3 py-1.5 border border-gray-700 rounded-md text-sm hover:bg-gray-800">Back</button>
           </div>

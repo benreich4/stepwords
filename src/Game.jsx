@@ -1337,7 +1337,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                 if (type === 'letter') {
                   // Reveal letter immediately without confirmation
                   revealTileAt(level, cursor);
-                  setHintCount(n => n + 1);
+                  setHintCount(n => n + 2);
                   
                   // Track letter reveal usage
                   try {
