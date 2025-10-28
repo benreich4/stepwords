@@ -1,7 +1,7 @@
 import { computeStepIndices } from "../lib/gameUtils.js";
 import { getTodayIsoInET } from "../lib/date.js";
 
-export default function HowToPlayModal({ onClose }) {
+export default function HowToPlayModal({ onClose, lightMode = false }) {
   const exampleWords = ["SOW", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"];
   const exampleRows = exampleWords.map(w => ({ answer: w }));
   const exampleStepIdx = computeStepIndices(exampleRows);
@@ -19,30 +19,30 @@ export default function HowToPlayModal({ onClose }) {
     return '🪜';
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 px-4 py-4 overflow-y-auto">
-      <div className="w-full max-w-2xl rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-6 shadow-2xl my-auto">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 py-4 overflow-y-auto">
+      <div className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl my-auto ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gradient-to-b from-gray-900 to-black'}`}>
         <div className="flex items-start justify-between mb-4">
-          <div className="text-2xl font-bold text-white">How to Play</div>
+          <div className={`text-2xl font-bold ${lightMode ? 'text-gray-900' : 'text-white'}`}>How to Play</div>
           <button
             onClick={onClose}
-            className="ml-4 p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+            className={`ml-4 p-2 rounded-lg transition-colors ${lightMode ? 'text-gray-600 hover:text-black hover:bg-gray-100' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
             aria-label="Close"
           >
             ✕
           </button>
         </div>
         
-        <div className="space-y-4 text-gray-200">
+        <div className={`space-y-4 ${lightMode ? 'text-gray-800' : 'text-gray-200'}`}>
           <p>
-            Each answer is an <strong className="text-white">anagram</strong> of the previous answer plus one additional letter. 
+            Each answer is an <strong className={`${lightMode ? 'text-gray-900' : 'text-white'}`}>anagram</strong> of the previous answer plus one additional letter. 
           </p>
           
           <p>
-            Every clue includes the length of each word in the answer (e.g. <span className="text-gray-400"> Audit (3,2,2)</span> is a clue for <span className="text-gray-400">sit in on</span>).
+            Every clue includes the length of each word in the answer (e.g. <span className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}> Audit (3,2,2)</span> is a clue for <span className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>sit in on</span>).
           </p>
           
-          <div className="bg-gray-800 rounded-lg p-4 my-4">
-            <div className="text-sm text-gray-400 mb-3">Example puzzle:</div>
+          <div className={`${lightMode ? 'bg-gray-100' : 'bg-gray-800'} rounded-lg p-4 my-4`}>
+            <div className={`text-sm mb-3 ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Example puzzle:</div>
             <div className="flex flex-col items-start gap-1">
               {exampleWords.map((word, i) => (
                 <div key={i} className="flex gap-0">
@@ -62,7 +62,7 @@ export default function HowToPlayModal({ onClose }) {
                 </div>
               ))}
             </div>
-            <div className="text-xs text-gray-500 mt-3">
+            <div className={`text-xs mt-3 ${lightMode ? 'text-gray-500' : 'text-gray-500'}`}>
               The {getStepEmoji()} shows where the new letter was added!
             </div>
           </div>
@@ -77,7 +77,7 @@ export default function HowToPlayModal({ onClose }) {
               <li><strong>Quick Stepword</strong>: a daily warm‑up.</li>
             </ul>
           </div>
-          <p className="text-gray-400 text-xs">
+          <p className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs`}>
             Puzzles get a bit harder over the week, and a new one unlocks every night at midnight (ET).
           </p>
         </div>
@@ -85,7 +85,7 @@ export default function HowToPlayModal({ onClose }) {
         <div className="flex justify-end mt-6">
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-md bg-sky-600 text-white font-semibold hover:bg-sky-700"
+            className={`px-6 py-2 rounded-md text-white font-semibold hover:bg-sky-700 ${lightMode ? 'bg-sky-600' : 'bg-sky-600'}`}
           >
             Got it!
           </button>

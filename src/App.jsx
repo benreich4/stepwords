@@ -15,11 +15,17 @@ export default function App() {
   const [headerCollapsed, setHeaderCollapsed] = useState(() => {
     try { return localStorage.getItem('stepwords-header-collapsed') === '1'; } catch { return false; }
   });
+  const [lightMode, setLightMode] = useState(() => {
+    try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); return s.lightMode === true; } catch { return false; }
+  });
 
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key === 'stepwords-header-collapsed') {
         try { setHeaderCollapsed(localStorage.getItem('stepwords-header-collapsed') === '1'); } catch {}
+      }
+      if (e.key === 'stepwords-settings') {
+        try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); setLightMode(s.lightMode === true); } catch {}
       }
     };
     window.addEventListener('storage', onStorage);
@@ -27,7 +33,15 @@ export default function App() {
       try { setHeaderCollapsed(localStorage.getItem('stepwords-header-collapsed') === '1'); } catch {}
     };
     document.addEventListener('stepwords-header-toggle', onCustom);
-    return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('stepwords-header-toggle', onCustom); };
+    const onSettingsUpdated = (e) => {
+      if (e && e.detail && typeof e.detail.lightMode === 'boolean') {
+        setLightMode(e.detail.lightMode);
+        return;
+      }
+      try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); setLightMode(s.lightMode === true); } catch {}
+    };
+    document.addEventListener('stepwords-settings-updated', onSettingsUpdated);
+    return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('stepwords-header-toggle', onCustom); document.removeEventListener('stepwords-settings-updated', onSettingsUpdated); };
   }, []);
 
   // Track page views
@@ -123,9 +137,9 @@ export default function App() {
   }, [location.search]);
 
   return (
-    <div className="min-h-screen w-screen bg-black text-gray-100">
+    <div className={`min-h-screen w-screen ${lightMode ? 'bg-white text-gray-900' : 'bg-black text-gray-100'}`}>
       <header
-        className="w-full px-2 py-1 border-b border-gray-800"
+        className={`w-full px-2 py-1 border-b ${lightMode ? 'bg-white border-gray-300' : 'bg-black border-gray-800'}`}
         onClick={(e) => {
           // Toggle collapse when clicking the header bar background, but ignore clicks on interactive elements
           const tgt = e.target;
@@ -146,7 +160,7 @@ export default function App() {
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
                   (!isQuick && !isArchives)
                     ? 'bg-blue-600 border-blue-500 text-white' 
-                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                    : (lightMode ? 'bg-gray-200 border-gray-300 text-gray-800 hover:bg-gray-300' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600')
                 }`}
               >
                 Main
@@ -156,7 +170,7 @@ export default function App() {
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
                   (isQuick && !isArchives)
                     ? 'bg-blue-600 border-blue-500 text-white' 
-                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                    : (lightMode ? 'bg-gray-200 border-gray-300 text-gray-800 hover:bg-gray-300' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600')
                 }`}
               >
                 Quick
@@ -174,7 +188,7 @@ export default function App() {
                   } catch {}
                   try { document.dispatchEvent(new CustomEvent('stepwords-header-toggle')); } catch {}
                 }}
-                className="text-[10px] text-gray-400 px-2 py-0.5 rounded border border-gray-800 hover:bg-gray-900"
+                className={`text-[10px] px-2 py-0.5 rounded border ${lightMode ? 'text-gray-600 border-gray-300 hover:bg-gray-200' : 'text-gray-400 border-gray-800 hover:bg-gray-900'}`}
                 aria-label={headerCollapsed ? 'Expand header' : 'Collapse header'}
               >
                 {headerCollapsed ? '▼' : '▲'}
@@ -184,7 +198,7 @@ export default function App() {
           <div className="justify-self-end min-w-0">
             <Link 
               to="/archives" 
-              className="px-2 py-0.5 rounded text-[10px] border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white transition-colors whitespace-nowrap flex items-center justify-center"
+              className={`px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap flex items-center justify-center ${lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'}`}
             >
               Archives
             </Link>

@@ -13,6 +13,7 @@ export default function ShareModal({
   didFail = false,
   elapsedTime = null,
   onShare = null,
+  lightMode = false,
 }) {
   const [notice, setNotice] = useState("");
   // Determine if this is today's puzzle in ET
@@ -37,53 +38,53 @@ export default function ShareModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-6">
-      <div className="w-full max-w-lg rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-900 to-black p-5 shadow-2xl max-h-[85vh] overflow-y-auto">
+      <div className={`w-full max-w-lg rounded-2xl border p-5 shadow-2xl max-h-[85vh] overflow-y-auto ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gradient-to-b from-gray-900 to-black'}`}>
         <div className="flex items-center justify-between mb-3">
-          <div className="text-xl font-semibold text-white">{didFail ? 'Too many missteps' : 'You solved it!'}</div>
+          <div className={`text-xl font-semibold ${lightMode ? 'text-gray-900' : 'text-white'}`}>{didFail ? 'Too many missteps' : 'You solved it!'}</div>
           {!didFail && (hintCount === 0 && wrongGuessCount === 0) && (
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-700 text-white border border-emerald-500">Perfect!</span>
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${lightMode ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-700 text-white border-emerald-500'}`}>Perfect!</span>
           )}
         </div>
 
         <div className={`mb-3 grid gap-2 text-sm ${hasTime ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
-            <div className="text-gray-400">Guesses</div>
-            <div className="text-lg font-semibold text-gray-100">{guessCount}/{rowsLength}</div>
+          <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/60'}`}>
+            <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Guesses</div>
+            <div className={`text-lg font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{guessCount}/{rowsLength}</div>
           </div>
-          <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
-            <div className="text-gray-400">Hints used</div>
-            <div className="text-lg font-semibold text-gray-100">{hintCount}</div>
+          <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/60'}`}>
+            <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Hints used</div>
+            <div className={`text-lg font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{hintCount}</div>
           </div>
           {hasTime && (
-            <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-3">
-              <div className="text-gray-400">Time</div>
-              <div className="text-lg font-semibold text-gray-100">{elapsedTime}</div>
+            <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/60'}`}>
+              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Time</div>
+              <div className={`text-lg font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{elapsedTime}</div>
             </div>
           )}
           {Number.isFinite(stars) && !didFail && (
-            <div className={`${hasTime ? 'col-span-3' : 'col-span-2'} rounded-lg border border-gray-700 bg-gray-900/60 p-3 flex items-center justify-between`}>
-              <div className="text-gray-400">Stars</div>
-              <div className="text-xl font-semibold text-yellow-300">{'★'.repeat(Math.max(0,Math.min(3,stars||0)))}{'☆'.repeat(Math.max(0,3-(stars||0)))}</div>
+            <div className={`${hasTime ? 'col-span-3' : 'col-span-2'} rounded-lg border p-3 flex items-center justify-between ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/60'}`}>
+              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Stars</div>
+              <div className="text-xl font-semibold text-yellow-400">{'★'.repeat(Math.max(0,Math.min(3,stars||0)))}{'☆'.repeat(Math.max(0,3-(stars||0)))}</div>
             </div>
           )}
         </div>
 
-        <pre className="whitespace-pre-wrap text-2xl leading-snug mb-4 p-3 rounded-lg border border-gray-700 bg-gray-900/60">
+        <pre className={`whitespace-pre-wrap text-2xl leading-snug mb-4 p-3 rounded-lg border ${lightMode ? 'border-gray-300 bg-white text-gray-900' : 'border-gray-700 bg-gray-900/60 text-gray-100'}`}>
           {shareText}
         </pre>
 
         <div className="mb-3 text-center">
-          <p className="text-sm text-gray-300 mb-2">Would love to hear your thoughts and ideas!</p>
+          <p className={`text-sm mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Would love to hear your thoughts and ideas!</p>
           <a 
             href="mailto:hello@stepwords.xyz"
-            className="text-sm text-sky-400 hover:underline"
+            className={`text-sm hover:underline ${lightMode ? 'text-sky-600' : 'text-sky-400'}`}
           >
             hello@stepwords.xyz
           </a>
           <div className="mt-3">
             <Link
               to="/archives"
-              className="inline-block text-sm text-emerald-400 hover:underline"
+              className={`inline-block text-sm hover:underline ${lightMode ? 'text-emerald-700' : 'text-emerald-400'}`}
               onClick={() => {
                 try { onClose?.(); } catch {}
               }}
@@ -94,7 +95,7 @@ export default function ShareModal({
           <div className="mt-2">
           <Link 
               to={isQuick ? "/quick" : "/"}
-              className="inline-block text-sm text-emerald-400 hover:underline"
+              className={`inline-block text-sm hover:underline ${lightMode ? 'text-emerald-700' : 'text-emerald-400'}`}
             onClick={() => {
               try {
                 if (window.gtag && typeof window.gtag === 'function') {
@@ -155,12 +156,12 @@ export default function ShareModal({
             </button>
             <button
               onClick={onClose}
-              className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-200 text-sm hover:bg-gray-800"
+              className={`px-3 py-1.5 rounded-md border text-sm ${lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-200 hover:bg-gray-800'}`}
             >
               Close
             </button>
             {notice && (
-              <span className="text-xs text-emerald-400">{notice}</span>
+              <span className={`text-xs ${lightMode ? 'text-emerald-700' : 'text-emerald-400'}`}>{notice}</span>
             )}
           </div>
         </div>

@@ -130,20 +130,21 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
 export function RevealConfirmModal({ 
   showWordRevealConfirm, 
   setShowWordRevealConfirm, 
-  revealCurrentWord 
+  revealCurrentWord,
+  lightMode = false,
 }) {
   if (!showWordRevealConfirm) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-sm rounded-lg border border-gray-700 bg-gray-900 p-4 text-gray-200">
+      <div className={`w-full max-w-sm rounded-lg border p-4 ${lightMode ? 'border-gray-300 bg-white text-gray-900' : 'border-gray-700 bg-gray-900 text-gray-200'}`}>
         <div className="text-lg font-semibold mb-2">Reveal Word</div>
-        <div className="text-sm mb-4">
+        <div className={`text-sm mb-4 ${lightMode ? 'text-gray-700' : ''}`}>
           Revealing the current word will limit your maximum score to 0 stars.
         </div>
         <div className="flex justify-end gap-2 text-sm">
           <button
-            className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-300 hover:bg-gray-800"
+            className={`px-3 py-1.5 rounded-md border ${lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
             onClick={() => setShowWordRevealConfirm(false)}
           >
             Cancel

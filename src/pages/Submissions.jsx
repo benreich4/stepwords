@@ -183,16 +183,17 @@ export default function Submissions() {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-gray-100 mb-4">Delete Submission</h3>
-            <p className="text-gray-300 mb-6">
+          {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
+          <div className={`rounded-lg p-6 max-w-md mx-4 border ${lightMode ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
+            <h3 className={`text-lg font-semibold mb-4 ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>Delete Submission</h3>
+            <p className={`${lightMode ? 'text-gray-700' : 'text-gray-300'} mb-6`}>
               Are you sure you want to delete the submission by <strong>{deleteConfirm.author || "Unknown author"}</strong>? 
               This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-gray-300 hover:text-gray-100 border border-gray-600 rounded hover:bg-gray-700"
+                className={`px-4 py-2 rounded border ${lightMode ? 'text-gray-800 border-gray-300 hover:bg-gray-100' : 'text-gray-300 hover:text-gray-100 border-gray-600 hover:bg-gray-700'}`}
               >
                 Cancel
               </button>
@@ -204,6 +205,7 @@ export default function Submissions() {
               </button>
             </div>
           </div>
+          )})()}
         </div>
       )}
     </div>

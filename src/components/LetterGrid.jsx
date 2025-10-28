@@ -7,6 +7,7 @@ export default function LetterGrid({
   lockColors,
   stepIdx,
   hardMode = true,
+  lightMode = false,
   level,
   cursor,
   onTileClick,
@@ -234,7 +235,13 @@ export default function LetterGrid({
             <button
               type="button"
               onClick={() => onJumpToRow && onJumpToRow(i)}
-              className={`shrink-0 w-6 h-6 rounded text-[10px] flex items-center justify-center border ${i===level? 'bg-sky-700 border-sky-500 text-white': referencedRows?.has(i) ? 'bg-yellow-700/30 border-yellow-400 text-yellow-200' : 'bg-gray-800 border-gray-700 text-gray-300'}`}
+              className={`shrink-0 w-6 h-6 rounded text-[10px] flex items-center justify-center border ${
+                i===level
+                  ? (lightMode ? 'bg-sky-100 border-sky-300 text-sky-900' : 'bg-sky-700 border-sky-500 text-white')
+                  : referencedRows?.has(i)
+                    ? (lightMode ? 'bg-yellow-100 border-yellow-300 text-yellow-700' : 'bg-yellow-700/30 border-yellow-400 text-yellow-200')
+                    : (lightMode ? 'bg-gray-100 border-gray-300 text-gray-700' : 'bg-gray-800 border-gray-700 text-gray-300')
+              }`}
               aria-label={`Row ${i+1}`}
             >
               {i+1}
@@ -254,6 +261,7 @@ export default function LetterGrid({
                   isDiffFilled={Boolean(fromFilledMask?.[col]) || (isIntermediateStep && col === stepPos && lockColors[i][stepPos] != null)}
                   isDiffAll={isHoldingOnly && longPressStartRowRef.current === i}
                   delayMs={col * 28}
+                  lightMode={lightMode}
                 />
               ))}
             </div>

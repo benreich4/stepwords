@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, disabledKeys = new Set(), filteredLetters = null, onResize, submitReady = false, submitButtonRef = null, collapsed = false, onToggleCollapse = () => {}, toggleRef = null }) {
+export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnter, onBackspace, disabledKeys = new Set(), filteredLetters = null, onResize, submitReady = false, submitButtonRef = null, collapsed = false, onToggleCollapse = () => {}, toggleRef = null }) {
   const [isTiny, setIsTiny] = useState(() => {
     try { return (typeof window !== 'undefined') && window.innerWidth <= 360; } catch { return false; }
   });
@@ -32,20 +32,23 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
     
     if (key === 'SUBMIT' || key === 'BACKSPACE') {
       const pulse = key === 'SUBMIT' && submitReady ? ' animate-pulse ring-2 ring-emerald-400' : '';
-      return `${baseClass} bg-gray-600 text-white hover:bg-gray-500 active:bg-gray-700 text-xs${pulse}`;
+      return lightMode
+        ? `${baseClass} bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400 border border-gray-300 text-xs${pulse}`
+        : `${baseClass} bg-gray-600 text-white hover:bg-gray-500 active:bg-gray-700 text-xs${pulse}`;
     }
     
     const isDisabled = disabledKeys.has(key);
     // Only filter letter keys; do not filter special keys like SUBMIT/BACKSPACE
     const isFiltered = filteredLetters && !filteredLetters.includes(key);
     
-    return `${baseClass} text-sm ${
-      isDisabled 
-        ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
-        : isFiltered
-        ? "bg-gray-800 text-gray-500 cursor-not-allowed"
-        : "bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-800"
-    }`;
+    if (lightMode) {
+      return `${baseClass} text-sm ${
+        isDisabled || isFiltered
+          ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+          : 'bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400 border border-gray-300'
+      }`;
+    }
+    return `${baseClass} text-sm ${isDisabled || isFiltered ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-800'}`;
   };
 
   const rootRef = useRef(null);
@@ -82,7 +85,7 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
   }, []);
 
   return (
-    <div ref={rootRef} className="fixed bottom-0 left-0 right-0 w-full bg-gray-900 border-t border-gray-700 z-20 transition-[height,background-color] duration-300 ease-out" style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', userSelect: 'none' }}>
+    <div ref={rootRef} className={`fixed bottom-0 left-0 right-0 w-full border-t z-20 transition-[height,background-color] duration-300 ease-out ${lightMode ? 'bg-white/90 border-gray-200' : 'bg-gray-900 border-gray-700'}`} style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', userSelect: 'none' }}>
       {/* Collapse handle (larger tap target; wrapper handles events) */}
       <div
         className="w-full flex items-center justify-center py-0.5"
@@ -93,7 +96,7 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
       >
         <button
           ref={toggleRef}
-          className="px-2 py-0.5 text-xs rounded border border-gray-700 text-gray-300 hover:bg-gray-800 pointer-events-none"
+          className={`px-2 py-0.5 text-xs rounded border pointer-events-none ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
           aria-label={collapsed ? 'Expand keyboard' : 'Collapse keyboard'}
         >
           {collapsed ? '▲' : '▼'}
@@ -153,7 +156,7 @@ export default function OnScreenKeyboard({ onKeyPress, onEnter, onBackspace, dis
             ))}
           </div>
           {/* Copyright notice */}
-          <div className={`px-3 py-1 text-xs text-gray-500 border-t border-gray-700 ${collapsed ? '' : 'kb-pop-in'}`} style={{ animationDelay: collapsed ? undefined : '60ms' }}>
+          <div className={`px-3 py-1 text-xs ${lightMode ? 'text-gray-500 border-t border-gray-200' : 'text-gray-500 border-t border-gray-700'} ${collapsed ? '' : 'kb-pop-in'}`} style={{ animationDelay: collapsed ? undefined : '60ms' }}>
             <div className="flex justify-between items-center gap-2 min-w-0">
               <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[60vw]">© 2025 Stepwords™. All rights reserved.</span>
               <a 

@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { getTodayIsoInET } from '../lib/date.js';
+import { getTodayIsoInET } from "../lib/date.js";
 
 export default function LetterBox({
   char = "",
@@ -12,13 +11,13 @@ export default function LetterBox({
   isDiffMissing = false, // highlight as a missing/unfilled letter in comparison row
   isDiffFilled = false,  // deemphasize letters already filled in comparison row
   isDiffAll = false,     // deemphasize entire row (initial hold before selecting target)
-  delayMs = 0,           // transition delay per tile for staggered animations
+  lightMode = false,
 }) {
   const COLOR_CLASSES = {
-    G: "bg-green-600 border-green-500 text-white transition-colors duration-200",
-    Y: "bg-yellow-400 border-yellow-400 text-black transition-colors duration-200",
+    G: "bg-green-600 border-green-500 text-white",
+    Y: "bg-yellow-400 border-yellow-400 text-black",
   };
-  const EMPTY_CLASSES = "bg-gray-900 border-gray-700 text-gray-200 transition-colors duration-200";
+  const EMPTY_CLASSES = lightMode ? "bg-gray-100 border-gray-300 text-gray-900" : "bg-gray-900 border-gray-700 text-gray-200";
   const stateClass = state ? (COLOR_CLASSES[state] || EMPTY_CLASSES) : EMPTY_CLASSES;
 
   // Calculate dynamic tile size based on viewport and word length, with sane min/max caps
@@ -32,43 +31,27 @@ export default function LetterBox({
   const base =
     "relative inline-flex items-center justify-center border rounded-[6px] box-border " +
     "select-none uppercase font-bold leading-none " +
-    "aspect-square transition-all duration-150 will-change-transform";
+    "aspect-square";
   const hasChar = Boolean(char && char !== " ");
-
-  // Check if we should show jack-o'-lantern instead of ladder for Halloween dates
   const getStepEmoji = () => {
-    const today = getTodayIsoInET();
-    const [year, month, day] = today.split('-').map(Number);
-    
-    // Check if date is between 10/28 and 10/31 (inclusive)
-    if (month === 10 && day >= 28 && day <= 31) {
-      return '🎃';
-    }
-    
+    try {
+      const iso = getTodayIsoInET();
+      const parts = (iso || "").split('-').map((v) => parseInt(v, 10));
+      const month = parts[1];
+      const day = parts[2];
+      if (month === 10 && day >= 28 && day <= 31) return '🎃';
+    } catch {}
     return '🪜';
   };
-
-  // Pop effect when state changes to a colored state
-  const prevStateRef = useRef(state);
-  const [isPopping, setIsPopping] = useState(false);
-  useEffect(() => {
-    if (state && state !== prevStateRef.current) {
-      setIsPopping(true);
-      const t = setTimeout(() => setIsPopping(false), 160);
-      return () => clearTimeout(t);
-    }
-    prevStateRef.current = state;
-  }, [state]);
 
   return (
     <button 
       type="button" 
       onClick={onClick} 
-      className={`${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''} ${isPopping ? 'scale-105' : ''}`}
+      className={`${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''}`}
       style={{
         width: tileSize,
         fontSize: textSize,
-        transitionDelay: `${delayMs}ms`,
       }}
     >
       <span>{char}</span>
@@ -78,7 +61,7 @@ export default function LetterBox({
         <span className="pointer-events-none absolute inset-[2px] rounded-[4px] border-2 border-sky-400" />
       )}
 
-      {/* Step badge (always visible for step squares, per your request) */}
+      {/* 🪜 Step badge (always visible for step squares, per your request) */}
       {showStep && (
         <span
           className="pointer-events-none absolute bottom-[1px] right-[1px] select-none

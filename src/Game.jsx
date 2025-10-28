@@ -1250,38 +1250,38 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   return (
     <>
-    <div className={`w-screen h-[105vh] bg-black flex flex-col ${settings.lightMode ? 'filter invert hue-rotate-180' : ''}`}>
+    <div className={`w-screen h-[105vh] flex flex-col ${settings.lightMode ? 'bg-white text-black' : 'bg-black text-white'}`}>
       <div className={`px-3 text-center transition-all duration-300 ease-out ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0 opacity-0' : 'pt-1 opacity-100'}`}>
         {!headerCollapsed && (
         <>
         {puzzle.date && (
-          <div className="text-sm sm:text-lg md:text-xl font-bold text-gray-100 mb-0.5 flex items-center justify-center gap-3">
+          <div className={`text-sm sm:text-lg md:text-xl font-bold mb-0.5 flex items-center justify-center gap-3 ${settings.lightMode ? 'text-gray-900' : 'text-gray-100'}`}>
             {prevId && (
-              <a href={`/${isQuick ? 'quick/' : ''}${prevId}`} className="px-2 py-1 rounded hover:bg-gray-800" aria-label="Previous puzzle">←</a>
+              <a href={`/${isQuick ? 'quick/' : ''}${prevId}`} className={`px-2 py-1 rounded ${settings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Previous puzzle">←</a>
             )}
             <span>{formatDateWithDayOfWeek(puzzle.date)}</span>
             {nextId && (
-              <a href={`/${isQuick ? 'quick/' : ''}${nextId}`} className="px-2 py-1 rounded hover:bg-gray-800" aria-label="Next puzzle">→</a>
+              <a href={`/${isQuick ? 'quick/' : ''}${nextId}`} className={`px-2 py-1 rounded ${settings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Next puzzle">→</a>
             )}
           </div>
         )}
         {puzzle.author && (
-          <div className="text-xs sm:text-sm text-gray-400 mb-1">
+          <div className={`text-xs sm:text-sm mb-1 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
             By {puzzle.author}
           </div>
         )}
-        <div className="text-xs sm:text-base text-gray-300 italic mb-1">
+        <div className={`text-xs sm:text-base italic mb-1 ${settings.lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
           {puzzle.title}
         </div>
         </>
         )}
       </div>
 
-      <div className="w-full px-3 h-8 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur border-b border-gray-800 z-20 transition-[height,background-color] duration-300 ease-out">
-        <div className="flex items-center gap-2 text-xs text-gray-300">
+      <div className={`w-full px-3 h-8 flex items-center justify-between sticky top-0 backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b z-20 transition-[height,background-color] duration-300 ease-out ${settings.lightMode ? 'bg-white/90 border-gray-300' : 'bg-black/80 border-gray-800'}`}>
+        <div className={`flex items-center gap-2 text-xs ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
           <div
             ref={starsRef}
-            className="px-2 py-0.5 rounded border border-gray-700 bg-gray-900/40 flex items-center gap-0.5 cursor-pointer"
+            className={`px-2 py-0.5 rounded border flex items-center gap-0.5 cursor-pointer ${settings.lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/40'}`}
             title="Current stars"
             role="button"
             tabIndex={0}
@@ -1293,12 +1293,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             <span className={currentStars >= 3 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
         </div>
         {!hideZeroTime && (
-          <div className="ml-2 px-2 py-0.5 rounded border border-gray-700 bg-gray-900/40 text-xs font-mono tabular-nums text-gray-300 select-none" title="Elapsed time">
+          <div className={`ml-2 px-2 py-0.5 rounded border text-xs font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-white text-gray-800' : 'border-gray-700 bg-gray-900/40 text-gray-300'}`} title="Elapsed time">
             {formatElapsed(elapsedMs)}
           </div>
         )}
           {pointsNow === 0 && (
-            <div className="px-2 py-0.5 rounded border border-red-600 bg-red-900/40 text-red-300">
+            <div className={`${settings.lightMode ? 'px-2 py-0.5 rounded border border-red-300 bg-red-50 text-red-700' : 'px-2 py-0.5 rounded border border-red-600 bg-red-900/40 text-red-300'}`}>
               {didFail ? 'You already lost.' : 'Next misstep loses the game!'}
             </div>
           )}
@@ -1309,10 +1309,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <div ref={lifelineRef} className="relative">
             <button
               onClick={() => setShowLifelineMenu((v) => !v)}
-              className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
+              className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50' : 'border-gray-700 text-gray-300 hover:bg-gray-900/40'}`}
               aria-label="Hints"
             >
-              💡
+              <span className="relative inline-flex items-center justify-center" aria-hidden>
+                <span className={`absolute w-3 h-3 rounded-full ${settings.lightMode ? 'bg-yellow-300/30' : 'bg-yellow-400/20'} blur-[0.5px]`}></span>
+                <span
+                  className={`${settings.lightMode ? 'text-yellow-500' : 'text-yellow-400'}`}
+                  style={{ filter: 'drop-shadow(0 0 2px #fde047)' }}
+                >
+                  💡
+                </span>
+              </span>
             </button>
             <LifelineMenu
               showLifelineMenu={showLifelineMenu}
@@ -1324,6 +1332,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               canExtend={canExtend}
               lifelinesUsed={lifelinesUsed}
               isQuick={isQuick}
+              lightMode={settings.lightMode}
               onRevealFirst3={handleRevealFirst3}
               onRevealLast3={handleRevealLast3}
               onRevealMiddle3={handleRevealMiddle3}
@@ -1353,7 +1362,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           </div>
           <button
             onClick={() => setShowHowToPlay(true)}
-            className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
+            className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50' : 'border-gray-700 text-gray-300 hover:bg-gray-900/40'}`}
             title="How to Play"
           >
             ?
@@ -1362,15 +1371,15 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <div ref={settingsRef} className="relative">
             <button
               onClick={() => setShowSettings((v) => !v)}
-              className="px-2 py-0.5 rounded-md text-xs border border-gray-700 text-gray-300 hover:bg-gray-900/40 flex items-center justify-center min-h-[20px] w-8"
+              className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50' : 'border-gray-700 text-gray-300 hover:bg-gray-900/40'}`}
               aria-label="Settings"
             >
               ⚙️
             </button>
             {showSettings && (
-              <div className="absolute right-0 top-full mt-1 w-60 rounded-lg border border-gray-700 bg-gray-900/95 backdrop-blur-sm shadow-xl ring-1 ring-white/10 p-2 text-xs menu-pop-in">
+              <div className={`absolute right-0 top-full mt-1 w-60 rounded-lg border backdrop-blur-sm shadow-xl p-2 text-xs menu-pop-in ${settings.lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5' : 'border-gray-700 bg-gray-900/95 ring-1 ring-white/10'}`}>
                 <label className="flex items-center justify-between py-1">
-                  <span className="text-gray-300">Light mode</span>
+                  <span className={`${settings.lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Light mode</span>
                   <button
                     role="switch"
                     aria-checked={settings.lightMode ? "true" : "false"}
@@ -1381,6 +1390,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                         if (window.gtag && typeof window.gtag === 'function') {
                           window.gtag('event', checked ? 'light_mode_turned_on' : 'light_mode_turned_off', { puzzle_id: puzzle.id || 'unknown' });
                         }
+                        document.dispatchEvent(new CustomEvent('stepwords-settings-updated', { detail: { lightMode: checked } }));
                       } catch {}
                     }}
                     className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.lightMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
@@ -1389,9 +1399,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.lightMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
         </button>
                 </label>
-                <div className="text-[10px] text-gray-400 mb-2">Invert colors for a light appearance.</div>
+                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Invert colors for a light appearance.</div>
                 <label className="flex items-center justify-between py-1">
-                  <span className="text-gray-300">Hard mode</span>
+                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hard mode</span>
                   <input
                     type="checkbox"
                     checked={settings.hardMode}
@@ -1408,10 +1418,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     }}
                   />
                 </label>
-                <div className="text-[10px] text-gray-400 mb-2">Hides step locations ({getTodayIsoInET().split('-')[1] === '10' && parseInt(getTodayIsoInET().split('-')[2]) >= 28 && parseInt(getTodayIsoInET().split('-')[2]) <= 31 ? '🎃' : '🪜'}) until revealed. Saved as your default.</div>
+                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Hides step locations ({getTodayIsoInET().split('-')[1] === '10' && parseInt(getTodayIsoInET().split('-')[2]) >= 28 && parseInt(getTodayIsoInET().split('-')[2]) <= 31 ? '🎃' : '🪜'}) until revealed. Saved as your default.</div>
 
                 <label className="flex items-center justify-between py-1">
-                  <span className="text-gray-300">Easy mode</span>
+                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Easy mode</span>
                   <input
                     type="checkbox"
                     checked={settings.easyMode}
@@ -1428,7 +1438,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     }}
                   />
                 </label>
-                <div className="text-[10px] text-gray-400">Filters keyboard to letters in this puzzle. Saved as your default.</div>
+                <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Filters keyboard to letters in this puzzle. Saved as your default.</div>
               </div>
             )}
           </div>
@@ -1438,22 +1448,22 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       {/* Top toast */}
       <Toast text={toast} variant={toastVariant} />
 
-      <div ref={clueBarRef} className="w-full px-3 py-2 sticky top-[32px] bg-gray-900/95 backdrop-blur border-b border-sky-900/60 z-10">
+      <div ref={clueBarRef} className={`w-full px-3 py-2 sticky top-[32px] backdrop-blur border-b z-10 ${settings.lightMode ? 'bg-gray-100/95 border-gray-300' : 'bg-gray-900/95 border-sky-900/60'}`}>
         <div className="flex items-center justify-between">
           <button
             onClick={() => moveLevel(-1)}
             aria-label="Previous word"
-            className="px-2 py-1 rounded text-gray-300 hover:text-white hover:bg-gray-900/40"
+            className={`px-2 py-1 rounded ${settings.lightMode ? 'text-gray-800 hover:bg-gray-200' : 'text-gray-300 hover:text-white hover:bg-gray-900/40'}`}
           >
             ←
           </button>
-          <div className="text-sm text-gray-300 mx-2 flex-1 text-center">
+          <div className={`text-sm mx-2 flex-1 text-center ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
             <span className="font-semibold">Clue:</span> {renderClueText(clue)}
           </div>
         <button
             onClick={() => moveLevel(1)}
             aria-label="Next word"
-            className="px-2 py-1 rounded text-gray-300 hover:text-white hover:bg-gray-900/40"
+            className={`px-2 py-1 rounded ${settings.lightMode ? 'text-gray-800 hover:bg-gray-200' : 'text-gray-300 hover:text-white hover:bg-gray-900/40'}`}
           >
             →
         </button>
@@ -1498,6 +1508,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           lockColors={lockColors}
           stepIdx={stepIdx}
           hardMode={settings.hardMode}
+          lightMode={settings.lightMode}
           level={level}
           cursor={cursor}
           onTileClick={(i, col) => {
@@ -1518,13 +1529,14 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           diffToRow={dragOverRow}
                   />
 
-        <div className="text-xs text-gray-300 px-3 mt-1 mb-2">{message}</div>
+        <div className={`text-xs px-3 mt-1 mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-300'}`}>{message}</div>
         {/* Spacer equal to keyboard height (updated dynamically) */}
         <div id="bottom-scroll-spacer" className="h-0" aria-hidden />
       </div>
 
       {/* Sticky keyboard at bottom */}
       <OnScreenKeyboard
+        lightMode={settings.lightMode}
         onKeyPress={handleKeyPress}
         onEnter={handleEnter}
         onBackspace={handleBackspace}
@@ -1586,6 +1598,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           stars={stars}
           didFail={didFail}
           elapsedTime={!hideZeroTime ? formatElapsed(elapsedMs) : null}
+          lightMode={settings.lightMode}
           onShare={() => {
             try {
               if (window.gtag && typeof window.gtag === 'function') {
@@ -1605,26 +1618,27 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
 
       {showHowToPlay && (
-        <HowToPlayModal onClose={handleCloseHowToPlay} />
+        <HowToPlayModal onClose={handleCloseHowToPlay} lightMode={settings.lightMode} />
       )}
       {showQuickIntro && (
-        <QuickIntroModal onClose={() => { setShowQuickIntro(false); try { localStorage.setItem('quickstep-intro-shown','1'); } catch {} }} />
+        <QuickIntroModal onClose={() => { setShowQuickIntro(false); try { localStorage.setItem('quickstep-intro-shown','1'); } catch {} }} lightMode={settings.lightMode} />
       )}
       {/* Reveal confirmation modal */}
       <RevealConfirmModal
         showWordRevealConfirm={showWordRevealConfirm}
         setShowWordRevealConfirm={setShowWordRevealConfirm}
         revealCurrentWord={revealCurrentWord}
+        lightMode={settings.lightMode}
       />
 
       {showLoss && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-sm rounded-lg border border-gray-700 bg-gray-900 p-4 text-gray-200">
+          <div className={`w-full max-w-sm rounded-lg border p-4 ${settings.lightMode ? 'border-gray-300 bg-white text-gray-900' : 'border-gray-700 bg-gray-900 text-gray-200'}`}>
             <div className="text-lg font-semibold mb-2">Out of missteps</div>
-            <div className="text-sm mb-4">You ran out of missteps. Better luck tomorrow!</div>
+            <div className={`text-sm mb-4 ${settings.lightMode ? 'text-gray-700' : ''}`}>You ran out of missteps. Better luck tomorrow!</div>
             <div className="flex justify-end gap-2 text-sm">
               <button
-                className="px-3 py-1.5 rounded-md border border-gray-700 text-gray-300 hover:bg-gray-800"
+                className={`px-3 py-1.5 rounded-md border ${settings.lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
                 onClick={() => setShowLoss(false)}
               >Close</button>
               <a
