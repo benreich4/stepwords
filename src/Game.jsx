@@ -5,7 +5,7 @@ import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import OnScreenKeyboard from "./components/OnScreenKeyboard.jsx";
 import Toast from "./components/Toast.jsx";
 import QuickIntroModal from "./components/QuickIntroModal.jsx";
-import { formatDateWithDayOfWeek } from "./lib/date.js";
+import { formatDateWithDayOfWeek, getTodayIsoInET } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 import { useLifelines, LifelineMenu } from "./lib/lifelines.jsx";
 import { useReveal, RevealConfirmModal } from "./lib/reveal.jsx";
