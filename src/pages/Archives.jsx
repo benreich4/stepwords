@@ -182,20 +182,24 @@ export default function Archives() {
     <div className="px-3 py-3 flex justify-center">
       <div className="w-full max-w-[420px]">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <button onClick={goPrev} disabled={!canPrev} className="px-2 py-1 text-xs rounded border border-gray-800 disabled:opacity-40">◀</button>
+          {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
+          <>
+          <button onClick={goPrev} disabled={!canPrev} className={`px-2 py-1 text-xs rounded border disabled:opacity-40 ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>◀</button>
           <div className="flex items-center gap-2">
-            <select value={current.year} onChange={onYearChange} className="bg-black border border-gray-800 rounded px-2 py-1 text-xs">
+            <select value={current.year} onChange={onYearChange} className={`rounded px-2 py-1 text-xs border ${lightMode ? 'bg-white border-gray-300 text-gray-800' : 'bg-black border-gray-800'}`}>
               {years.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
-            <select value={current.month} onChange={onMonthChange} className="bg-black border border-gray-800 rounded px-2 py-1 text-xs">
+            <select value={current.month} onChange={onMonthChange} className={`rounded px-2 py-1 text-xs border ${lightMode ? 'bg-white border-gray-300 text-gray-800' : 'bg-black border-gray-800'}`}>
               {allowedMonthsForYear(current.year).map((m) => (
                 <option key={m} value={m}>{new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(current.year, m, 1))}</option>
               ))}
             </select>
           </div>
-          <button onClick={goNext} disabled={!canNext} className="px-2 py-1 text-xs rounded border border-gray-800 disabled:opacity-40">▶</button>
+          <button onClick={goNext} disabled={!canNext} className={`px-2 py-1 text-xs rounded border disabled:opacity-40 ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>▶</button>
+          </>
+          )})()}
         </div>
       {err && <div className="text-red-400 mb-2">{err}</div>}
 
@@ -219,7 +223,7 @@ export default function Archives() {
                 const puzzle = cell.puzzle;
                 if (!puzzle) {
                   return (
-                    <div key={idx} className="h-8 rounded border border-gray-800 bg-gray-900/40 text-gray-600 flex items-center justify-center">
+                    <div key={idx} className={`h-8 rounded border flex items-center justify-center ${(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return lightMode ? 'border-gray-300 bg-gray-100 text-gray-500' : 'border-gray-800 bg-gray-900/40 text-gray-600'; })()}`}>
                       {dayNum}
                     </div>
                   );
@@ -257,10 +261,11 @@ export default function Archives() {
                   : (Number.isFinite(starScore)
                     ? 'text-yellow-300'
                     : (isPerfect ? 'text-yellow-300' : (solved ? 'text-yellow-300' : hasProgress ? 'text-yellow-300' : 'text-gray-300')));
-                const bg = solved ? 'bg-gray-900/60' : 'bg-gray-900/40';
+                const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })();
+                const bg = lightMode ? (solved ? 'bg-gray-200' : 'bg-gray-100') : (solved ? 'bg-gray-900/60' : 'bg-gray-900/40');
                 return (
-                  <Link key={idx} to={`/${puzzle.id}`} className={`h-8 rounded border border-gray-800 ${bg} hover:border-gray-600 flex items-center justify-center gap-1`}>
-                    <span className="text-[10px] text-gray-400">{dayNum}</span>
+                  <Link key={idx} to={`/${puzzle.id}`} className={`h-8 rounded border ${lightMode ? 'border-gray-300 hover:border-gray-400' : 'border-gray-800 hover:border-gray-600'} ${bg} flex items-center justify-center gap-1`}>
+                    <span className={`text-[10px] ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
                     <span className={`${color} text-xs leading-none`}>{icon}</span>
                   </Link>
                 );
@@ -268,7 +273,9 @@ export default function Archives() {
             </div>
             {/* Quick Stepword calendar */}
             <div className="mt-6">
-              <div className="text-xs text-gray-400 mb-1">Quick Stepwords</div>
+              {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
+              <div className={`text-xs mb-1 ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Quick Stepwords</div>
+              )})()}
               <div className="grid grid-cols-7 gap-1">
                 {currentMonthData.cells.map((cell, idx) => {
                   if (cell === null) {
@@ -281,7 +288,7 @@ export default function Archives() {
                   const puzzle = (preview2 || iso <= todayET2) ? (quickByDate.get(iso) || null) : null;
                   if (!puzzle) {
                     return (
-                      <div key={idx} className="h-8 rounded border border-gray-800 bg-gray-900/40 text-gray-600 flex items-center justify-center">
+                      <div key={idx} className={`h-8 rounded border flex items-center justify-center ${(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return lightMode ? 'border-gray-300 bg-gray-100 text-gray-500' : 'border-gray-800 bg-gray-900/40 text-gray-600'; })()}`}>
                         {dayNum}
                       </div>
                     );
@@ -318,10 +325,11 @@ export default function Archives() {
                     : (Number.isFinite(qStarScore)
                       ? 'text-yellow-300'
                       : (qIsPerfect ? 'text-yellow-300' : (qSolved ? 'text-yellow-300' : qHasProgress ? 'text-yellow-300' : 'text-gray-300')));
-                  const qBg = qSolved ? 'bg-gray-900/60' : 'bg-gray-900/40';
+                  const lightMode2 = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })();
+                  const qBg = lightMode2 ? (qSolved ? 'bg-gray-200' : 'bg-gray-100') : (qSolved ? 'bg-gray-900/60' : 'bg-gray-900/40');
                   return (
-                    <Link key={idx} to={`/quick/${puzzle.id}`} className={`h-8 rounded border border-gray-800 ${qBg} hover:border-gray-600 flex items-center justify-center gap-1`}>
-                      <span className="text-[10px] text-gray-400">{dayNum}</span>
+                    <Link key={idx} to={`/quick/${puzzle.id}`} className={`h-8 rounded border ${lightMode2 ? 'border-gray-300 hover:border-gray-400' : 'border-gray-800 hover:border-gray-600'} ${qBg} flex items-center justify-center gap-1`}>
+                      <span className={`text-[10px] ${lightMode2 ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
                       <span className={`${qColor} text-xs leading-none`}>{qIcon}</span>
                     </Link>
                   );
@@ -329,16 +337,18 @@ export default function Archives() {
               </div>
             </div>
             {/* Legend */}
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-[10px] text-gray-400">
-              <span className="flex items-center gap-1"><span className="text-yellow-300">🤩</span> Perfect</span>
+            {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
+            <div className={`mt-3 flex flex-wrap items-center justify-center gap-4 text-[10px] ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
+              <span className="flex items-center gap-1"><span className="text-yellow-400">🤩</span> Perfect</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">🌟</span> 3 stars</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">⭐️</span> 2 stars</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">💫</span> 1 star</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">☆</span> 0 stars</span>
               <span className="flex items-center gap-1"><span className="text-red-400">❌</span> Failed</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">👟</span> In progress</span>
-              <span className="flex items-center gap-1"><span className="text-gray-300">🪜</span> Not started</span>
+              <span className="flex items-center gap-1"><span className={`${lightMode ? 'text-gray-500' : 'text-gray-300'}`}>🪜</span> Not started</span>
             </div>
+            )})()}
           </div>
         )}
       </div>

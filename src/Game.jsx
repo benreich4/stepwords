@@ -703,7 +703,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <button
             key={`ref-${m.index}`}
             type="button"
-            className="inline-flex items-center justify-center w-5 h-5 rounded border bg-yellow-700/30 border-yellow-400 text-yellow-200 text-[9px] leading-none hover:bg-yellow-700/40 align-middle -translate-y-[1px]"
+            className={`inline-flex items-center justify-center w-5 h-5 rounded border text-[9px] leading-none align-middle -translate-y-[1px] ${settings.lightMode ? 'bg-yellow-100 border-yellow-400 text-yellow-800 hover:bg-yellow-200' : 'bg-yellow-700/30 border-yellow-400 text-yellow-200 hover:bg-yellow-700/40'}`}
             onClick={() => {
               setLevel(jumpIndex);
               const firstOpen = nearestUnlockedInRow(jumpIndex, 0);
