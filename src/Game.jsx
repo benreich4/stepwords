@@ -1194,6 +1194,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       if (!rows || !rows.length) return;
       // If already solved/showing share, skip
       if (showShare) return;
+      // Only auto-submit if the player hasn't manually submitted any row yet
+      if (guessCount > 0) return;
       // Check all rows fully filled and exactly match answers
       const allCorrect = rows.every((row, i) => {
         const ans = (row?.answer || "").toUpperCase();
@@ -1269,7 +1271,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
       autoSubmitDoneRef.current = true;
     } catch {}
-  }, [guesses, rows, hintCount, wrongGuessCount, wordRevealed, isQuick, puzzle.id, puzzleNamespace, scoreBase, elapsedMs, formatElapsed, showShare, gameStartTime]);
+  }, [guesses, rows, hintCount, wrongGuessCount, guessCount, wordRevealed, isQuick, puzzle.id, puzzleNamespace, scoreBase, elapsedMs, formatElapsed, showShare, gameStartTime]);
 
   const handleEnter = () => {
     const len = rowLen(level);
