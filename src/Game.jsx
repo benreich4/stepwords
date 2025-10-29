@@ -1186,6 +1186,91 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     typeChar(key);
   };
 
+  // Auto-submit all rows when the entire grid is filled and every letter is correct
+  const autoSubmitDoneRef = useRef(false);
+  useEffect(() => {
+    if (autoSubmitDoneRef.current) return;
+    try {
+      if (!rows || !rows.length) return;
+      // If already solved/showing share, skip
+      if (showShare) return;
+      // Check all rows fully filled and exactly match answers
+      const allCorrect = rows.every((row, i) => {
+        const ans = (row?.answer || "").toUpperCase();
+        if (!ans) return false;
+        const len = ans.length;
+        const guess = ((guesses[i] || "").toUpperCase()).padEnd(len, " ").slice(0, len);
+        if (guess.includes(" ")) return false; // not fully filled
+        return guess === ans;
+      });
+      if (!allCorrect) return;
+
+      // Lock all rows as solved in one shot
+      const newLock = rows.map((row) => Array.from({ length: (row?.answer || "").length }, () => 'G'));
+      setLockColors(newLock);
+      setGuesses(rows.map((r) => (r?.answer || "").toUpperCase()));
+
+      // Compute final score and stars (no extra missteps added)
+      const finalScore = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
+      const awarded = wordRevealed ? 0 : (finalScore >= 7 ? 3 : (finalScore >= 4 ? 2 : (finalScore >= 1 ? 1 : 0)));
+      setStars(awarded);
+      setDidFail(false);
+      try {
+        const key = `${puzzleNamespace}-stars`;
+        const map = JSON.parse(localStorage.getItem(key) || '{}');
+        map[puzzle.id] = awarded;
+        localStorage.setItem(key, JSON.stringify(map));
+      } catch {}
+
+      // Perfect tracking
+      try {
+        if (finalScore === 10 && hintCount === 0) {
+          const pkey = `${puzzleNamespace}-perfect`;
+          const arr = JSON.parse(localStorage.getItem(pkey) || '[]');
+          if (!arr.includes(puzzle.id)) {
+            arr.push(puzzle.id);
+            localStorage.setItem(pkey, JSON.stringify(arr));
+          }
+        }
+      } catch {}
+
+      // Build share text and show modal
+      try {
+        const share = buildEmojiShareGridFrom(rows, newLock);
+        setShareText(share);
+      } catch {}
+      setShowShare(true);
+
+      // Analytics
+      try {
+        if (window.gtag && typeof window.gtag === 'function') {
+          window.gtag('event', 'game_completed', {
+            puzzle_id: puzzle.id || 'unknown',
+            hints_used: hintCount,
+            total_guesses: guessCount,
+            wrong_guesses: wrongGuessCount,
+            completion_time: Date.now() - (gameStartTime || Date.now()),
+            mode: isQuick ? 'quick' : 'main',
+            solve_time_ms: elapsedMs,
+            solve_time_display: formatElapsed(elapsedMs),
+          });
+        }
+      } catch {}
+
+      // Clear saved state and mark completed
+      try { localStorage.removeItem(puzzleKey); } catch {}
+      try {
+        const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
+        if (!completedPuzzles.includes(puzzle.id)) {
+          completedPuzzles.push(puzzle.id);
+          localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
+        }
+      } catch {}
+
+      autoSubmitDoneRef.current = true;
+    } catch {}
+  }, [guesses, rows, hintCount, wrongGuessCount, wordRevealed, isQuick, puzzle.id, puzzleNamespace, scoreBase, elapsedMs, formatElapsed, showShare, gameStartTime]);
+
   const handleEnter = () => {
     const len = rowLen(level);
     const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
