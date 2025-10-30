@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { fetchManifest } from "./lib/puzzles.js";
 import { fetchQuickManifest } from "./lib/quickPuzzles.js";
 import { getTodayIsoInET } from "./lib/date.js";
+import SharePromptModal from "./components/SharePromptModal.jsx";
 // Inline analytics - no separate module needed
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
   const [lightMode, setLightMode] = useState(() => {
     try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); return s.lightMode === true; } catch { return false; }
   });
+  const [showSharePrompt, setShowSharePrompt] = useState(false);
 
   useEffect(() => {
     const onStorage = (e) => {
@@ -126,6 +128,19 @@ export default function App() {
     return () => { cancelled = true; };
   }, [location.pathname]);
 
+  // Dedicated users share prompt (5+ solves across Main + Quick), show once
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('stepwords-share-nudge') === '1') return;
+      const mainCompleted = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
+      const quickCompleted = JSON.parse(localStorage.getItem('quickstep-completed') || '[]');
+      const solved = new Set([...(Array.isArray(mainCompleted) ? mainCompleted : []), ...(Array.isArray(quickCompleted) ? quickCompleted : [])]);
+      if (solved.size >= 5) {
+        setTimeout(() => setShowSharePrompt(true), 600);
+      }
+    } catch {}
+  }, []);
+
   // Preview token handler: visiting ?preview=on sets a local flag for early access
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -223,6 +238,10 @@ export default function App() {
       <main className="w-full">
         <Outlet />
       </main>
+
+      {showSharePrompt && (
+        <SharePromptModal onClose={() => setShowSharePrompt(false)} lightMode={lightMode} />
+      )}
       
       {/* Copyright notice */}
       <footer className="w-full px-3 py-2 text-xs text-gray-500 border-t border-gray-800">
