@@ -1169,11 +1169,15 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         // Center horizontally over the Hints button
         mark.style.left = (r.left + r.width / 2) + 'px';
         mark.style.transform = 'translateX(-50%)';
-        mark.style.top = Math.max(8, r.top - 28) + 'px';
+        // Place just above the lightbulb icon
+        mark.style.top = Math.max(8, r.top - 30) + 'px';
         mark.style.zIndex = '9999';
         mark.style.pointerEvents = 'none';
         mark.className = 'px-2 py-1 rounded bg-sky-700 text-white text-xs border border-sky-500 shadow';
-        mark.textContent = 'Try looking at the word starts';
+        // Force single-line coachmark
+        mark.style.whiteSpace = 'nowrap';
+        mark.style.maxWidth = 'none';
+        mark.textContent = 'Stuck? Try a hint!';
         document.body.appendChild(mark);
         setTimeout(() => { try { document.body.removeChild(mark); } catch {} }, 2600);
         localStorage.setItem('stepwords-hints-coach-shown', '1');
@@ -1649,22 +1653,26 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               localStorage.setItem('stepwords-kb-collapsed','1');
               // first-time coachmark
               if (localStorage.getItem('stepwords-kb-collapse-coach') !== '1') {
-                const btn = collapseBtnRef.current;
-                if (btn) {
-                  const r = btn.getBoundingClientRect();
-                  const mark = document.createElement('div');
-                  mark.style.position = 'fixed';
-                  mark.style.left = (r.left + r.width / 2) + 'px';
-                  mark.style.transform = 'translateX(-50%)';
-                  mark.style.top = Math.max(8, r.top - 28) + 'px';
-                  mark.style.zIndex = '9999';
-                  mark.style.pointerEvents = 'none';
-                  mark.className = 'px-2 py-1 rounded bg-sky-700 text-white text-xs border border-sky-500 shadow';
-                  mark.textContent = 'Tap ▲ to uncollapse the keyboard';
-                  document.body.appendChild(mark);
-                  setTimeout(()=>{ try { document.body.removeChild(mark); } catch {} }, 2800);
-                  localStorage.setItem('stepwords-kb-collapse-coach','1');
-                }
+                // Wait for collapse animation to finish, then place coachmark at the arrow's new location
+                setTimeout(() => {
+                  const btn = collapseBtnRef.current;
+                  if (btn) {
+                    const r = btn.getBoundingClientRect();
+                    const mark = document.createElement('div');
+                    mark.style.position = 'fixed';
+                    mark.style.left = (r.left + r.width / 2) + 'px';
+                    mark.style.transform = 'translateX(-50%)';
+                    // Place just above the collapsed arrow location
+                    mark.style.top = Math.max(8, r.top - 28) + 'px';
+                    mark.style.zIndex = '9999';
+                    mark.style.pointerEvents = 'none';
+                    mark.className = 'px-2 py-1 rounded bg-sky-700 text-white text-xs border border-sky-500 shadow';
+                    mark.textContent = 'Tap ▲ to uncollapse the keyboard';
+                    document.body.appendChild(mark);
+                    setTimeout(()=>{ try { document.body.removeChild(mark); } catch {} }, 2600);
+                    localStorage.setItem('stepwords-kb-collapse-coach','1');
+                  }
+                }, 340);
               }
             } else {
               localStorage.removeItem('stepwords-kb-collapsed');
