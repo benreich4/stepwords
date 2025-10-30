@@ -514,11 +514,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     if (!hasSeenHowToPlay) {
       setShowHowToPlay(true);
     }
-    // Quick intro if user has played main but not seen quick intro
+    // Quick intro only if user has solved a Main before but has not solved any Quick yet, and hasn't seen this intro
     try {
-      const hasPlayedMain = localStorage.getItem('stepwords-completed') || localStorage.getItem('stepwords-visited');
+      const mainCompleted = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
+      const quickCompleted = JSON.parse(localStorage.getItem('quickstep-completed') || '[]');
       const seenQuickIntro = localStorage.getItem('quickstep-intro-shown');
-      if (!isQuick && hasPlayedMain && !seenQuickIntro) {
+      if (!isQuick && Array.isArray(mainCompleted) && mainCompleted.length > 0 && Array.isArray(quickCompleted) && quickCompleted.length === 0 && !seenQuickIntro) {
         setShowQuickIntro(true);
       }
       localStorage.setItem(`${puzzleNamespace}-visited`, '1');
