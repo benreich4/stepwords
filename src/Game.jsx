@@ -1364,8 +1364,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         )}
       </div>
 
-      <div className={`w-full px-3 h-8 flex items-center justify-between sticky top-0 backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b z-20 transition-[height,background-color] duration-300 ease-out ${settings.lightMode ? 'bg-white/90 border-gray-300' : 'bg-black/80 border-gray-800'}`}>
-        <div className={`flex items-center gap-2 text-xs ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
+      <div className={`w-full px-3 xl:px-4 2xl:px-6 h-8 xl:h-10 2xl:h-12 flex items-center justify-between sticky top-0 backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b z-20 transition-[height,background-color] duration-300 ease-out ${settings.lightMode ? 'bg-white/90 border-gray-300' : 'bg-black/80 border-gray-800'}`}>
+        <div className={`flex items-center gap-2 text-xs xl:text-sm 2xl:text-base ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
           <div
             ref={starsRef}
             className={`px-2 py-0.5 rounded border flex items-center gap-0.5 cursor-pointer ${settings.lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/40'}`}
@@ -1375,12 +1375,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             onClick={showStarsInfo}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showStarsInfo(); } }}
           >
-            <span className={currentStars >= 1 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
-            <span className={currentStars >= 2 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
-            <span className={currentStars >= 3 ? 'text-yellow-300' : 'text-gray-500'}>★</span>
+            <span className={`leading-none ${currentStars >= 1 ? 'text-yellow-300' : 'text-gray-500'}`}>★</span>
+            <span className={`leading-none ${currentStars >= 2 ? 'text-yellow-300' : 'text-gray-500'}`}>★</span>
+            <span className={`leading-none ${currentStars >= 3 ? 'text-yellow-300' : 'text-gray-500'}`}>★</span>
         </div>
         {!hideZeroTime && (
-          <div className={`ml-2 px-2 py-0.5 rounded border text-xs font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-white text-gray-800' : 'border-gray-700 bg-gray-900/40 text-gray-300'}`} title="Elapsed time">
+          <div className={`ml-2 px-2 py-0.5 rounded border text-xs xl:text-sm font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-white text-gray-800' : 'border-gray-700 bg-gray-900/40 text-gray-300'}`} title="Elapsed time">
             {formatElapsed(elapsedMs)}
           </div>
         )}
@@ -1544,7 +1544,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           >
             ←
           </button>
-          <div className={`text-sm mx-2 flex-1 text-center ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
+          <div className={`text-sm xl:text-base 2xl:text-lg mx-2 flex-1 text-center ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
             <span className="font-semibold">Clue:</span> {renderClueText(clue)}
           </div>
         <button

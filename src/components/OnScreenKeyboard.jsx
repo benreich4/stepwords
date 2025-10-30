@@ -28,7 +28,7 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
   };
 
   const getKeyClass = (key) => {
-    const baseClass = "px-2 py-3 h-14 sm:h-10 rounded font-semibold select-none touch-manipulation";
+    const baseClass = "px-2 py-3 h-14 sm:h-10 xl:h-12 2xl:h-14 rounded font-semibold select-none touch-manipulation text-sm xl:text-base";
     
     if (key === 'SUBMIT' || key === 'BACKSPACE') {
       const pulse = key === 'SUBMIT' && submitReady ? ' animate-pulse ring-2 ring-emerald-400' : '';
@@ -42,13 +42,13 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
     const isFiltered = filteredLetters && !filteredLetters.includes(key);
     
     if (lightMode) {
-      return `${baseClass} text-sm ${
+      return `${baseClass} ${
         isDisabled || isFiltered
           ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
           : 'bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400 border border-gray-300'
       }`;
     }
-    return `${baseClass} text-sm ${isDisabled || isFiltered ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-800'}`;
+    return `${baseClass} ${isDisabled || isFiltered ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-800'}`;
   };
 
   const rootRef = useRef(null);
@@ -110,7 +110,7 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
         style={{ maxHeight: collapsed ? 0 : contentHeight, opacity: collapsed ? 0 : 1 }}
       >
         <div ref={contentInnerRef}>
-          <div className={`${isTiny ? 'px-1' : 'px-2'} py-1 ${collapsed ? '' : 'kb-pop-in'}`}>
+          <div className={`${isTiny ? 'px-1' : 'px-2 xl:px-4 2xl:px-6'} py-1 ${collapsed ? '' : 'kb-pop-in'}`}>
             {rows.map((row, rowIndex) => (
               <div key={rowIndex} className={`flex justify-center ${isTiny ? 'gap-0.5' : 'gap-1'} mb-1`}>
                 {row.map((key) => (

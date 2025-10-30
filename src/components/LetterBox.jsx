@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { getTodayIsoInET } from "../lib/date.js";
 
 export default function LetterBox({
@@ -12,12 +13,13 @@ export default function LetterBox({
   isDiffFilled = false,  // deemphasize letters already filled in comparison row
   isDiffAll = false,     // deemphasize entire row (initial hold before selecting target)
   lightMode = false,
+  delayMs = 0,
 }) {
   const COLOR_CLASSES = {
-    G: "bg-green-600 border-green-500 text-white",
-    Y: "bg-yellow-400 border-yellow-400 text-black",
+    G: "bg-green-600 border-green-500 text-white transition-colors duration-200",
+    Y: "bg-yellow-400 border-yellow-400 text-black transition-colors duration-200",
   };
-  const EMPTY_CLASSES = lightMode ? "bg-gray-100 border-gray-300 text-gray-900" : "bg-gray-900 border-gray-700 text-gray-200";
+  const EMPTY_CLASSES = lightMode ? "bg-gray-100 border-gray-300 text-gray-900 transition-colors duration-200" : "bg-gray-900 border-gray-700 text-gray-200 transition-colors duration-200";
   const stateClass = state ? (COLOR_CLASSES[state] || EMPTY_CLASSES) : EMPTY_CLASSES;
 
   // Calculate dynamic tile size based on viewport and word length, with sane min/max caps
@@ -25,14 +27,29 @@ export default function LetterBox({
   // - Mobile: ensure tiles aren't too small (min ~30px)
   // - Desktop: cap tiles so they don't get huge (max ~40px)
   const rawSize = `(100vw - 3rem) / ${maxWordLength}`;
-  const tileSize = `clamp(30px, calc(${rawSize}), 40px)`;
-  const textSize = `clamp(11px, calc(${rawSize} * 0.42), 16px)`;
+  const isWide = (typeof window !== 'undefined') && window.matchMedia && window.matchMedia('(min-width: 1536px)').matches;
+  const tileMaxPx = isWide ? 56 : 40;
+  const tileMinPx = isWide ? 34 : 30;
+  const textMaxPx = isWide ? 20 : 16;
+  const textScale = isWide ? 0.45 : 0.42;
+  const tileSize = `clamp(${tileMinPx}px, calc(${rawSize}), ${tileMaxPx}px)`;
+  const textSize = `clamp(11px, calc(${rawSize} * ${textScale}), ${textMaxPx}px)`;
   
   const base =
     "relative inline-flex items-center justify-center border rounded-[6px] box-border " +
     "select-none uppercase font-bold leading-none " +
-    "aspect-square";
+    "aspect-square transition-transform duration-150";
   const hasChar = Boolean(char && char !== " ");
+  const prevStateRef = useRef(state);
+  const [isPopping, setIsPopping] = useState(false);
+  useEffect(() => {
+    if (state && state !== prevStateRef.current) {
+      setIsPopping(true);
+      const t = setTimeout(() => setIsPopping(false), 160);
+      return () => clearTimeout(t);
+    }
+    prevStateRef.current = state;
+  }, [state]);
   const getStepEmoji = () => {
     try {
       const iso = getTodayIsoInET();
@@ -48,10 +65,11 @@ export default function LetterBox({
     <button 
       type="button" 
       onClick={onClick} 
-      className={`${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''}`}
+      className={`${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''} ${isPopping ? 'scale-105' : ''}`}
       style={{
         width: tileSize,
         fontSize: textSize,
+        transitionDelay: `${delayMs}ms`,
       }}
     >
       <span>{char}</span>
