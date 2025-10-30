@@ -11,6 +11,7 @@ import QuickToday from "./pages/QuickToday.jsx";
 import QuickPage from "./pages/QuickPage.jsx";
 import Submissions from "./pages/Submissions.jsx";
 import SubmissionPlay from "./pages/SubmissionPlay.jsx";
+import Stats from "./pages/Stats.jsx";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
       { path: "/quick/:puzzleId", element: <QuickPage /> },
       { path: "/submissions", element: <Submissions /> },
       { path: "/submissions/:sid", element: <SubmissionPlay /> },
+      { path: "/stats", element: <Stats /> },
       { path: "/:puzzleId", element: <PuzzlePage /> },
     ],
   },

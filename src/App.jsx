@@ -10,6 +10,7 @@ export default function App() {
   const navigate = useNavigate();
   const isQuick = location.pathname.startsWith('/quick');
   const isArchives = location.pathname.startsWith('/archives');
+  const isStats = location.pathname.startsWith('/stats');
   const [mainTarget, setMainTarget] = useState("/");
   const [quickTarget, setQuickTarget] = useState("/quick");
   const [headerCollapsed, setHeaderCollapsed] = useState(() => {
@@ -178,7 +179,7 @@ export default function App() {
             </div>
           </div>
           <div className="justify-self-center">
-            {!isArchives && (
+            {!isArchives && !isStats && (
               <button
                 onClick={() => {
                   const next = !headerCollapsed;
@@ -197,8 +198,14 @@ export default function App() {
           </div>
           <div className="justify-self-end min-w-0">
             <Link 
+              to="/stats" 
+              className={`px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'}`}
+            >
+              Stats
+            </Link>
+            <Link 
               to="/archives" 
-              className={`px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap flex items-center justify-center ${lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'}`}
+              className={`ml-2 px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'}`}
             >
               Archives
             </Link>

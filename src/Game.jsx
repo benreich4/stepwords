@@ -955,6 +955,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           map[puzzle.id] = awarded;
           localStorage.setItem(key, JSON.stringify(map));
         } catch {}
+        // Save completion time
+        try {
+          const tkey = `${puzzleNamespace}-times`;
+          const tmap = JSON.parse(localStorage.getItem(tkey) || '{}');
+          tmap[puzzle.id] = elapsedMs;
+          localStorage.setItem(tkey, JSON.stringify(tmap));
+        } catch {}
         // Record perfect (score 10 and no hints used)
         try {
           if (finalScore === 10 && hintCount === 0) {
@@ -1227,6 +1234,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         const map = JSON.parse(localStorage.getItem(key) || '{}');
         map[puzzle.id] = awarded;
         localStorage.setItem(key, JSON.stringify(map));
+      } catch {}
+      // Save completion time
+      try {
+        const tkey = `${puzzleNamespace}-times`;
+        const tmap = JSON.parse(localStorage.getItem(tkey) || '{}');
+        tmap[puzzle.id] = elapsedMs;
+        localStorage.setItem(tkey, JSON.stringify(tmap));
       } catch {}
 
       // Perfect tracking
