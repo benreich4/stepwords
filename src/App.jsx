@@ -73,7 +73,7 @@ export default function App() {
     let cancelled = false;
     const path = location.pathname;
     const segments = path.split('/').filter(Boolean);
-    const onMainPuzzle = !isQuick && segments.length === 1 && segments[0] && !["archives","create","explore","submissions"].includes(segments[0]);
+    const onMainPuzzle = !isQuick && segments.length === 1 && segments[0] && !["archives","create","explore","submissions","stats"].includes(segments[0]);
     const onQuickPuzzle = isQuick && segments.length === 2 && segments[0] === 'quick' && segments[1];
 
     const today = getTodayIsoInET();
@@ -159,7 +159,7 @@ export default function App() {
               <Link 
                 to={mainTarget} 
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
-                  (!isQuick && !isArchives)
+                  (!isQuick && !isArchives && !isStats)
                     ? 'bg-blue-600 border-blue-500 text-white' 
                     : (lightMode ? 'bg-gray-200 border-gray-300 text-gray-800 hover:bg-gray-300' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600')
                 }`}
@@ -199,13 +199,21 @@ export default function App() {
           <div className="justify-self-end min-w-0">
             <Link 
               to="/stats" 
-              className={`px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'}`}
+              className={`px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
+                isStats
+                  ? 'bg-blue-600 border-blue-500 text-white'
+                  : (lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white')
+              }`}
             >
               Stats
             </Link>
             <Link 
               to="/archives" 
-              className={`ml-2 px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'}`}
+              className={`ml-2 px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
+                isArchives
+                  ? 'bg-blue-600 border-blue-500 text-white'
+                  : (lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white')
+              }`}
             >
               Archives
             </Link>
