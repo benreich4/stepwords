@@ -1552,7 +1552,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       </div>
 
       {/* Top toast */}
-      <Toast text={toast} variant={toastVariant} />
+      <Toast text={toast} variant={toastVariant} lightMode={settings.lightMode} />
 
       <div ref={clueBarRef} className={`w-full px-3 py-2 sticky top-[32px] backdrop-blur border-b z-10 ${settings.lightMode ? 'bg-gray-100/95 border-gray-300' : 'bg-gray-900/95 border-sky-900/60'}`}>
         <div className="flex items-center justify-between">
