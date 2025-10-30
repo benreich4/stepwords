@@ -12,46 +12,51 @@ const Explore = () => {
   const [loading, setLoading] = useState(true);
   const [minLength, setMinLength] = useState(10);
   const [suggesting, setSuggesting] = useState(false);
+  const [scoreCutoff, setScoreCutoff] = useState(30);
+  const [reloading, setReloading] = useState(false);
 
   const navigate = useNavigate();
 
   // Load word list and build dictionary
+  const loadWordList = async (cutoff) => {
+    try {
+      const response = await fetch('/XwiWordList.txt');
+      const text = await response.text();
+      const lines = text.split('\n');
+
+      const cutoffNum = Number.isFinite(cutoff) ? cutoff : 30;
+      // Filter words with frequency >= cutoff and build dictionary
+      const words = lines
+        .map(line => line.split(';'))
+        .filter(parts => parts.length >= 2 && Number.parseInt(parts[1], 10) >= cutoffNum)
+        .map(parts => parts[0].toLowerCase().trim())
+        .filter(word => word.length > 0);
+
+      // Group by sorted letters
+      const dict = {};
+      words.forEach(word => {
+        const sorted = word.split('').sort().join('');
+        if (!dict[sorted]) {
+          dict[sorted] = [];
+        }
+        if (!dict[sorted].includes(word)) {
+          dict[sorted].push(word);
+        }
+      });
+
+      setWordList(words);
+      setWordDict(dict);
+    } catch (error) {
+      console.error('Error loading word list:', error);
+    }
+  };
+
   useEffect(() => {
-    const loadWordList = async () => {
-      try {
-        const response = await fetch('/XwiWordList.txt');
-        const text = await response.text();
-        const lines = text.split('\n');
-        
-        // Filter words with frequency >= 30 and build dictionary
-        const words = lines
-          .map(line => line.split(';'))
-          .filter(parts => parts.length >= 2 && parseInt(parts[1]) >= 30)
-          .map(parts => parts[0].toLowerCase().trim())
-          .filter(word => word.length > 0);
-
-        // Group by sorted letters
-        const dict = {};
-        words.forEach(word => {
-          const sorted = word.split('').sort().join('');
-          if (!dict[sorted]) {
-            dict[sorted] = [];
-          }
-          if (!dict[sorted].includes(word)) {
-            dict[sorted].push(word);
-          }
-        });
-
-        setWordList(words);
-        setWordDict(dict);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error loading word list:', error);
-        setLoading(false);
-      }
-    };
-
-    loadWordList();
+    (async () => {
+      setLoading(true);
+      await loadWordList(scoreCutoff);
+      setLoading(false);
+    })();
   }, []);
 
   // Helper functions for word operations
@@ -263,6 +268,33 @@ const Explore = () => {
             >
               ← Submit a Puzzle
             </a>
+          </div>
+          {/* Word list score cutoff reloader */}
+          <div className="mt-4 flex items-end gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Word list score cutoff</label>
+              <select
+                value={String(scoreCutoff)}
+                onChange={(e) => setScoreCutoff(Number.parseInt(e.target.value, 10))}
+                className="w-36 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+              >
+                <option value="0">0</option>
+                <option value="30">30</option>
+                <option value="50">50</option>
+                <option value="60">60</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">&nbsp;</label>
+              <button
+                onClick={async () => { setReloading(true); await loadWordList(scoreCutoff); setReloading(false); }}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium h-10"
+                disabled={reloading}
+              >
+                {reloading ? 'Reloading…' : 'Reload'}
+              </button>
+            </div>
+            <div className="pb-2 text-sm text-gray-300">{wordList.length.toLocaleString()} words</div>
           </div>
         </div>
 
