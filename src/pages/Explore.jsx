@@ -12,27 +12,66 @@ const Explore = () => {
   const [loading, setLoading] = useState(true);
   const [minLength, setMinLength] = useState(10);
   const [suggesting, setSuggesting] = useState(false);
+  const [chainMinLength, setChainMinLength] = useState(5);
   const [scoreCutoff, setScoreCutoff] = useState(30);
   const [reloading, setReloading] = useState(false);
 
   const navigate = useNavigate();
 
   // Load word list and build dictionary
-  const loadWordList = async (cutoff) => {
+  useEffect(() => {
+    const loadWordList = async () => {
+      try {
+        const response = await fetch('/XwiWordList.txt');
+        const text = await response.text();
+        const lines = text.split('\n');
+        
+        // Filter words with frequency >= 30 and build dictionary
+        const words = lines
+          .map(line => line.split(';'))
+          .filter(parts => parts.length >= 2 && parseInt(parts[1]) >= 30)
+          .map(parts => parts[0].toLowerCase().trim())
+          .filter(word => word.length > 0);
+
+        // Group by sorted letters
+        const dict = {};
+        words.forEach(word => {
+          const sorted = word.split('').sort().join('');
+          if (!dict[sorted]) {
+            dict[sorted] = [];
+          }
+          if (!dict[sorted].includes(word)) {
+            dict[sorted].push(word);
+          }
+        });
+
+        setWordList(words);
+        setWordDict(dict);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading word list:', error);
+        setLoading(false);
+      }
+    };
+
+    loadWordList();
+  }, []);
+
+  // Manual reload with selectable score cutoff
+  const reloadWithCutoff = async (cutoff) => {
     try {
+      setReloading(true);
       const response = await fetch('/XwiWordList.txt');
       const text = await response.text();
       const lines = text.split('\n');
 
       const cutoffNum = Number.isFinite(cutoff) ? cutoff : 30;
-      // Filter words with frequency >= cutoff and build dictionary
       const words = lines
         .map(line => line.split(';'))
-        .filter(parts => parts.length >= 2 && Number.parseInt(parts[1], 10) >= cutoffNum)
+        .filter(parts => parts.length >= 2 && parseInt(parts[1]) >= cutoffNum)
         .map(parts => parts[0].toLowerCase().trim())
         .filter(word => word.length > 0);
 
-      // Group by sorted letters
       const dict = {};
       words.forEach(word => {
         const sorted = word.split('').sort().join('');
@@ -47,17 +86,11 @@ const Explore = () => {
       setWordList(words);
       setWordDict(dict);
     } catch (error) {
-      console.error('Error loading word list:', error);
+      console.error('Error reloading word list:', error);
+    } finally {
+      setReloading(false);
     }
   };
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      await loadWordList(scoreCutoff);
-      setLoading(false);
-    })();
-  }, []);
 
   // Helper functions for word operations
   const subOptions = (word) => {
@@ -170,12 +203,12 @@ const Explore = () => {
       const word = candidates[i];
       const chainLength = findMaxChainLength(word);
       
-      // Only accept words that can form chains of length 5 or more
-      if (chainLength >= 5) {
+      // Only accept words that can form chains of at least the requested length
+      if (chainLength >= chainMinLength) {
         bestWord = word;
         // capture for potential UI in future; currently unused
         console.log(`Found good word: "${word}" with chain length ${chainLength}`);
-        break; // Use the first word we find with chain >= 5
+        break; // Use the first word we find meeting the requested chain length
       }
     }
     
@@ -183,8 +216,8 @@ const Explore = () => {
       setCurrentWord(bestWord);
       setPath([]);
     } else {
-      // If no word with chain >= 5 found, show a message
-      alert(`No words found with chains of length 5+ for length ${minLength}. Tested ${testCount} candidates. Try a different length.`);
+      // If no word with chain >= requested found, show a message
+      alert(`No words found with chains of length ${chainMinLength}+ for word length ${minLength}. Tested ${testCount} candidates. Try a different length.`);
     }
     
     setSuggesting(false);
@@ -269,14 +302,14 @@ const Explore = () => {
               ← Submit a Puzzle
             </a>
           </div>
-          {/* Word list score cutoff reloader */}
-          <div className="mt-4 flex items-end gap-3">
+          {/* Word list score cutoff + reload */}
+          <div className="mt-3 flex items-end gap-1">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Word list score cutoff</label>
               <select
                 value={String(scoreCutoff)}
-                onChange={(e) => setScoreCutoff(Number.parseInt(e.target.value, 10))}
-                className="w-36 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                onChange={(e) => setScoreCutoff(parseInt(e.target.value) || 0)}
+                className="w-24 h-10 px-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
               >
                 <option value="0">0</option>
                 <option value="30">30</option>
@@ -284,16 +317,13 @@ const Explore = () => {
                 <option value="60">60</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">&nbsp;</label>
-              <button
-                onClick={async () => { setReloading(true); await loadWordList(scoreCutoff); setReloading(false); }}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium h-10"
-                disabled={reloading}
-              >
-                {reloading ? 'Reloading…' : 'Reload'}
-              </button>
-            </div>
+            <button
+              onClick={() => reloadWithCutoff(scoreCutoff)}
+              className="ml-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium h-10"
+              disabled={reloading}
+            >
+              {reloading ? 'Reloading…' : 'Reload'}
+            </button>
             <div className="pb-2 text-sm text-gray-300">{wordList.length.toLocaleString()} words</div>
           </div>
         </div>
@@ -316,7 +346,7 @@ const Explore = () => {
               </div>
               <div className="flex gap-2">
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Length:</label>
+                  <label className="block text-xs text-gray-400 mb-1">Word Length:</label>
                   <input
                     type="number"
                     value={minLength}
@@ -324,6 +354,17 @@ const Explore = () => {
                     min="3"
                     max="20"
                     className="w-16 px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none text-center"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Chain Length:</label>
+                  <input
+                    type="number"
+                    value={chainMinLength}
+                    onChange={(e) => { const v = parseInt(e.target.value, 10); setChainMinLength(Number.isFinite(v) ? v : 5); }}
+                    min="0"
+                    max="20"
+                    className="w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none text-center"
                   />
                 </div>
                 <div>
