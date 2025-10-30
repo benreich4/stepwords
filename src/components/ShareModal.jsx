@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { fetchManifest } from "../lib/puzzles.js";
+import { fetchQuickManifest } from "../lib/quickPuzzles.js";
+import { getTodayIsoInET } from "../lib/date.js";
 
 export default function ShareModal({
   shareText,
@@ -16,6 +19,8 @@ export default function ShareModal({
   lightMode = false,
 }) {
   const [notice, setNotice] = useState("");
+  const [ctaHref, setCtaHref] = useState(isQuick ? "/" : "/quick");
+  const [ctaText, setCtaText] = useState(isQuick ? "Try today’s Main Stepword Puzzle" : "Try today’s Quick Stepword Puzzle");
   // Determine if this is today's puzzle in ET
   const { isTodayET, puzzleDateText } = (() => {
     try {
@@ -36,14 +41,78 @@ export default function ShareModal({
 
   const hasTime = Boolean(elapsedTime && !didFail);
 
+  // Determine CTA destination: if today's target mode is already solved, link to most recent unsolved; else link to today's in target mode
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const today = getTodayIsoInET();
+        if (isQuick) {
+          // Link to today's Main if unsolved, otherwise to most recent unsolved Main
+          const list = await fetchManifest();
+          const completed = new Set(JSON.parse(localStorage.getItem('stepwords-completed') || '[]'));
+          const available = list.filter(p => p.date <= today);
+          const todayMeta = available.find(p => p.date === today);
+          if (todayMeta && !completed.has(todayMeta.id)) {
+            if (!cancelled) { setCtaHref(`/${todayMeta.id}`); setCtaText("Try today’s Main Stepword Puzzle"); }
+            return;
+          }
+          // pick most recent unsolved
+          const recentUnsolved = available.slice().reverse().find(p => !completed.has(p.id));
+          if (recentUnsolved) {
+            if (!cancelled) { setCtaHref(`/${recentUnsolved.id}`); setCtaText("Try an unsolved puzzle from the archives!"); }
+          } else {
+            if (!cancelled) { setCtaHref('/archives'); setCtaText("Try an unsolved puzzle from the archives!"); }
+          }
+        } else {
+          // From Main → target Quick
+          const list = await fetchQuickManifest();
+          const completed = new Set(JSON.parse(localStorage.getItem('quickstep-completed') || '[]'));
+          const available = list.filter(p => p.date <= today);
+          const todayMeta = available.find(p => p.date === today);
+          if (todayMeta && !completed.has(todayMeta.id)) {
+            if (!cancelled) { setCtaHref(`/quick/${todayMeta.id}`); setCtaText("Try today’s Quick Stepword Puzzle"); }
+            return;
+          }
+          const recentUnsolved = available.slice().reverse().find(p => !completed.has(p.id));
+          if (recentUnsolved) {
+            if (!cancelled) { setCtaHref(`/quick/${recentUnsolved.id}`); setCtaText("Try an unsolved puzzle from the archives!"); }
+          } else {
+            if (!cancelled) { setCtaHref('/archives'); setCtaText("Try an unsolved puzzle from the archives!"); }
+          }
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [isQuick]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-6">
       <div className={`w-full max-w-lg rounded-2xl border p-5 shadow-2xl max-h-[85vh] overflow-y-auto ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gradient-to-b from-gray-900 to-black'}`}>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <div className={`text-xl font-semibold ${lightMode ? 'text-gray-900' : 'text-white'}`}>{didFail ? 'Too many missteps' : 'You solved it!'}</div>
           {!didFail && (hintCount === 0 && wrongGuessCount === 0) && (
             <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${lightMode ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-700 text-white border-emerald-500'}`}>Perfect!</span>
           )}
+        </div>
+
+        {/* Primary CTA – move user to today's other puzzle (prominent) */}
+        <div className="mb-3">
+          <Link
+            to={ctaHref}
+            className="block w-full text-center px-4 py-2 rounded-md bg-emerald-600 text-white font-semibold hover:bg-emerald-700"
+            onClick={() => {
+              try {
+                if (window.gtag && typeof window.gtag === 'function') {
+                  const target = ctaHref.startsWith('/quick') ? 'quick' : (ctaHref === '/archives' ? 'archives' : 'main');
+                  window.gtag('event', 'cta_navigate', { target, source: 'completion_modal_top', mode: isQuick ? 'quick' : 'main' });
+                }
+              } catch {}
+              try { onClose?.(); } catch {}
+            }}
+          >
+            {ctaText}
+          </Link>
         </div>
 
         <div className={`mb-3 grid gap-2 text-sm ${hasTime ? 'grid-cols-3' : 'grid-cols-2'}`}>
@@ -92,22 +161,7 @@ export default function ShareModal({
               Try another puzzle from the archives!
             </Link>
           </div>
-          <div className="mt-2">
-          <Link 
-              to={isQuick ? "/quick" : "/"}
-              className={`inline-block text-sm hover:underline ${lightMode ? 'text-emerald-700' : 'text-emerald-400'}`}
-            onClick={() => {
-              try {
-                if (window.gtag && typeof window.gtag === 'function') {
-                  window.gtag('event', 'cta_navigate', { target: isQuick ? 'quick' : 'main', source: 'completion_modal', mode: isQuick ? 'quick' : 'main' });
-                }
-              } catch {}
-              try { onClose?.(); } catch {}
-            }}
-            >
-              {isQuick ? "Try today's main Stepword puzzle" : "Try today's Quick Stepword puzzle"}
-            </Link>
-          </div>
+          
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
