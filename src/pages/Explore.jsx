@@ -332,52 +332,52 @@ const Explore = () => {
         <div className="mb-8">
           <div className="max-w-2xl">
             <label className="block text-sm font-medium mb-2">Enter a word to explore:</label>
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <label className="block text-xs text-gray-400 mb-1">Word:</label>
+            {/* Controls row: Word Length, Chain Length, Suggest */}
+            <div className="flex gap-3 items-end mb-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Word Length:</label>
                 <input
-                  type="text"
-                  value={currentWord}
-                  onChange={handleInputChange}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type a word..."
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                  type="number"
+                  value={minLength}
+                  onChange={(e) => setMinLength(parseInt(e.target.value) || 10)}
+                  min="3"
+                  max="20"
+                  className="w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none text-center"
                 />
               </div>
-              <div className="flex gap-2">
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Word Length:</label>
-                  <input
-                    type="number"
-                    value={minLength}
-                    onChange={(e) => setMinLength(parseInt(e.target.value) || 10)}
-                    min="3"
-                    max="20"
-                    className="w-16 px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none text-center"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Chain Length:</label>
-                  <input
-                    type="number"
-                    value={chainMinLength}
-                    onChange={(e) => { const v = parseInt(e.target.value, 10); setChainMinLength(Number.isFinite(v) ? v : 5); }}
-                    min="0"
-                    max="20"
-                    className="w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none text-center"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">&nbsp;</label>
-                  <button
-                    onClick={suggestStartingPoint}
-                    disabled={suggesting || wordList.length === 0}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium h-10"
-                  >
-                    {suggesting ? 'Finding...' : '🎯 Suggest'}
-                  </button>
-                </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Chain Length:</label>
+                <input
+                  type="number"
+                  value={chainMinLength}
+                  onChange={(e) => { const v = parseInt(e.target.value, 10); setChainMinLength(Number.isFinite(v) ? v : 5); }}
+                  min="0"
+                  max="20"
+                  className="w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none text-center"
+                />
               </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">&nbsp;</label>
+                <button
+                  onClick={suggestStartingPoint}
+                  disabled={suggesting || wordList.length === 0}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium h-10"
+                >
+                  {suggesting ? 'Finding...' : '🎯 Suggest'}
+                </button>
+              </div>
+            </div>
+            {/* Word input row */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Word:</label>
+              <input
+                type="text"
+                value={currentWord}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder="Type a word..."
+                className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+              />
             </div>
             <p className="text-xs text-gray-400 mt-2">
               The suggest button finds words that can form long chains for better puzzle creation
