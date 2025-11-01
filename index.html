@@ -27,6 +27,13 @@
     <title>Stepwords — Daily Anagram Ladder Word Game</title>
     <meta name="description" content="A daily anagram ladder puzzle. Build words step by step. New puzzle every midnight ET." />
     <link rel="canonical" href="https://stepwords.xyz" />
+    <meta name="application-name" content="Stepwords" />
+    <meta name="theme-color" content="#16a34a" />
+
+    <!-- Icons / Favicons -->
+    <link rel="icon" href="/icon-48.png" sizes="48x48" type="image/png" />
+    <link rel="icon" href="/icon-48.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon-48.png" />
 
     <!-- Open Graph -->
     <meta property="og:site_name" content="Stepwords" />
@@ -51,7 +58,30 @@
       "url": "https://stepwords.xyz"
     }
     </script>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪜</text></svg>">
+    <!-- Structured Data: SiteNavigationElement (helps Google generate sitelinks) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "itemListElement": [
+        {
+          "@type": "SiteNavigationElement",
+          "name": "Main",
+          "url": "https://stepwords.xyz/"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "name": "Quick",
+          "url": "https://stepwords.xyz/quick"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "name": "Archives",
+          "url": "https://stepwords.xyz/archives"
+        }
+      ]
+    }
+    </script>
     
   </head>
   <body>

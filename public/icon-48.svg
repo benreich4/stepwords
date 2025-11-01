@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- Background: match app green tile (Tailwind green-600: #16a34a) -->
+  <rect width="48" height="48" rx="10" fill="#16a34a"/>
+  <!-- Exact stepladder emoji using system color font -->
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
+        font-size="34" aria-hidden="true"
+        font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, EmojiOne Color, Twemoji Mozilla, sans-serif">
+    🪜
+  </text>
+</svg>
+
