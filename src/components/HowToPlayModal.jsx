@@ -6,10 +6,14 @@ export default function HowToPlayModal({ onClose, lightMode = false }) {
   const exampleRows = exampleWords.map(w => ({ answer: w }));
   const exampleStepIdx = computeStepIndices(exampleRows);
   
-  // Check if we should show jack-o'-lantern instead of ladder for Halloween dates
+  // Check if we should show seasonal/special emoji instead of ladder for specific dates
   const getStepEmoji = () => {
     const today = getTodayIsoInET();
     const [year, month, day] = today.split('-').map(Number);
+    // One-off special: 11/02/2025 → running woman
+    if (year === 2025 && month === 11 && day === 2) {
+      return '🏃‍♀️';
+    }
     
     // Check if date is between 10/28 and 10/31 (inclusive)
     if (month === 10 && day >= 28 && day <= 31) {

@@ -54,8 +54,11 @@ export default function LetterBox({
     try {
       const iso = getTodayIsoInET();
       const parts = (iso || "").split('-').map((v) => parseInt(v, 10));
+      const year = parts[0];
       const month = parts[1];
       const day = parts[2];
+      // Special one-off: 11/02/2025 shows running woman
+      if (year === 2025 && month === 11 && day === 2) return '🏃‍♀️';
       if (month === 10 && day >= 28 && day <= 31) return '🎃';
     } catch {}
     return '🪜';

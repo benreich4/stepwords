@@ -1524,7 +1524,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     }}
                   />
                 </label>
-                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Hides step locations ({getTodayIsoInET().split('-')[1] === '10' && parseInt(getTodayIsoInET().split('-')[2]) >= 28 && parseInt(getTodayIsoInET().split('-')[2]) <= 31 ? '🎃' : '🪜'}) until revealed. Saved as your default.</div>
+                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                  {(() => {
+                    const iso = getTodayIsoInET();
+                    let emoji = '🪜';
+                    try {
+                      const [y,m,d] = iso.split('-').map(Number);
+                      if (y === 2025 && m === 11 && d === 2) emoji = '🏃‍♀️';
+                      else if (m === 10 && d >= 28 && d <= 31) emoji = '🎃';
+                    } catch {}
+                    return <>Hides step locations ({emoji}) until revealed. Saved as your default.</>;
+                  })()}
+                </div>
 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Easy mode</span>
