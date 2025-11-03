@@ -160,6 +160,16 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [kbCollapsed, setKbCollapsed] = useState(() => {
     try { return localStorage.getItem('stepwords-kb-collapsed') === '1'; } catch { return false; }
   });
+  // Transient setting: use OS keyboard (not persisted)
+  const [useOsKeyboard, setUseOsKeyboard] = useState(() => {
+    try {
+      const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      const dpr = window.devicePixelRatio || 1;
+      const w = window.innerWidth || 0;
+      const h = window.innerHeight || 0;
+      return coarse && dpr >= 3 && (w >= 1000 || h >= 1600);
+    } catch { return false; }
+  });
 
   // If this puzzle was previously lost (stars persisted as 0), reflect that in the banner
   useEffect(() => {
@@ -204,10 +214,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     };
   }, [diffTipShown]);
   const inputRef = useRef(null);
-  const rowInputRefs = useRef([]);
   const [ime, setIme] = useState("");
   const [isMobile, setIsMobile] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   // Settings (persisted)
   const [settings, setSettings] = useState(() => {
@@ -253,6 +261,14 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [timerFinished]);
+
+  // Reset bottom spacer if OS keyboard is used (no on-screen keyboard height)
+  useEffect(() => {
+    try {
+      const spacer = document.getElementById('bottom-scroll-spacer');
+      if (spacer) spacer.style.height = useOsKeyboard ? '0px' : spacer.style.height;
+    } catch {}
+  }, [useOsKeyboard]);
 
   // Stop timer when puzzle finished or failed
   useEffect(() => {
@@ -493,7 +509,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       const phone = /Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) && !tablet;
       setIsTablet(Boolean(tablet));
       setIsMobile(Boolean(phone));
-      setIsIOS(/iPad|iPhone|iPod/i.test(ua));
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -1487,28 +1502,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             </button>
             {showSettings && (
               <div className={`absolute right-0 top-full mt-1 w-60 rounded-lg border backdrop-blur-sm shadow-xl p-2 text-xs menu-pop-in ${settings.lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5' : 'border-gray-700 bg-gray-900/95 ring-1 ring-white/10'}`}>
-                <label className="flex items-center justify-between py-1">
-                  <span className={`${settings.lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Light mode</span>
-                  <button
-                    role="switch"
-                    aria-checked={settings.lightMode ? "true" : "false"}
-                    onClick={() => {
-                      const checked = !settings.lightMode;
-                      setSettings(s => ({ ...s, lightMode: checked }));
-                      try {
-                        if (window.gtag && typeof window.gtag === 'function') {
-                          window.gtag('event', checked ? 'light_mode_turned_on' : 'light_mode_turned_off', { puzzle_id: puzzle.id || 'unknown' });
-                        }
-                        document.dispatchEvent(new CustomEvent('stepwords-settings-updated', { detail: { lightMode: checked } }));
-                      } catch {}
-                    }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.lightMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
-                    aria-label="Toggle light mode"
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.lightMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
-        </button>
-                </label>
-                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Invert colors for a light appearance.</div>
+                
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hard mode</span>
                   <input
@@ -1559,6 +1553,48 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                   />
                 </label>
                 <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Filters keyboard to letters in this puzzle. Saved as your default.</div>
+                <div className={`my-2 border-t ${settings.lightMode ? 'border-gray-200' : 'border-gray-800'}`}></div>
+
+                {/* Moved Light mode below divider */}
+                <label className="flex items-center justify-between py-1">
+                  <span className={`${settings.lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Light mode</span>
+                  <button
+                    role="switch"
+                    aria-checked={settings.lightMode ? "true" : "false"}
+                    onClick={() => {
+                      const checked = !settings.lightMode;
+                      setSettings(s => ({ ...s, lightMode: checked }));
+                      try {
+                        if (window.gtag && typeof window.gtag === 'function') {
+                          window.gtag('event', checked ? 'light_mode_turned_on' : 'light_mode_turned_off', { puzzle_id: puzzle.id || 'unknown' });
+                        }
+                        document.dispatchEvent(new CustomEvent('stepwords-settings-updated', { detail: { lightMode: checked } }));
+                      } catch {}
+                    }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.lightMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    aria-label="Toggle light mode"
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.lightMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
+                  </button>
+                </label>
+                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Invert colors for a light appearance.</div>
+
+                <label className="flex items-center justify-between py-1">
+                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Use OS keyboard</span>
+                  <input
+                    type="checkbox"
+                    checked={useOsKeyboard}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setUseOsKeyboard(checked);
+                      if (checked) {
+                        // Collapse on-screen keyboard when opting into OS keyboard
+                        setKbCollapsed(true);
+                      }
+                    }}
+                  />
+                </label>
+                <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Shows your device keyboard instead of the on‑screen keys. Not saved.</div>
               </div>
             )}
           </div>
@@ -1596,54 +1632,31 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         id="grid-scroll"
         className="flex-1 overflow-y-auto pt-5 sm:pt-4 md:pt-3 pb-8"
         onClick={() => {
-          if (!isMobile && inputRef.current) {
+          if ((useOsKeyboard || !isMobile) && inputRef.current) {
             inputRef.current.focus();
-          } else if (isIOS && rowInputRefs.current[level]) {
-            try { rowInputRefs.current[level].focus(); } catch {}
           }
         }}
       >
-        {/* Hidden input(s) for keyboard capture */}
-        {isIOS ? (
-          <div className="absolute opacity-0 w-0 h-0" aria-hidden>
-            {rows.map((_, i) => (
-              <input
-                key={i}
-                ref={(el) => { rowInputRefs.current[i] = el; }}
-                onFocus={() => { setLevel(i); }}
-                onKeyDown={onKeyDown}
-                onChange={onTextInput}
-                value={ime}
-                inputMode="text"
-                enterKeyHint="done"
-                autoCapitalize="none"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-              />
-            ))}
-          </div>
-        ) : (
-          <input
-            ref={inputRef}
-            onKeyDown={onKeyDown}
-            onChange={onTextInput}
-            value={ime}
-            onBlur={() => {
-              if (!isMobile) {
-                setTimeout(() => inputRef.current?.focus(), 0);
-              }
-            }}
-            inputMode={"none"}
-            enterKeyHint="done"
-            autoCapitalize="none"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            className={isTablet ? "absolute opacity-0 w-0 h-0" : "absolute opacity-0 -left-[9999px] w-px h-px"}
-            aria-hidden
-          />
-        )}
+        {/* Hidden input for keyboard capture */}
+      <input
+        ref={inputRef}
+        onKeyDown={onKeyDown}
+        onChange={onTextInput}
+        value={ime}
+          onBlur={() => {
+            if (!isMobile) {
+              setTimeout(() => inputRef.current?.focus(), 0);
+            }
+          }}
+          inputMode={useOsKeyboard ? "text" : "none"}
+        enterKeyHint="done"
+        autoCapitalize="none"
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+          className={isTablet ? "absolute opacity-0 w-0 h-0" : "absolute opacity-0 -left-[9999px] w-px h-px"}
+        aria-hidden
+      />
 
         <LetterGrid
           rows={rows}
@@ -1697,7 +1710,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           if (spacer) spacer.style.height = Math.max(0, Math.floor(h)) + 'px';
         }}
         submitButtonRef={submitBtnRef}
-        collapsed={kbCollapsed}
+        collapsed={kbCollapsed || useOsKeyboard}
         onToggleCollapse={(next) => {
           try {
             if (next) {
@@ -1729,6 +1742,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               localStorage.removeItem('stepwords-kb-collapsed');
             }
           } catch {}
+          // If user expands the keyboard, disable OS keyboard mode
+          if (!next && useOsKeyboard) {
+            setUseOsKeyboard(false);
+          }
           setKbCollapsed(next);
         }}
         toggleRef={collapseBtnRef}
