@@ -1037,8 +1037,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Keyboard event handlers (desktop)
   function onKeyDown(e) {
     console.log('Key pressed:', e.key, 'isMobile:', isMobile);
-    // On iOS OS keyboard, handle submit/navigation keys here
-    if (isIOS) {
+    // On iOS with OS keyboard preference, handle submit/navigation/typing here
+    if (isIOS && useOsKeyboard) {
       // Let browser/system shortcuts work
       if (e.metaKey || e.ctrlKey) return;
       if (e.key === "Enter") { e.preventDefault(); handleEnter(); return; }
@@ -1047,8 +1047,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       if (e.key === "ArrowRight") { e.preventDefault(); stepCursorInRow(1); return; }
       if (e.key === "ArrowUp") { e.preventDefault(); if (level > 0) moveLevel(-1); return; }
       if (e.key === "ArrowDown") { e.preventDefault(); if (level < rows.length - 1) moveLevel(1); return; }
-      // For letters/typing, let onTextInput handle it
-      return;
+      // Letters
+      if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); typeChar(e.key); return; }
+      return; // ignore other keys
     }
     if (isMobile) return; // Only handle physical keyboard on desktop
     
@@ -1074,7 +1075,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   function onTextInput(e) {
     // Handle iOS OS keyboard text input
-    if (isIOS) {
+    if (isIOS && useOsKeyboard) {
       const v = e.target.value || "";
       const letters = v.match(/[a-zA-Z]/g);
       if (letters && letters.length) typeChar(letters[letters.length - 1]);
@@ -1086,6 +1087,24 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const letters = v.match(/[a-zA-Z]/g);
     if (letters && letters.length) typeChar(letters[letters.length - 1]);
     setIme("");
+  }
+
+  // More reliable text handling for iOS virtual keyboards
+  function onBeforeInput(e) {
+    if (!(isIOS && useOsKeyboard)) return;
+    try {
+      const t = e.inputType;
+      if (t === 'insertText' && e.data && /^[a-z]$/i.test(e.data)) {
+        e.preventDefault();
+        typeChar(e.data);
+        return;
+      }
+      if (t === 'deleteContentBackward') {
+        e.preventDefault();
+        handleBackspace();
+        return;
+      }
+    } catch {}
   }
 
 
@@ -1658,14 +1677,14 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         onClick={() => {
           if (!isMobile && inputRef.current) {
             inputRef.current.focus();
-          } else if (isIOS && rowInputRefs.current[level]) {
+          } else if (isIOS && useOsKeyboard && rowInputRefs.current[level]) {
             try { rowInputRefs.current[level].focus(); } catch {}
           }
         }}
       >
         {/* Hidden input(s) for keyboard capture */}
-        {isIOS ? (
-          <div className="absolute opacity-0 pointer-events-none" aria-hidden>
+        {isIOS && useOsKeyboard ? (
+          <div className="absolute opacity-0 w-0 h-0" aria-hidden>
             {rows.map((_, i) => (
               <input
                 key={i}
@@ -1679,6 +1698,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                 }}
                 onKeyDown={onKeyDown}
                 onChange={onTextInput}
+                onBeforeInput={onBeforeInput}
                 value={ime}
                 inputMode="text"
                 enterKeyHint="send"
@@ -1686,6 +1706,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
+                tabIndex={i + 1}
+                name={`row-${i}`}
                 className="absolute -left-[9999px] w-px h-px"
               />
             ))}
@@ -1695,6 +1717,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             ref={inputRef}
             onKeyDown={onKeyDown}
             onChange={onTextInput}
+            onBeforeInput={onBeforeInput}
             value={ime}
             onBlur={() => {
               if (!isMobile) {
@@ -1722,12 +1745,14 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           level={level}
           cursor={cursor}
           onTileClick={(i, col) => {
-                        setLevel(i);
-                        setCursor(col);
-            if (!isMobile) {
-                        inputRef.current?.focus();
-                      }
-                    }}
+            setLevel(i);
+            setCursor(col);
+            if (isIOS && useOsKeyboard && rowInputRefs.current[i]) {
+              try { rowInputRefs.current[i].focus(); } catch {}
+            } else if (!isMobile) {
+              inputRef.current?.focus();
+            }
+          }}
           onJumpToRow={(i)=>{
             setLevel(i);
             const firstOpen = nearestUnlockedInRow(i, 0);
