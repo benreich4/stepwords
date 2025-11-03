@@ -216,6 +216,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const inputRef = useRef(null);
   const [ime, setIme] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   // Settings (persisted)
   const [settings, setSettings] = useState(() => {
@@ -509,6 +510,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       const phone = /Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) && !tablet;
       setIsTablet(Boolean(tablet));
       setIsMobile(Boolean(phone));
+      setIsIOS(/iPad|iPhone|iPod/i.test(ua));
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -1651,26 +1653,56 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           }
         }}
       >
-        {/* Hidden input for keyboard capture */}
-      <input
-        ref={inputRef}
-        onKeyDown={onKeyDown}
-        onChange={onTextInput}
-        value={ime}
-          onBlur={() => {
-            if (!isMobile) {
-              setTimeout(() => inputRef.current?.focus(), 0);
-            }
-          }}
-          inputMode={useOsKeyboard ? "text" : "none"}
-        enterKeyHint="done"
-        autoCapitalize="none"
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck={false}
-          className={isTablet ? "absolute opacity-0 w-0 h-0" : "absolute opacity-0 -left-[9999px] w-px h-px"}
-        aria-hidden
-      />
+        {/* Hidden inputs for keyboard capture (single input + iOS sentinels) */}
+        <form onSubmit={(e)=>{ try { e.preventDefault(); } catch {} }} className="contents">
+          <input
+            ref={inputRef}
+            onKeyDown={onKeyDown}
+            onChange={onTextInput}
+            value={ime}
+            onBlur={() => {
+              if (!isMobile) {
+                setTimeout(() => inputRef.current?.focus(), 0);
+              }
+            }}
+            inputMode={useOsKeyboard ? "text" : "none"}
+            enterKeyHint="done"
+            autoCapitalize="none"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            className={isTablet ? "absolute opacity-0 w-0 h-0" : "absolute opacity-0 -left-[9999px] w-px h-px"}
+            aria-hidden
+          />
+          {isIOS && useOsKeyboard && (
+            <div className="absolute opacity-0 w-0 h-0">
+              {rows.map((_, i) => (
+                <input
+                  key={i}
+                  type="text"
+                  onFocus={() => {
+                    setLevel(i);
+                    try {
+                      const firstOpen = nearestUnlockedInRow(i, 0);
+                      setCursor(firstOpen === -1 ? 0 : firstOpen);
+                    } catch {}
+                  }}
+                  onKeyDown={(e)=>{ /* prevent native editing in sentinels */ if (!e.metaKey && !e.ctrlKey) e.preventDefault(); }}
+                  onChange={(e)=>{ /* no-op */ }}
+                  inputMode="text"
+                  enterKeyHint={i === rows.length - 1 ? 'send' : 'next'}
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  tabIndex={i + 1}
+                  name={`row-${i}`}
+                  className="absolute -left-[9999px] w-px h-px"
+                />
+              ))}
+            </div>
+          )}
+        </form>
 
         <LetterGrid
           rows={rows}
