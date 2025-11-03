@@ -1665,12 +1665,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       >
         {/* Hidden input(s) for keyboard capture */}
         {isIOS ? (
-          <div className="absolute opacity-0 w-0 h-0" aria-hidden>
+          <div className="absolute opacity-0 pointer-events-none" aria-hidden>
             {rows.map((_, i) => (
               <input
                 key={i}
                 ref={(el) => { rowInputRefs.current[i] = el; }}
-                onFocus={() => { setLevel(i); }}
+                onFocus={() => {
+                  setLevel(i);
+                  try {
+                    const firstOpen = nearestUnlockedInRow(i, 0);
+                    setCursor(firstOpen === -1 ? 0 : firstOpen);
+                  } catch {}
+                }}
                 onKeyDown={onKeyDown}
                 onChange={onTextInput}
                 value={ime}
@@ -1680,6 +1686,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
+                className="absolute -left-[9999px] w-px h-px"
               />
             ))}
           </div>
