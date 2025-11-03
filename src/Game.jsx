@@ -160,8 +160,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [kbCollapsed, setKbCollapsed] = useState(() => {
     try { return localStorage.getItem('stepwords-kb-collapsed') === '1'; } catch { return false; }
   });
-  // Session-only toggle to prefer the device OS keyboard over the on-screen keyboard
-  const [useOsKeyboard, setUseOsKeyboard] = useState(false);
 
   // If this puzzle was previously lost (stars persisted as 0), reflect that in the banner
   useEffect(() => {
@@ -1037,20 +1035,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Keyboard event handlers (desktop)
   function onKeyDown(e) {
     console.log('Key pressed:', e.key, 'isMobile:', isMobile);
-    // On iOS OS keyboard, handle submit/navigation keys here
-    if (isIOS) {
-      // Let browser/system shortcuts work
-      if (e.metaKey || e.ctrlKey) return;
-      if (e.key === "Enter") { e.preventDefault(); handleEnter(); return; }
-      if (e.key === "Backspace") { e.preventDefault(); handleBackspace(); return; }
-      if (e.key === "ArrowLeft") { e.preventDefault(); stepCursorInRow(-1); return; }
-      if (e.key === "ArrowRight") { e.preventDefault(); stepCursorInRow(1); return; }
-      if (e.key === "ArrowUp") { e.preventDefault(); if (level > 0) moveLevel(-1); return; }
-      if (e.key === "ArrowDown") { e.preventDefault(); if (level < rows.length - 1) moveLevel(1); return; }
-      // For letters/typing, let onTextInput handle it
-      return;
-    }
-    if (isMobile) return; // Only handle physical keyboard on desktop
+    if (isMobile) return; // Only handle keyboard on desktop
     
     // Let browser/system shortcuts work (Cmd/Ctrl combos, F5, etc.)
     if (e.metaKey || e.ctrlKey) return;
@@ -1073,14 +1058,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   }
 
   function onTextInput(e) {
-    // Handle iOS OS keyboard text input
-    if (isIOS) {
-      const v = e.target.value || "";
-      const letters = v.match(/[a-zA-Z]/g);
-      if (letters && letters.length) typeChar(letters[letters.length - 1]);
-      setIme("");
-      return;
-    }
     if (isMobile) return; // Only handle on desktop
     const v = e.target.value || "";
     const letters = v.match(/[a-zA-Z]/g);
@@ -1510,68 +1487,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             </button>
             {showSettings && (
               <div className={`absolute right-0 top-full mt-1 w-60 rounded-lg border backdrop-blur-sm shadow-xl p-2 text-xs menu-pop-in ${settings.lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5' : 'border-gray-700 bg-gray-900/95 ring-1 ring-white/10'}`}>
-                
-                <label className="flex items-center justify-between py-1">
-                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hard mode</span>
-                  <button
-                    role="switch"
-                    aria-checked={settings.hardMode ? "true" : "false"}
-                    onClick={() => {
-                      const checked = !settings.hardMode;
-                      setSettings(s => ({ ...s, hardMode: checked }));
-                      if (checked) {
-                        try {
-                          if (window.gtag && typeof window.gtag === 'function') {
-                            window.gtag('event', 'hard_mode_turned_on', { puzzle_id: puzzle.id || 'unknown' });
-                          }
-                        } catch {}
-                      }
-                    }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.hardMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
-                    aria-label="Toggle hard mode"
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.hardMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
-                  </button>
-                </label>
-                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
-                  {(() => {
-                    const iso = getTodayIsoInET();
-                    let emoji = '🪜';
-                    try {
-                      const [y,m,d] = iso.split('-').map(Number);
-                      if (y === 2025 && m === 11 && d === 2) emoji = '🏃‍♀️';
-                      else if (m === 10 && d >= 28 && d <= 31) emoji = '🎃';
-                    } catch {}
-                    return <>Hides step locations ({emoji}) until revealed. Saved as your default.</>;
-                  })()}
-                </div>
-
-                <label className="flex items-center justify-between py-1">
-                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Easy mode</span>
-                  <button
-                    role="switch"
-                    aria-checked={settings.easyMode ? "true" : "false"}
-                    onClick={() => {
-                      const checked = !settings.easyMode;
-                      setSettings(s => ({ ...s, easyMode: checked }));
-                      if (checked) {
-                        try {
-                          if (window.gtag && typeof window.gtag === 'function') {
-                            window.gtag('event', 'easy_mode_turned_on', { puzzle_id: puzzle.id || 'unknown' });
-                          }
-                        } catch {}
-                      }
-                    }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.easyMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
-                    aria-label="Toggle easy mode"
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.easyMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
-                  </button>
-                </label>
-                <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Filters keyboard to letters in this puzzle. Saved as your default.</div>
-                <div className={`my-2 border-t ${settings.lightMode ? 'border-gray-200' : 'border-gray-800'}`}></div>
-
-                {/* Light mode moved below divider */}
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Light mode</span>
                   <button
@@ -1591,34 +1506,59 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     aria-label="Toggle light mode"
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.lightMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
-                  </button>
+        </button>
                 </label>
                 <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Invert colors for a light appearance.</div>
-
                 <label className="flex items-center justify-between py-1">
-                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Use OS keyboard</span>
-                  <button
-                    role="switch"
-                    aria-checked={useOsKeyboard ? "true" : "false"}
-                    onClick={() => {
-                      const checked = !useOsKeyboard;
-                      setUseOsKeyboard(checked);
+                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hard mode</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.hardMode}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSettings(s => ({ ...s, hardMode: checked }));
                       if (checked) {
-                        setKbCollapsed(true);
-                        try { inputRef.current?.focus(); } catch {}
-                      } else {
-                        // Turn off OS keyboard preference → expand on-screen keyboard
-                        setKbCollapsed(false);
-                        try { localStorage.removeItem('stepwords-kb-collapsed'); } catch {}
+                        try {
+                          if (window.gtag && typeof window.gtag === 'function') {
+                            window.gtag('event', 'hard_mode_turned_on', { puzzle_id: puzzle.id || 'unknown' });
+                          }
+                        } catch {}
                       }
                     }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${useOsKeyboard ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
-                    aria-label="Toggle OS keyboard"
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useOsKeyboard ? 'translate-x-4' : 'translate-x-1'}`}></span>
-                  </button>
+                  />
                 </label>
-                <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Shows your device keyboard instead of the on‑screen keys. Not saved.</div>
+                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                  {(() => {
+                    const iso = getTodayIsoInET();
+                    let emoji = '🪜';
+                    try {
+                      const [y,m,d] = iso.split('-').map(Number);
+                      if (y === 2025 && m === 11 && d === 2) emoji = '🏃‍♀️';
+                      else if (m === 10 && d >= 28 && d <= 31) emoji = '🎃';
+                    } catch {}
+                    return <>Hides step locations ({emoji}) until revealed. Saved as your default.</>;
+                  })()}
+                </div>
+
+                <label className="flex items-center justify-between py-1">
+                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Easy mode</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.easyMode}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSettings(s => ({ ...s, easyMode: checked }));
+                      if (checked) {
+                        try {
+                          if (window.gtag && typeof window.gtag === 'function') {
+                            window.gtag('event', 'easy_mode_turned_on', { puzzle_id: puzzle.id || 'unknown' });
+                          }
+                        } catch {}
+                      }
+                    }}
+                  />
+                </label>
+                <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Filters keyboard to letters in this puzzle. Saved as your default.</div>
               </div>
             )}
           </div>
@@ -1675,7 +1615,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                 onChange={onTextInput}
                 value={ime}
                 inputMode="text"
-                enterKeyHint="send"
+                enterKeyHint="done"
                 autoCapitalize="none"
                 autoComplete="off"
                 autoCorrect="off"
@@ -1694,7 +1634,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                 setTimeout(() => inputRef.current?.focus(), 0);
               }
             }}
-          inputMode={useOsKeyboard ? "text" : "none"}
+            inputMode={"none"}
             enterKeyHint="done"
             autoCapitalize="none"
             autoComplete="off"
@@ -1757,7 +1697,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           if (spacer) spacer.style.height = Math.max(0, Math.floor(h)) + 'px';
         }}
         submitButtonRef={submitBtnRef}
-        collapsed={kbCollapsed || useOsKeyboard}
+        collapsed={kbCollapsed}
         onToggleCollapse={(next) => {
           try {
             if (next) {
@@ -1789,10 +1729,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               localStorage.removeItem('stepwords-kb-collapsed');
             }
           } catch {}
-          // If user expands the keyboard, disable OS keyboard mode
-          if (!next && useOsKeyboard) {
-            setUseOsKeyboard(false);
-          }
           setKbCollapsed(next);
         }}
         toggleRef={collapseBtnRef}
