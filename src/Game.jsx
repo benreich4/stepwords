@@ -1505,11 +1505,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hard mode</span>
-                  <input
-                    type="checkbox"
-                    checked={settings.hardMode}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
+                  <button
+                    role="switch"
+                    aria-checked={settings.hardMode ? "true" : "false"}
+                    onClick={() => {
+                      const checked = !settings.hardMode;
                       setSettings(s => ({ ...s, hardMode: checked }));
                       if (checked) {
                         try {
@@ -1519,7 +1519,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                         } catch {}
                       }
                     }}
-                  />
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.hardMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    aria-label="Toggle hard mode"
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.hardMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
+                  </button>
                 </label>
                 <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
                   {(() => {
@@ -1536,11 +1540,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Easy mode</span>
-                  <input
-                    type="checkbox"
-                    checked={settings.easyMode}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
+                  <button
+                    role="switch"
+                    aria-checked={settings.easyMode ? "true" : "false"}
+                    onClick={() => {
+                      const checked = !settings.easyMode;
                       setSettings(s => ({ ...s, easyMode: checked }));
                       if (checked) {
                         try {
@@ -1550,7 +1554,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                         } catch {}
                       }
                     }}
-                  />
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.easyMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    aria-label="Toggle easy mode"
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.easyMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
+                  </button>
                 </label>
                 <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Filters keyboard to letters in this puzzle. Saved as your default.</div>
                 <div className={`my-2 border-t ${settings.lightMode ? 'border-gray-200' : 'border-gray-800'}`}></div>
@@ -1581,18 +1589,24 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Use OS keyboard</span>
-                  <input
-                    type="checkbox"
-                    checked={useOsKeyboard}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
+                  <button
+                    role="switch"
+                    aria-checked={useOsKeyboard ? "true" : "false"}
+                    onClick={() => {
+                      const checked = !useOsKeyboard;
                       setUseOsKeyboard(checked);
                       if (checked) {
-                        // Collapse on-screen keyboard when opting into OS keyboard
                         setKbCollapsed(true);
+                      } else {
+                        setKbCollapsed(false);
+                        try { localStorage.removeItem('stepwords-kb-collapsed'); } catch {}
                       }
                     }}
-                  />
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${useOsKeyboard ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    aria-label="Toggle OS keyboard"
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useOsKeyboard ? 'translate-x-4' : 'translate-x-1'}`}></span>
+                  </button>
                 </label>
                 <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Shows your device keyboard instead of the on‑screen keys. Not saved.</div>
               </div>
