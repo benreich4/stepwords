@@ -66,11 +66,13 @@ export default function HowToPlayModal({ onClose, lightMode = false }) {
                 </div>
               ))}
             </div>
+            <div className={`text-xs mt-3 ${lightMode ? 'text-gray-500' : 'text-gray-500'}`}>
+              The {getStepEmoji()} shows where the new letter was added!
+            </div>
           </div>
           
           <div className="space-y-2 text-sm">
             <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>The {getStepEmoji()} shows where the new letter was added.</li>
               <li>Correct letters turn <span className="text-green-400">green</span>;  Ones that required multiple guesses or hints turn <span className="text-yellow-400">yellow</span>.</li>
               <li>Submit a row with <strong>Enter</strong> or <strong>Submit</strong>.</li>
               <li><strong>Hard mode</strong>: hides {getStepEmoji()} step locations</li>
