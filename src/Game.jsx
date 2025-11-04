@@ -900,6 +900,23 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     // Snapshot colors *after* this row submit
     const colorsAfter = lockColors.map(r => r.slice());
     colorsAfter[i] = rowColors;
+
+    // Helper: apply this row's color changes with a left-to-right stagger
+    const applyRowColorsStaggered = () => {
+      for (let col = 0; col < rowColors.length; col++) {
+        const targetColor = rowColors[col];
+        // Only schedule if the color actually changes
+        if (lockColors[i][col] !== targetColor) {
+          setTimeout(() => {
+            setLockColors((prev) => {
+              const next = prev.map((r) => r.slice());
+              next[i][col] = targetColor;
+              return next;
+            });
+          }, col * 28);
+        }
+      }
+    };
     const wasWrongAfter = wasWrong.map(r => r.slice());
     wasWrongAfter[i] = nextWasWrongRow;
 
@@ -957,7 +974,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     if (solvedThisRow) {
       // ✅ Only consider the puzzle solved if *every* row is fully colored
       if (isPuzzleSolved(colorsAfter, rows)) {
-        setLockColors(colorsAfter);
+        applyRowColorsStaggered();
 
         showToast("🎉 You solved all the Stepwords!", 2800, "success");
         const share = buildEmojiShareGridFrom(rows, colorsAfter);
@@ -1024,7 +1041,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       }
 
       // Not fully solved yet → advance if there’s a next row
-      setLockColors(colorsAfter);
+      applyRowColorsStaggered();
       if (i + 1 < rows.length) {
         const nextRow = i + 1;
         setLevel(nextRow);
@@ -1040,7 +1057,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     }
 
     // Row not solved → commit and prompt to keep going
-    setLockColors(colorsAfter);
+    applyRowColorsStaggered();
   // Inhibit this toast when at 0 points so the loss-warning toast is visible
   if (!(pointsAfter === 0)) {
     showToast("Kept correct letters. Try filling the rest.", 2400, "warning");
