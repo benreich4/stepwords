@@ -58,6 +58,24 @@ export default function App() {
     } catch (_err) { void 0; }
   }, [location]);
 
+  // Keep <link rel="canonical"> in sync with the current route (prevents "alternate page" issues)
+  useEffect(() => {
+    try {
+      const origin = 'https://stepwords.xyz';
+      const path = location && location.pathname ? location.pathname : '/';
+      const canonicalHref = origin + (path === '/' ? '/' : path);
+      let link = document.querySelector('link[rel="canonical"]');
+      if (!link) {
+        link = document.createElement('link');
+        link.setAttribute('rel', 'canonical');
+        document.head.appendChild(link);
+      }
+      if (link.getAttribute('href') !== canonicalHref) {
+        link.setAttribute('href', canonicalHref);
+      }
+    } catch (_e) { void 0; }
+  }, [location && location.pathname]);
+
   // First-visit redirect: on the very first app load, send users to Quick
   useEffect(() => {
     try {

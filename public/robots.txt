@@ -1,6 +1,12 @@
 User-agent: *
 Allow: /
 
+# Avoid indexing parameterized duplicates
+Disallow: /*?*
+
+# Don’t index raw JSON assets
+Disallow: /*.json$
+
 Sitemap: https://stepwords.xyz/sitemap.xml
 
 
