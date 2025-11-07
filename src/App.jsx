@@ -12,6 +12,7 @@ export default function App() {
   const isQuick = location.pathname.startsWith('/quick');
   const isArchives = location.pathname.startsWith('/archives');
   const isStats = location.pathname.startsWith('/stats');
+  const isOther = location.pathname.startsWith('/other');
   const [mainTarget, setMainTarget] = useState("/");
   const [quickTarget, setQuickTarget] = useState("/quick");
   const [headerCollapsed, setHeaderCollapsed] = useState(() => {
@@ -192,7 +193,7 @@ export default function App() {
               <Link 
                 to={mainTarget} 
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
-                  (!isQuick && !isArchives && !isStats)
+                  (!isQuick && !isArchives && !isStats && !isOther)
                     ? 'bg-blue-600 border-blue-500 text-white' 
                     : (lightMode ? 'bg-gray-200 border-gray-300 text-gray-800 hover:bg-gray-300' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600')
                 }`}

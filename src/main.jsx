@@ -9,6 +9,7 @@ import PuzzleCreator from "./pages/PuzzleCreator.jsx";
 import Explore from "./pages/Explore.jsx";
 import QuickToday from "./pages/QuickToday.jsx";
 import QuickPage from "./pages/QuickPage.jsx";
+import OtherPage from "./pages/OtherPage.jsx";
 import Submissions from "./pages/Submissions.jsx";
 import SubmissionPlay from "./pages/SubmissionPlay.jsx";
 import Stats from "./pages/Stats.jsx";
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
       { path: "/archives", element: <Archives /> },
       { path: "/quick", element: <QuickToday /> },
       { path: "/quick/:puzzleId", element: <QuickPage /> },
+      { path: "/other/:puzzleId", element: <OtherPage /> },
       { path: "/submissions", element: <Submissions /> },
       { path: "/submissions/:sid", element: <SubmissionPlay /> },
       { path: "/stats", element: <Stats /> },

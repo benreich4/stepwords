@@ -11,7 +11,7 @@ import { useLifelines, LifelineMenu } from "./lib/lifelines.jsx";
 import { useReveal, RevealConfirmModal } from "./lib/reveal.jsx";
 import { usePuzzleTimer } from "./lib/timer.js";
 // Inline analytics - no separate module needed
-export default function Game({ puzzle, isQuick = false, prevId = null, nextId = null }) {
+export default function Game({ puzzle, isQuick = false, prevId = null, nextId = null, storageNamespace }) {
   const rowsRaw = puzzle.rows || [];
   // Normalize answers: ignore spaces in answers (e.g., "hello world" -> "helloworld")
   const rows = useMemo(() => rowsRaw.map(r => ({
@@ -20,8 +20,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   })), [rowsRaw]); // [{answer, clue}, ...] shortest→longest
   const stepIdx = computeStepIndices(rows);
   
-  // Generate a unique key for this puzzle
-  const puzzleNamespace = isQuick ? 'quickstep' : 'stepwords';
+  // Generate a unique key for this puzzle (overrideable for new modes like "other")
+  const puzzleNamespace = storageNamespace || (isQuick ? 'quickstep' : 'stepwords');
   const puzzleKey = `${puzzleNamespace}-${puzzle.id || 'default'}`;
   
   // Check if user is experienced (3+ main puzzles completed)
@@ -1013,13 +1013,14 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         // Track game completion
         try {
           if (window.gtag && typeof window.gtag === 'function') {
+            const derivedMode = storageNamespace === 'otherstep' ? 'other' : (isQuick ? 'quick' : 'main');
             window.gtag('event', 'game_completed', {
               puzzle_id: puzzle.id || 'unknown',
               hints_used: hintCount,
               total_guesses: guessCount,
               wrong_guesses: wrongGuessCount,
               completion_time: Date.now() - (gameStartTime || Date.now()),
-              mode: isQuick ? 'quick' : 'main',
+              mode: derivedMode,
               solve_time_ms: elapsedMs,
               solve_time_display: formatElapsed(elapsedMs),
             });
