@@ -90,6 +90,12 @@ server {
     root ${REMOTE_ROOT}/dist;
     index index.html;
 
+    # Serve favicon at /favicon.ico with 200 (helps Google favicon fetchers using http://)
+    location = /favicon.ico {
+        default_type image/png;
+        try_files /favicon.ico /icon-48.png =404;
+    }
+
     # SPA routing
     location / {
         try_files \$uri \$uri/ /index.html;
