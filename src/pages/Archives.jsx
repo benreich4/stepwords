@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchManifest } from "../lib/puzzles.js";
 import { fetchQuickManifest } from "../lib/quickPuzzles.js";
 import { getTodayIsoInET, isPreviewEnabled } from "../lib/date.js";
 import { parseLocalISODate } from "../lib/date.js";
 
 export default function Archives() {
+  const navigate = useNavigate();
   const [manifest, setManifest] = useState([]);
   const [err, setErr] = useState("");
   const [quickManifest, setQuickManifest] = useState([]);
@@ -165,6 +166,34 @@ export default function Archives() {
     setCurrent(ensureInRange(y, m));
   };
 
+  const goRandomMain = () => {
+    if (!manifest || !manifest.length) return;
+    try {
+      const today = getTodayIsoInET();
+      const preview = isPreviewEnabled();
+      const eligible = manifest.filter(p => (preview || p.date <= today));
+      const unsolved = eligible.filter(p => !completedIds.has(p.id));
+      const pool = (unsolved.length ? unsolved : eligible);
+      if (!pool.length) return;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      if (pick && pick.id != null) navigate(`/${pick.id}`);
+    } catch {}
+  };
+
+  const goRandomQuick = () => {
+    if (!quickManifest || !quickManifest.length) return;
+    try {
+      const today = getTodayIsoInET();
+      const preview = isPreviewEnabled();
+      const eligible = quickManifest.filter(p => (preview || p.date <= today));
+      const unsolved = eligible.filter(p => !quickCompletedIds.has(p.id));
+      const pool = (unsolved.length ? unsolved : eligible);
+      if (!pool.length) return;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      if (pick && pick.id != null) navigate(`/quick/${pick.id}`);
+    } catch {}
+  };
+
   const onYearChange = (e) => {
     const y = parseInt(e.target.value, 10);
     setCurrent((cur) => ensureInRange(y, cur.month));
@@ -181,6 +210,14 @@ export default function Archives() {
   return (
     <div className="px-3 py-3 flex justify-center">
       <div className="w-full max-w-[420px]">
+        {/* Top row with Random button above date selector */}
+        {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
+        <div className="mb-2 flex items-center justify-end gap-2">
+          <span className={`text-xs ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Play random:</span>
+          <button onClick={goRandomMain} className={`px-2 py-1 text-xs rounded border ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>Main</button>
+          <button onClick={goRandomQuick} className={`px-2 py-1 text-xs rounded border ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>Quick</button>
+        </div>
+        )})()}
         <div className="mb-2 flex items-center justify-between gap-2">
           {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
           <>
