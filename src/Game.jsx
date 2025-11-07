@@ -1074,7 +1074,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     if (e.key === "F5") return;
     if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
 
-    if (e.key === "Tab") { e.preventDefault(); moveLevel(e.shiftKey ? -1 : 1); return; }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const dir = e.shiftKey ? -1 : 1;
+      const nextRow = (level + dir + rows.length) % rows.length;
+      const firstEditable = (() => {
+        const pos = nearestUnlockedInRow(nextRow, 0);
+        return pos === -1 ? 0 : pos;
+      })();
+      setLevel(nextRow);
+      setCursor(firstEditable);
+      return;
+    }
     if (e.key === "Enter") { e.preventDefault(); handleEnter(); return; }
     if (e.key === "Backspace") {
       e.preventDefault();
