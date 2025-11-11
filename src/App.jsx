@@ -77,13 +77,13 @@ export default function App() {
     } catch (_e) { void 0; }
   }, [location && location.pathname]);
 
-  // First-visit redirect: on the very first app load, send users to Quick
+  // First-visit redirect: only if a brand-new user lands on the root path
   useEffect(() => {
     try {
       if (localStorage.getItem('stepwords-first-visit') === '1') return;
-      // mark before navigating to avoid loops
+      // Mark first visit immediately so deep links won't trigger later redirects
       localStorage.setItem('stepwords-first-visit', '1');
-      if (!isQuick) {
+      if (location.pathname === '/') {
         navigate('/quick', { replace: true });
       }
     } catch {}
