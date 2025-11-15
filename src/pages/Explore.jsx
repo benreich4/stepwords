@@ -379,6 +379,11 @@ const Explore = () => {
                 className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
               />
             </div>
+            {currentWord && (
+              <div className="mt-2 text-sm text-gray-300">
+                Length: <span className="font-semibold">{currentWord.length}</span>
+              </div>
+            )}
             <p className="text-xs text-gray-400 mt-2">
               The suggest button finds words that can form long chains for better puzzle creation
             </p>
@@ -418,7 +423,7 @@ const Explore = () => {
             <div>
               <h3 className="text-lg font-medium mb-3 flex items-center">
                 <span className="text-red-400 mr-2">↓</span>
-                Previous Words ({subWords.length})
+                Previous Words ({Math.max(0, currentWord.length - 1)})
               </h3>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {subWords.length > 0 ? (
@@ -442,7 +447,7 @@ const Explore = () => {
             <div>
               <h3 className="text-lg font-medium mb-3 flex items-center">
                 <span className="text-yellow-400 mr-2">↔</span>
-                Anagrams ({anagrams.length})
+                Anagrams ({currentWord.length})
               </h3>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {anagrams.length > 0 ? (
@@ -466,7 +471,7 @@ const Explore = () => {
             <div>
               <h3 className="text-lg font-medium mb-3 flex items-center">
                 <span className="text-blue-400 mr-2">↑</span>
-                Next Words ({addWords.length})
+                Next Words ({currentWord.length + 1})
               </h3>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {addWords.length > 0 ? (
