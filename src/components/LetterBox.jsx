@@ -6,7 +6,9 @@ export default function LetterBox({
   state = null,          // null or 'G' | 'Y'
   isCursor = false,
   onClick,
-  showStep = false,      // <-- NEW
+  showStep = false,      // show actual step ladder emoji
+  showUserStep = false,  // show user-placed temporary step ladder emoji
+  onContextMenu = null,  // right-click handler for temporary step ladder
   maxWordLength = 7,     // <-- NEW: longest word in puzzle
   isDiffExtra = false,   // highlight as the extra/step letter vs comparison row
   isDiffMissing = false, // highlight as a missing/unfilled letter in comparison row
@@ -67,7 +69,8 @@ export default function LetterBox({
   return (
     <button 
       type="button" 
-      onClick={onClick} 
+      onClick={onClick}
+      onContextMenu={onContextMenu}
       className={`${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''} ${isPopping ? 'scale-105' : ''}`}
       style={{
         width: tileSize,
@@ -82,8 +85,19 @@ export default function LetterBox({
         <span className="pointer-events-none absolute inset-[2px] rounded-[4px] border-2 border-sky-400" />
       )}
 
-      {/* 🪜 Step badge (always visible for step squares, per your request) */}
+      {/* 🪜 Step badge (actual step, always visible when revealed) */}
       {showStep && (
+        <span
+          className="pointer-events-none absolute bottom-[1px] right-[1px] select-none
+                     text-[8px] sm:text-[10px] md:text-[11px] leading-none"
+          aria-hidden
+        >
+          {getStepEmoji()}
+        </span>
+      )}
+
+      {/* 🪜 User-placed temporary step badge (hard mode only, when actual step not revealed) */}
+      {showUserStep && (
         <span
           className="pointer-events-none absolute bottom-[1px] right-[1px] select-none
                      text-[8px] sm:text-[10px] md:text-[11px] leading-none"

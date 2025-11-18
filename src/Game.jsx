@@ -250,6 +250,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [showLoss, setShowLoss] = useState(false);
   const [stars, setStars] = useState(null);
   const [didFail, setDidFail] = useState(false);
+  // User-placed temporary step ladders (hard mode only): array of null or column index for each row
+  const [userStepGuesses, setUserStepGuesses] = useState(() => rows.map(() => null));
   // Timer via hook
   const { elapsedMs, running: timerRunning, finished: timerFinished, start: startTimer, pause: pauseTimer, stop: stopTimer, format: formatElapsed } = usePuzzleTimer(savedState.elapsedMs || 0, savedState.timerFinished || false);
 
@@ -323,6 +325,15 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     setLockColors(newLockColors);
     setGuesses(newGuesses);
     setHintCount((n) => n + 2); // costs 2 missteps
+    // Clear user step guess if step letter was revealed
+    const stepIdxForRow = stepIdx?.[i];
+    if (typeof stepIdxForRow === 'number' && stepIdxForRow >= 0 && valid.includes(stepIdxForRow)) {
+      setUserStepGuesses((prev) => {
+        const next = prev.slice();
+        next[i] = null;
+        return next;
+      });
+    }
     showToast("Revealed letters.", 2000, "info");
     try {
       if (window.gtag && typeof window.gtag === 'function') {
@@ -462,6 +473,21 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     });
     return Array.from(allLetters).sort();
   }, [rows]);
+
+  // Toggle user-placed temporary step ladder (hard mode only)
+  const toggleUserStepAt = (row, col) => {
+    if (!settings.hardMode) return;
+    if (row < 1) return; // First row has no step
+    const actualStep = stepIdx?.[row];
+    // Don't allow if actual step is already revealed
+    if (typeof actualStep === 'number' && actualStep >= 0 && lockColors?.[row]?.[actualStep] != null) return;
+    setUserStepGuesses((prev) => {
+      const base = Array.isArray(prev) && prev.length === rows.length ? prev.slice() : rows.map(() => null);
+      // Toggle: if same column, remove it; otherwise set new column
+      base[row] = base[row] === col ? null : col;
+      return base;
+    });
+  };
 
   // Reveal a specific tile by clicking it after activating 'Reveal letter'
   function revealTileAt(rowIndex, colIndex) {
@@ -609,6 +635,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const newGuesses = rows.map(r => (r.answer || '').toUpperCase());
     setLockColors(newLock);
     setGuesses(newGuesses);
+    // Clear all user step guesses since all letters are now revealed
+    setUserStepGuesses(rows.map(() => null));
     return { newLock, newGuesses };
   }
 
@@ -969,6 +997,19 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           setTimeout(() => { try { document.body.removeChild(mark); } catch {} }, 2600);
         }
       } catch {}
+    }
+
+    // Clear user step guess if step letter was revealed or row is solved
+    const stepIdxForRow = stepIdx?.[i];
+    if (typeof stepIdxForRow === 'number' && stepIdxForRow >= 0) {
+      const stepRevealed = rowColors[stepIdxForRow] != null;
+      if (stepRevealed || solvedThisRow) {
+        setUserStepGuesses((prev) => {
+          const next = prev.slice();
+          next[i] = null;
+          return next;
+        });
+      }
     }
 
     if (solvedThisRow) {
@@ -1710,6 +1751,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           lightMode={settings.lightMode}
           level={level}
           cursor={cursor}
+          userStepGuesses={userStepGuesses}
+          onToggleUserStep={toggleUserStepAt}
           onTileClick={(i, col) => {
                         setLevel(i);
                         setCursor(col);

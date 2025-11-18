@@ -15,6 +15,8 @@ export default function LetterGrid({
   referencedRows,
   diffFromRow = null, // index to compare FROM (longer row)
   diffToRow = null,   // index to compare TO (shorter row)
+  userStepGuesses = null, // array of null or column index for each row
+  onToggleUserStep = null, // function(row, col) to toggle user step guess
 }) {
   // Long-press tracking for mobile/desktop: start diff after hold on row number
   const longPressTimerRef = useRef(null);
@@ -247,23 +249,44 @@ export default function LetterGrid({
               {i+1}
             </button>
             <div className="flex gap-0 px-0 mx-0">
-              {Array.from({ length: len }).map((_, col) => (
-                <LetterBox
-                  key={col}
-                  char={showVal[col] || ""}
-                  state={lockColors[i][col]}
-                  isCursor={i === level && col === cursor}
-                  showStep={i >= 1 && col === stepPos && (hardMode ? lockColors[i][stepPos] !== null : true)}
-                  onClick={() => onTileClick(i, col)}
-                  maxWordLength={maxWordLength}
-                  isDiffExtra={Boolean(fromExtraMask?.[col])}
-                  isDiffMissing={Boolean(diffMissingMask?.[col])}
-                  isDiffFilled={Boolean(fromFilledMask?.[col]) || (isIntermediateStep && col === stepPos && lockColors[i][stepPos] != null)}
-                  isDiffAll={isHoldingOnly && longPressStartRowRef.current === i}
-                  delayMs={col * 28}
-                  lightMode={lightMode}
-                />
-              ))}
+              {Array.from({ length: len }).map((_, col) => {
+                const actualStepRevealed = i >= 1 && col === stepPos && (hardMode ? lockColors[i][stepPos] !== null : true);
+                const showUserStep = Boolean(
+                  hardMode &&
+                  i >= 1 &&
+                  typeof stepPos === 'number' &&
+                  stepPos >= 0 &&
+                  lockColors?.[i]?.[stepPos] == null &&
+                  Array.isArray(userStepGuesses) &&
+                  userStepGuesses[i] === col
+                );
+                return (
+                  <LetterBox
+                    key={col}
+                    char={showVal[col] || ""}
+                    state={lockColors[i][col]}
+                    isCursor={i === level && col === cursor}
+                    showStep={actualStepRevealed}
+                    showUserStep={showUserStep}
+                    onContextMenu={(e) => {
+                      if (!hardMode || typeof onToggleUserStep !== 'function') return;
+                      if (i < 1) return; // First row has no step
+                      const stepIdxReveal = stepIdx?.[i];
+                      if (typeof stepIdxReveal === 'number' && stepIdxReveal >= 0 && lockColors?.[i]?.[stepIdxReveal] != null) return;
+                      try { e.preventDefault(); } catch {}
+                      onToggleUserStep(i, col);
+                    }}
+                    onClick={() => onTileClick(i, col)}
+                    maxWordLength={maxWordLength}
+                    isDiffExtra={Boolean(fromExtraMask?.[col])}
+                    isDiffMissing={Boolean(diffMissingMask?.[col])}
+                    isDiffFilled={Boolean(fromFilledMask?.[col]) || (isIntermediateStep && col === stepPos && lockColors[i][stepPos] != null)}
+                    isDiffAll={isHoldingOnly && longPressStartRowRef.current === i}
+                    delayMs={col * 28}
+                    lightMode={lightMode}
+                  />
+                );
+              })}
             </div>
           </div>
         );
