@@ -15,7 +15,7 @@ export default function Toast({ text, variant = "info", lightMode = false }) {
 
   return (
     <div className="fixed top-2 left-0 right-0 z-40 flex justify-center px-3 pointer-events-none">
-      <div className={classes}>{text}</div>
+      <div className={`${classes} pointer-events-none`}>{text}</div>
     </div>
   );
 }
