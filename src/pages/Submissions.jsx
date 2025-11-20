@@ -178,6 +178,9 @@ export default function Submissions() {
               <div>
                 <div className="text-sm text-gray-100">
                   {it.author || "(Unknown author)"}
+                  {it.lastWord && (
+                    <span className="ml-2 text-xs text-gray-400">({it.lastWord.length})</span>
+                  )}
                   {showLastWords && it.lastWord && (
                     <span className="ml-2 text-xs text-gray-400">• {it.lastWord}</span>
                   )}
