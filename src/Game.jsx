@@ -19,6 +19,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     answer: (r?.answer || "").replace(/\s+/g, "")
   })), [rowsRaw]); // [{answer, clue}, ...] shortest→longest
   const stepIdx = computeStepIndices(rows);
+  // Extract emoji from puzzle JSON if present, otherwise default to stepladder
+  const stepEmoji = puzzle.emoji || '🪜';
   
   // Generate a unique key for this puzzle (overrideable for new modes like "other")
   const puzzleNamespace = storageNamespace || (isQuick ? 'quickstep' : 'stepwords');
@@ -1596,16 +1598,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                   </button>
                 </label>
                 <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
-                  {(() => {
-                    const iso = getTodayIsoInET();
-                    let emoji = '🪜';
-                    try {
-                      const [y,m,d] = iso.split('-').map(Number);
-                      if (y === 2025 && m === 11 && d === 2) emoji = '🏃‍♀️';
-                      else if (m === 10 && d >= 28 && d <= 31) emoji = '🎃';
-                    } catch {}
-                    return <>Hides step locations ({emoji}) until revealed. Saved as your default.</>;
-                  })()}
+                  Hides step locations ({stepEmoji}) until revealed. Saved as your default.
                 </div>
 
                 <label className="flex items-center justify-between py-1">
@@ -1753,6 +1746,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           cursor={cursor}
           userStepGuesses={userStepGuesses}
           onToggleUserStep={toggleUserStepAt}
+          stepEmoji={stepEmoji}
           onTileClick={(i, col) => {
                         setLevel(i);
                         setCursor(col);
@@ -1868,7 +1862,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
 
       {showHowToPlay && (
-        <HowToPlayModal onClose={handleCloseHowToPlay} lightMode={settings.lightMode} />
+        <HowToPlayModal onClose={handleCloseHowToPlay} lightMode={settings.lightMode} stepEmoji={stepEmoji} />
       )}
       {showQuickIntro && (
         <QuickIntroModal onClose={() => { setShowQuickIntro(false); try { localStorage.setItem('quickstep-intro-shown','1'); } catch {} }} lightMode={settings.lightMode} />

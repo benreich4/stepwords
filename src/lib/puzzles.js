@@ -25,5 +25,6 @@ export async function loadPuzzleById(id) {
     rows: puzzle.rows || [],
     author: meta?.author || "Unknown",
     date: meta?.date || "",
+    emoji: puzzle.emoji || undefined, // Include emoji if present in puzzle JSON
   };
 }

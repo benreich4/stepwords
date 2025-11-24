@@ -17,6 +17,7 @@ export default function LetterGrid({
   diffToRow = null,   // index to compare TO (shorter row)
   userStepGuesses = null, // array of null or column index for each row
   onToggleUserStep = null, // function(row, col) to toggle user step guess
+  stepEmoji = '🪜', // emoji to use for step indicator
 }) {
   // Long-press tracking for mobile/desktop: start diff after hold on row number
   const longPressTimerRef = useRef(null);
@@ -284,6 +285,7 @@ export default function LetterGrid({
                     isDiffAll={isHoldingOnly && longPressStartRowRef.current === i}
                     delayMs={col * 28}
                     lightMode={lightMode}
+                    stepEmoji={stepEmoji}
                   />
                 );
               })}

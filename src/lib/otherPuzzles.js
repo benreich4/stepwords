@@ -19,6 +19,7 @@ export async function loadOtherById(id) {
     rows: puzzle.rows || [],
     author: meta?.author || puzzle.author || "Unknown",
     date: meta?.date || puzzle.date || "",
+    emoji: puzzle.emoji || undefined, // Include emoji if present in puzzle JSON
   };
 }
 

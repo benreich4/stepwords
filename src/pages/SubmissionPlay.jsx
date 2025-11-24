@@ -17,7 +17,9 @@ export default function SubmissionPlay() {
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => {
         if (!data || !Array.isArray(data.rows)) throw new Error("Invalid submission format");
-        setPuzzle({ id: `submission-${sid}`, author: data.author || "(unknown)", rows: data.rows });
+        const puzzleData = { id: `submission-${sid}`, author: data.author || "(unknown)", rows: data.rows };
+        if (data.emoji) puzzleData.emoji = data.emoji;
+        setPuzzle(puzzleData);
       })
       .catch(e => setErr(e.message));
   }, [sid]);

@@ -1,27 +1,9 @@
 import { computeStepIndices } from "../lib/gameUtils.js";
-import { getTodayIsoInET } from "../lib/date.js";
 
-export default function HowToPlayModal({ onClose, lightMode = false }) {
+export default function HowToPlayModal({ onClose, lightMode = false, stepEmoji = '🪜' }) {
   const exampleWords = ["SOW", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"];
   const exampleRows = exampleWords.map(w => ({ answer: w }));
   const exampleStepIdx = computeStepIndices(exampleRows);
-  
-  // Check if we should show seasonal/special emoji instead of ladder for specific dates
-  const getStepEmoji = () => {
-    const today = getTodayIsoInET();
-    const [year, month, day] = today.split('-').map(Number);
-    // One-off special: 11/02/2025 → running woman
-    if (year === 2025 && month === 11 && day === 2) {
-      return '🏃‍♀️';
-    }
-    
-    // Check if date is between 10/28 and 10/31 (inclusive)
-    if (month === 10 && day >= 28 && day <= 31) {
-      return '🎃';
-    }
-    
-    return '🪜';
-  };
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 py-4 overflow-y-auto">
       <div className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl my-auto ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gradient-to-b from-gray-900 to-black'}`}>
@@ -58,7 +40,7 @@ export default function HowToPlayModal({ onClose, lightMode = false }) {
                       <span>{letter}</span>
                       {i >= 1 && j === exampleStepIdx[i] && (
                         <span className="pointer-events-none absolute bottom-[1px] right-[1px] select-none text-[10px] leading-none" aria-hidden>
-                          {getStepEmoji()}
+                          {stepEmoji}
                         </span>
                       )}
                     </div>
@@ -71,10 +53,10 @@ export default function HowToPlayModal({ onClose, lightMode = false }) {
           
           <div className="space-y-2 text-sm">
             <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>The {getStepEmoji()} shows where the new letter was added.</li>
+              <li>The {stepEmoji} shows where the new letter was added.</li>
               <li>Correct letters turn <span className="text-green-400">green</span>;  Ones that required multiple guesses or hints turn <span className="text-yellow-400">yellow</span>.</li>
               <li>Submit a row with <strong>Enter</strong> or <strong>Submit</strong>.</li>
-              <li><strong>Hard mode</strong>: hides {getStepEmoji()} step locations</li>
+              <li><strong>Hard mode</strong>: hides {stepEmoji} step locations</li>
               <li><strong>Easy mode</strong>: filters the keyboard.</li>
               <li><strong>Stars</strong>: Achieve more stars the fewer missteps and hints used. Use too many and you lose the game!</li>
               <li><strong>Quick Stepword</strong>: a daily warm‑up.</li>

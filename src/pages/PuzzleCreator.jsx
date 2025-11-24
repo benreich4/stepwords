@@ -7,6 +7,7 @@ const PuzzleCreatorSimple = () => {
   const [submissionBreakdowns, setSubmissionBreakdowns] = useState(['', '', '', '', '']);
   const [breakdownTouched, setBreakdownTouched] = useState([false, false, false, false, false]);
   const [submissionAuthor, setSubmissionAuthor] = useState('');
+  const [submissionEmoji, setSubmissionEmoji] = useState('');
   // title is not used in current backend format
   const [submissionStatus, setSubmissionStatus] = useState('');
   const [copying, setCopying] = useState(false);
@@ -133,6 +134,11 @@ const PuzzleCreatorSimple = () => {
         rows,
         submittedAt: new Date().toISOString(),
       };
+      
+      // Add emoji if provided
+      if (submissionEmoji.trim()) {
+        puzzleData.emoji = submissionEmoji.trim();
+      }
 
       // Try API first, fallback to localStorage
       try {
@@ -151,6 +157,7 @@ const PuzzleCreatorSimple = () => {
         // Fallback to localStorage in puzzle file format
         const submissions = JSON.parse(localStorage.getItem('puzzleSubmissions') || '[]');
         const fallback = { author: puzzleData.author, rows };
+        if (puzzleData.emoji) fallback.emoji = puzzleData.emoji;
         submissions.push(fallback);
         localStorage.setItem('puzzleSubmissions', JSON.stringify(submissions));
       }
@@ -164,6 +171,7 @@ const PuzzleCreatorSimple = () => {
         setSubmissionBreakdowns(['', '', '', '', '']);
         setBreakdownTouched([false, false, false, false, false]);
         setSubmissionAuthor('');
+        setSubmissionEmoji('');
         setSubmissionTitle('');
         setSubmissionStatus('');
       }, 3000);
@@ -225,7 +233,7 @@ const PuzzleCreatorSimple = () => {
 
           <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
               {/* Puzzle Info */}
-              <div className="mb-6">
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Your Name</label>
                   <input
@@ -234,6 +242,20 @@ const PuzzleCreatorSimple = () => {
                     onChange={(e) => setSubmissionAuthor(e.target.value)}
                     placeholder="e.g., 'John Doe'"
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Step Emoji <span className="text-gray-500 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={submissionEmoji}
+                    onChange={(e) => setSubmissionEmoji(e.target.value)}
+                    placeholder="e.g., 🎃 or 🏃‍♀️"
+                    maxLength="2"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                    title="Optional: a single emoji to use instead of the default stepladder 🪜"
                   />
                 </div>
               </div>

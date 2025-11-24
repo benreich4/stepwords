@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { getTodayIsoInET } from "../lib/date.js";
 
 export default function LetterBox({
   char = "",
@@ -16,6 +15,7 @@ export default function LetterBox({
   isDiffAll = false,     // deemphasize entire row (initial hold before selecting target)
   lightMode = false,
   delayMs = 0,
+  stepEmoji = '🪜',     // emoji to use for step indicator
 }) {
   const COLOR_CLASSES = {
     G: "bg-green-600 border-green-500 text-white transition-colors duration-200",
@@ -52,19 +52,6 @@ export default function LetterBox({
     }
     prevStateRef.current = state;
   }, [state]);
-  const getStepEmoji = () => {
-    try {
-      const iso = getTodayIsoInET();
-      const parts = (iso || "").split('-').map((v) => parseInt(v, 10));
-      const year = parts[0];
-      const month = parts[1];
-      const day = parts[2];
-      // Special one-off: 11/02/2025 shows running woman
-      if (year === 2025 && month === 11 && day === 2) return '🏃‍♀️';
-      if (month === 10 && day >= 28 && day <= 31) return '🎃';
-    } catch {}
-    return '🪜';
-  };
 
   return (
     <button 
@@ -85,25 +72,25 @@ export default function LetterBox({
         <span className="pointer-events-none absolute inset-[2px] rounded-[4px] border-2 border-sky-400" />
       )}
 
-      {/* 🪜 Step badge (actual step, always visible when revealed) */}
+      {/* Step badge (actual step, always visible when revealed) */}
       {showStep && (
         <span
           className="pointer-events-none absolute bottom-[1px] right-[1px] select-none
                      text-[8px] sm:text-[10px] md:text-[11px] leading-none"
           aria-hidden
         >
-          {getStepEmoji()}
+          {stepEmoji}
         </span>
       )}
 
-      {/* 🪜 User-placed temporary step badge (hard mode only, when actual step not revealed) */}
+      {/* User-placed temporary step badge (hard mode only, when actual step not revealed) */}
       {showUserStep && (
         <span
           className="pointer-events-none absolute bottom-[1px] right-[1px] select-none
                      text-[8px] sm:text-[10px] md:text-[11px] leading-none"
           aria-hidden
         >
-          {getStepEmoji()}
+          {stepEmoji}
         </span>
       )}
     </button>
