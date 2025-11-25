@@ -190,12 +190,18 @@ const PuzzleCreatorSimple = () => {
             <div>
               <h1 className="text-3xl font-bold mb-2">Puzzle Creator</h1>
               <p className="text-gray-400">Create and submit your own Stepwords puzzles</p>
-              <div className="mt-4">
+              <div className="mt-4 flex gap-4">
                 <a 
                   href="/explore" 
                   className="text-blue-400 hover:text-blue-300 underline"
                 >
                   Explore word chains →
+                </a>
+                <a 
+                  href="/words" 
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  Word Database →
                 </a>
               </div>
             </div>
