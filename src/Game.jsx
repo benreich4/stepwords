@@ -337,11 +337,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       });
     }
     showToast("Revealed letters.", 2000, "info");
-    try {
-      if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'hint_used', { hint_type: 'lifeline_reveal', puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' });
-      }
-    } catch {}
+    // Note: This function is called by various lifelines, which track their own events.
+    // The generic "Reveal" lifeline should track via lifeline_used event.
   }
 
   const handleRevealFirst3 = () => {
@@ -396,8 +393,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       // Track lifeline usage
       try {
         if (window.gtag && typeof window.gtag === 'function') {
-          window.gtag('event', 'hint_used', {
-            hint_type: isQuick ? 'lifeline_middle2' : 'lifeline_middle3',
+          window.gtag('event', 'lifeline_used', {
+            lifeline_type: isQuick ? 'middle2' : 'middle3',
             puzzle_id: puzzle.id || 'unknown',
             mode: isQuick ? 'quick' : 'main'
           });
