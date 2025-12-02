@@ -48,24 +48,104 @@ export default function App() {
     return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('stepwords-header-toggle', onCustom); document.removeEventListener('stepwords-settings-updated', onSettingsUpdated); };
   }, []);
 
-  // Track page views
+  // Enhanced traffic source tracking
   useEffect(() => {
     const pagePath = location.pathname + location.search;
     const pageName = location.pathname.split('/')[1] || 'Home';
-    // Track page view with proper GA4 parameters for session attribution
+    
     try {
+      // Parse UTM parameters and referrer
+      const urlParams = new URLSearchParams(location.search);
+      const utmSource = urlParams.get('utm_source');
+      const utmMedium = urlParams.get('utm_medium');
+      const utmCampaign = urlParams.get('utm_campaign');
+      const utmTerm = urlParams.get('utm_term');
+      const utmContent = urlParams.get('utm_content');
+      
+      // Get referrer information
+      const referrer = document.referrer || '';
+      const referrerHost = referrer ? new URL(referrer).hostname.replace(/^www\./, '') : '';
+      const isInternalReferrer = referrerHost === 'stepwords.xyz' || referrerHost === '';
+      
+      // Determine traffic source category
+      let trafficSource = 'direct';
+      let trafficMedium = 'none';
+      let trafficCampaign = null;
+      
+      if (utmSource) {
+        trafficSource = utmSource;
+        trafficMedium = utmMedium || 'unknown';
+        trafficCampaign = utmCampaign || null;
+      } else if (referrer && !isInternalReferrer) {
+        // Categorize referrer
+        if (referrerHost.includes('google') || referrerHost.includes('bing') || referrerHost.includes('yahoo') || referrerHost.includes('duckduckgo')) {
+          trafficSource = referrerHost;
+          trafficMedium = 'organic';
+        } else if (referrerHost.includes('facebook') || referrerHost.includes('twitter') || referrerHost.includes('reddit') || referrerHost.includes('linkedin') || referrerHost.includes('instagram')) {
+          trafficSource = referrerHost;
+          trafficMedium = 'social';
+        } else {
+          trafficSource = referrerHost;
+          trafficMedium = 'referral';
+        }
+      } else if (isInternalReferrer && referrer) {
+        trafficSource = 'internal';
+        trafficMedium = 'internal';
+      }
+      
+      // Store first-touch attribution (only on first visit)
+      if (typeof window !== 'undefined' && !sessionStorage.getItem('stepwords-first-touch-tracked')) {
+        sessionStorage.setItem('stepwords-first-touch-tracked', '1');
+        try {
+          const firstTouchData = {
+            source: trafficSource,
+            medium: trafficMedium,
+            campaign: trafficCampaign,
+            referrer: referrerHost || 'direct',
+            timestamp: new Date().toISOString(),
+          };
+          localStorage.setItem('stepwords-first-touch', JSON.stringify(firstTouchData));
+        } catch {}
+      }
+      
+      // Track page view with enhanced traffic source data
       if (window.gtag && typeof window.gtag === 'function') {
+        const eventParams = {
+          page_path: pagePath,
+          page_location: window.location.href,
+          page_title: document.title,
+          page_name: pageName,
+          // Traffic source data
+          traffic_source: trafficSource,
+          traffic_medium: trafficMedium,
+          referrer_host: referrerHost || 'direct',
+          is_internal_referrer: isInternalReferrer,
+        };
+        
+        // Add UTM parameters if present
+        if (utmSource) eventParams.utm_source = utmSource;
+        if (utmMedium) eventParams.utm_medium = utmMedium;
+        if (utmCampaign) eventParams.utm_campaign = utmCampaign;
+        if (utmTerm) eventParams.utm_term = utmTerm;
+        if (utmContent) eventParams.utm_content = utmContent;
+        
         // Update config with page_path for proper session tracking
         window.gtag('config', 'G-K3HE6MH1XF', {
           page_path: pagePath,
           page_location: window.location.href,
         });
-        // Also send page_view event with proper parameters
-        window.gtag('event', 'page_view', {
-          page_path: pagePath,
-          page_location: window.location.href,
-          page_title: document.title,
-          page_name: pageName,
+        
+        // Send page_view event with enhanced parameters
+        window.gtag('event', 'page_view', eventParams);
+        
+        // Also send a custom event for traffic source analysis
+        window.gtag('event', 'traffic_source', {
+          source: trafficSource,
+          medium: trafficMedium,
+          campaign: trafficCampaign || 'none',
+          referrer_host: referrerHost || 'direct',
+          is_internal: isInternalReferrer,
+          has_utm: !!utmSource,
         });
       }
     } catch (_err) { void 0; }

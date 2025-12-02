@@ -8,7 +8,20 @@
       function gtag(){dataLayer.push(arguments);}
       window.gtag = gtag;
       gtag('js', new Date());
-      gtag('config', 'G-K3HE6MH1XF');
+      // Enhanced GA4 configuration with better traffic source tracking
+      gtag('config', 'G-K3HE6MH1XF', {
+        // Enable enhanced measurement features
+        send_page_view: true,
+        // Better attribution settings
+        allow_google_signals: true,
+        allow_ad_personalization_signals: true,
+        // Custom parameters for traffic source
+        custom_map: {
+          'traffic_source': 'traffic_source',
+          'traffic_medium': 'traffic_medium',
+          'referrer_host': 'referrer_host',
+        }
+      });
       
       // Load GA script
       const script = document.createElement('script');
