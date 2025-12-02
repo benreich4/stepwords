@@ -50,11 +50,23 @@ export default function App() {
 
   // Track page views
   useEffect(() => {
+    const pagePath = location.pathname + location.search;
     const pageName = location.pathname.split('/')[1] || 'Home';
-    // Track page view
+    // Track page view with proper GA4 parameters for session attribution
     try {
       if (window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'page_view', { page_name: pageName });
+        // Update config with page_path for proper session tracking
+        window.gtag('config', 'G-K3HE6MH1XF', {
+          page_path: pagePath,
+          page_location: window.location.href,
+        });
+        // Also send page_view event with proper parameters
+        window.gtag('event', 'page_view', {
+          page_path: pagePath,
+          page_location: window.location.href,
+          page_title: document.title,
+          page_name: pageName,
+        });
       }
     } catch (_err) { void 0; }
   }, [location]);
