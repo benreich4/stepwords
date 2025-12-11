@@ -50,49 +50,18 @@ export default function Submissions() {
   const copyJson = async (id) => {
     setCopyingId(id);
     try {
-      let json;
-      if (id.startsWith('local-')) {
-        // Handle local submissions
-        const submissions = JSON.parse(localStorage.getItem('puzzleSubmissions') || '[]');
-        const index = parseInt(id.replace('local-', ''));
-        json = submissions[index];
-        if (!json) throw new Error('Local submission not found');
-      } else {
-        // Handle API submissions
-        const response = await fetch(`/api/get-submission.php?id=${encodeURIComponent(id)}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        json = await response.json();
-      }
-      // For copied JSON: drop per-row `breakdown` field and keep breakdown only in the clue parentheses
-      try {
-        if (json && Array.isArray(json.rows)) {
-          const cleaned = { ...json, rows: json.rows.map((row) => {
-            if (!row || typeof row !== 'object') return row;
-            const { breakdown, clue } = row;
-            const next = { ...row };
-            // Remove separate breakdown field
-            if (Object.prototype.hasOwnProperty.call(next, 'breakdown')) delete next.breakdown;
-            // If breakdown exists but clue lacks parentheses, append it
-            if (breakdown && typeof clue === 'string') {
-              const hasParens = /\([0-9,\s]+\)\s*$/.test(clue);
-              if (!hasParens) {
-                const bd = String(breakdown).replace(/\s+/g, '');
-                next.clue = `${clue.replace(/\s+$/,'')} (${bd})`;
-              }
-            }
-            return next;
-          }) };
-          await navigator.clipboard.writeText(JSON.stringify(cleaned, null, 2));
-        } else {
-          await navigator.clipboard.writeText(JSON.stringify(json, null, 2));
-        }
-      } catch {
-        await navigator.clipboard.writeText(JSON.stringify(json, null, 2));
-      }
+      // Construct the submission URL
+      const baseUrl = window.location.origin;
+      const submissionUrl = `${baseUrl}/submissions/${encodeURIComponent(id)}`;
+      
+      // Copy the command with the URL, leaving type blank
+      const command = `node scripts/copy-submission.mjs ${submissionUrl} `;
+      await navigator.clipboard.writeText(command);
+      
       // Reset copying state after a brief delay
       setTimeout(() => setCopyingId(null), 1000);
     } catch (error) {
-      console.error('Failed to copy JSON:', error);
+      console.error('Failed to copy command:', error);
       setCopyingId(null);
     }
   };
@@ -193,7 +162,7 @@ export default function Submissions() {
                   disabled={copyingId === it.id}
                   className="text-purple-400 text-sm hover:underline disabled:text-gray-500 disabled:cursor-not-allowed"
                 >
-                  {copyingId === it.id ? 'Copied!' : 'Copy JSON'}
+                  {copyingId === it.id ? 'Copied!' : 'Copy Command'}
                 </button>
                 <Link className="text-sky-400 text-sm hover:underline" to={`/submissions/${encodeURIComponent(it.id)}`}>Open</Link>
                 <button
