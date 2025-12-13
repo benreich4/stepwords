@@ -1,0 +1,30 @@
+{
+  "id": "105",
+  "rows": [
+    {
+      "answer": "one",
+      "clue": "Number of nights Santa works (3)"
+    },
+    {
+      "answer": "note",
+      "clue": "Message to Santa with the cookie plate (4)"
+    },
+    {
+      "answer": "atone",
+      "clue": "What someone must do after forgetting to buy a gift (5)"
+    },
+    {
+      "answer": "arenot",
+      "clue": "\"You ___ on the nice list\" (scolding from Santa) (3,3)"
+    },
+    {
+      "answer": "notnear",
+      "clue": "How Christmas feels for most of the year (3,4)"
+    },
+    {
+      "answer": "ornament",
+      "clue": "Tree trinket (8)"
+    }
+  ],
+  "emoji": "🎄"
+}

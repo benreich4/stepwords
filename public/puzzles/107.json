@@ -34,6 +34,10 @@
       "clue": "\"Why wasn't ___?\" (\"You should have ask me!\") (1,9)"
     },
     {
+      "answer": "intheclouds",
+      "clue": "Head ___ (daydreaming) (2,3,6)"
+    },
+    {
       "answer": "usedclothing",
       "clue": "Thrift-store stock (4,8)"
     },
