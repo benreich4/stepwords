@@ -13,10 +13,10 @@ import { usePuzzleTimer } from "./lib/timer.js";
 // Inline analytics - no separate module needed
 export default function Game({ puzzle, isQuick = false, prevId = null, nextId = null, storageNamespace }) {
   const rowsRaw = puzzle.rows || [];
-  // Normalize answers: ignore spaces in answers (e.g., "hello world" -> "helloworld")
+  // Normalize answers: ignore spaces and non-letter characters (e.g., "The abc's" -> "Theabcs")
   const rows = useMemo(() => rowsRaw.map(r => ({
     ...r,
-    answer: (r?.answer || "").replace(/\s+/g, "")
+    answer: (r?.answer || "").replace(/[^a-zA-Z]/g, "")
   })), [rowsRaw]); // [{answer, clue}, ...] shortest→longest
   const stepIdx = computeStepIndices(rows);
   // Extract emoji from puzzle JSON if present, otherwise default to stepladder
