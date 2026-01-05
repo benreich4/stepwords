@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { isPreviewEnabled } from '../lib/date.js';
 
 const PuzzleCreatorSimple = () => {
   const [submissionWords, setSubmissionWords] = useState(['', '', '', '', '']);
@@ -7,7 +8,10 @@ const PuzzleCreatorSimple = () => {
   const [submissionBreakdowns, setSubmissionBreakdowns] = useState(['', '', '', '', '']);
   const [breakdownTouched, setBreakdownTouched] = useState([false, false, false, false, false]);
   const [submissionAuthor, setSubmissionAuthor] = useState('');
+  const [submissionEmail, setSubmissionEmail] = useState('');
   const [submissionEmoji, setSubmissionEmoji] = useState('');
+  const [submissionNotes, setSubmissionNotes] = useState('');
+  const [termsAgreed, setTermsAgreed] = useState(false);
   // title is not used in current backend format
   const [submissionStatus, setSubmissionStatus] = useState('');
   const [copying, setCopying] = useState(false);
@@ -116,6 +120,23 @@ const PuzzleCreatorSimple = () => {
       return;
     }
 
+    if (!submissionEmail.trim()) {
+      setSubmissionStatus('Please enter your contact email');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(submissionEmail.trim())) {
+      setSubmissionStatus('Please enter a valid email address');
+      return;
+    }
+
+    if (!termsAgreed) {
+      setSubmissionStatus('Please agree to the terms of submission');
+      return;
+    }
+
     try {
       const rows = submissionWords.map((word, i) => {
         const answer = (word || '').toLowerCase().trim();
@@ -131,6 +152,7 @@ const PuzzleCreatorSimple = () => {
       });
       const puzzleData = {
         author: submissionAuthor.trim(),
+        email: submissionEmail.trim(),
         rows,
         submittedAt: new Date().toISOString(),
       };
@@ -171,8 +193,10 @@ const PuzzleCreatorSimple = () => {
         setSubmissionBreakdowns(['', '', '', '', '']);
         setBreakdownTouched([false, false, false, false, false]);
         setSubmissionAuthor('');
+        setSubmissionEmail('');
         setSubmissionEmoji('');
-        setSubmissionTitle('');
+        setSubmissionNotes('');
+        setTermsAgreed(false);
         setSubmissionStatus('');
       }, 3000);
     } catch (error) {
@@ -190,40 +214,52 @@ const PuzzleCreatorSimple = () => {
             <div>
               <h1 className="text-3xl font-bold mb-2">Puzzle Creator</h1>
               <p className="text-gray-400">Create and submit your own Stepwords puzzles</p>
-              <div className="mt-4 flex gap-4">
-                <a 
-                  href="/explore" 
-                  className="text-blue-400 hover:text-blue-300 underline"
+              <div className="mt-4">
+                <Link 
+                  to="/style-guide" 
+                  className="text-blue-400 hover:text-blue-300 underline font-medium"
                 >
-                  Explore word chains →
-                </a>
-                <a 
-                  href="/words" 
-                  className="text-blue-400 hover:text-blue-300 underline"
-                >
-                  Word Database →
-                </a>
+                  📖 Read the Style Guide →
+                </Link>
               </div>
+              {isPreviewEnabled() && (
+                <div className="mt-4 flex gap-4">
+                  <a 
+                    href="/explore" 
+                    className="text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Explore word chains →
+                  </a>
+                  <a 
+                    href="/words" 
+                    className="text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Word Database →
+                  </a>
+                </div>
+              )}
             </div>
-            <div className="mt-1">
-              <button
-                onClick={async () => {
-                  try {
-                    setCopying(true);
-                    const words = submissionWords.map(w => (w || '').trim()).filter(Boolean);
-                    await navigator.clipboard.writeText(words.join(', '));
-                    setTimeout(() => setCopying(false), 900);
-                  } catch {
-                    setCopying(false);
-                  }
-                }}
-                className="px-3 py-1.5 text-xs rounded border border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700 disabled:opacity-50"
-                disabled={copying}
-                title="Copy all words as a comma-separated list"
-              >
-                {copying ? 'Copied!' : 'Copy words'}
-              </button>
-            </div>
+            {isPreviewEnabled() && (
+              <div className="mt-1">
+                <button
+                  onClick={async () => {
+                    try {
+                      setCopying(true);
+                      const words = submissionWords.map(w => (w || '').trim()).filter(Boolean);
+                      await navigator.clipboard.writeText(words.join(', '));
+                      setTimeout(() => setCopying(false), 900);
+                    } catch {
+                      setCopying(false);
+                    }
+                  }}
+                  className="px-3 py-1.5 text-xs rounded border border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700 disabled:opacity-50"
+                  disabled={copying}
+                  title="Copy all words as a comma-separated list"
+                >
+                  {copying ? 'Copied!' : 'Copy words'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -234,19 +270,36 @@ const PuzzleCreatorSimple = () => {
             <p className="text-gray-400 mb-4">
               Create and submit your own Stepwords puzzle for review. Each word must be an anagram of the previous word plus exactly one new letter.
             </p>
-            
+            <p className="text-gray-400 text-sm">
+              Questions? Email us at{' '}
+              <a href="mailto:hello@stepwords.xyz" className="text-blue-400 hover:text-blue-300 underline">
+                hello@stepwords.xyz
+              </a>
+            </p>
           </div>
 
           <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
               {/* Puzzle Info */}
               <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Your Name</label>
+                  <label className="block text-sm font-medium mb-2">Your Name <span className="text-red-400">*</span></label>
                   <input
                     type="text"
                     value={submissionAuthor}
                     onChange={(e) => setSubmissionAuthor(e.target.value)}
                     placeholder="e.g., 'John Doe'"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Contact Email <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={submissionEmail}
+                    onChange={(e) => setSubmissionEmail(e.target.value)}
+                    placeholder="your.email@example.com"
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
                   />
                 </div>
@@ -264,6 +317,20 @@ const PuzzleCreatorSimple = () => {
                     title="Optional: a single emoji to use instead of the default stepladder 🪜"
                   />
                 </div>
+              </div>
+
+              {/* Notes */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">
+                  Notes <span className="text-gray-500 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={submissionNotes}
+                  onChange={(e) => setSubmissionNotes(e.target.value)}
+                  placeholder="Any additional comments or notes about your puzzle..."
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none resize-y"
+                />
               </div>
 
               {/* Words and Clues */}
@@ -337,6 +404,22 @@ const PuzzleCreatorSimple = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Terms of Service */}
+              <div className="mb-6">
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    id="terms-checkbox"
+                    checked={termsAgreed}
+                    onChange={(e) => setTermsAgreed(e.target.checked)}
+                    className="mt-1 w-4 h-4 bg-gray-800 border-gray-600 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="terms-checkbox" className="text-sm text-gray-300">
+                    I agree to the <Link to="/style-guide" className="text-blue-400 hover:text-blue-300 underline">Terms of Submission</Link> and <Link to="/style-guide" className="text-blue-400 hover:text-blue-300 underline">Style Guide</Link>. <span className="text-red-400">*</span>
+                  </label>
                 </div>
               </div>
 

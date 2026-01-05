@@ -35,6 +35,7 @@ export default function Submissions() {
             return {
               id: `local-${index}`,
               author: sub.author || 'Local User',
+              email: sub.email || null,
               submittedAt: sub.submittedAt || new Date().toISOString(),
               filename: `local-submission-${index}.json`,
               lastWord: lastWord
@@ -154,7 +155,12 @@ export default function Submissions() {
                     <span className="ml-2 text-xs text-gray-400">• {it.lastWord}</span>
                   )}
                 </div>
-                <div className="text-[11px] text-gray-400">{it.submittedAt || it.filename}</div>
+                <div className="text-[11px] text-gray-400">
+                  {it.email && (
+                    <span className="mr-2">{it.email}</span>
+                  )}
+                  {it.submittedAt || it.filename}
+                </div>
               </div>
               <div className="flex gap-2">
                 <button

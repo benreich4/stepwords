@@ -25,6 +25,7 @@ foreach ($files as $f) {
     'id' => $id,
     'filename' => basename($f),
     'author' => isset($data['author']) ? $data['author'] : null,
+    'email' => isset($data['email']) ? $data['email'] : null,
     'submittedAt' => isset($data['submittedAt']) ? $data['submittedAt'] : null,
     'lastWord' => $lastWord,
   ];

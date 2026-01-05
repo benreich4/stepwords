@@ -4,6 +4,7 @@ import { fetchManifest } from "./lib/puzzles.js";
 import { fetchQuickManifest } from "./lib/quickPuzzles.js";
 import { getTodayIsoInET } from "./lib/date.js";
 import SharePromptModal from "./components/SharePromptModal.jsx";
+import SubmissionPromptModal from "./components/SubmissionPromptModal.jsx";
 // Inline analytics - no separate module needed
 
 export default function App() {
@@ -22,6 +23,8 @@ export default function App() {
     try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); return s.lightMode === true; } catch { return false; }
   });
   const [showSharePrompt, setShowSharePrompt] = useState(false);
+  const [showSubmissionPrompt, setShowSubmissionPrompt] = useState(false);
+  const [hasSolvedFive, setHasSolvedFive] = useState(false);
 
   useEffect(() => {
     const onStorage = (e) => {
@@ -239,15 +242,26 @@ export default function App() {
     return () => { cancelled = true; };
   }, [location.pathname]);
 
-  // Dedicated users share prompt (5+ solves across Main + Quick), show once
+  // Check if user has solved 5+ puzzles
   useEffect(() => {
     try {
-      if (localStorage.getItem('stepwords-share-nudge') === '1') return;
       const mainCompleted = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
       const quickCompleted = JSON.parse(localStorage.getItem('quickstep-completed') || '[]');
       const solved = new Set([...(Array.isArray(mainCompleted) ? mainCompleted : []), ...(Array.isArray(quickCompleted) ? quickCompleted : [])]);
-      if (solved.size >= 5) {
-        setTimeout(() => setShowSharePrompt(true), 600);
+      const hasFive = solved.size >= 5;
+      setHasSolvedFive(hasFive);
+      
+      if (hasFive) {
+        // Show submission prompt first if they haven't seen it
+        const submissionShown = localStorage.getItem('stepwords-submission-prompt-shown') === '1';
+        const shareShown = localStorage.getItem('stepwords-share-nudge') === '1';
+        
+        if (!submissionShown) {
+          setTimeout(() => setShowSubmissionPrompt(true), 600);
+        } else if (!shareShown) {
+          // Only show share prompt if submission prompt was already shown
+          setTimeout(() => setShowSharePrompt(true), 600);
+        }
       }
     } catch {}
   }, []);
@@ -324,14 +338,24 @@ export default function App() {
           </div>
           <div className="justify-self-end min-w-0">
             <Link 
-              to="/stats" 
+              to="/create" 
               className={`px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
+                (lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white')
+              }`}
+              title="Create"
+            >
+              ✏️
+            </Link>
+            <Link 
+              to="/stats" 
+              className={`ml-2 px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
                 isStats
                   ? 'bg-blue-600 border-blue-500 text-white'
                   : (lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white')
               }`}
+              title="Stats"
             >
-              Stats
+              %
             </Link>
             <Link 
               to="/archives" 
@@ -340,8 +364,9 @@ export default function App() {
                   ? 'bg-blue-600 border-blue-500 text-white'
                   : (lightMode ? 'border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300' : 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white')
               }`}
+              title="Archives"
             >
-              Archives
+              📁
             </Link>
           </div>
         </div>
@@ -352,6 +377,10 @@ export default function App() {
 
       {showSharePrompt && (
         <SharePromptModal onClose={() => setShowSharePrompt(false)} lightMode={lightMode} />
+      )}
+      
+      {showSubmissionPrompt && (
+        <SubmissionPromptModal onClose={() => setShowSubmissionPrompt(false)} lightMode={lightMode} />
       )}
       
       {/* Copyright notice */}

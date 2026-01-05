@@ -15,6 +15,7 @@ import Submissions from "./pages/Submissions.jsx";
 import SubmissionPlay from "./pages/SubmissionPlay.jsx";
 import Stats from "./pages/Stats.jsx";
 import WordDatabase from "./pages/WordDatabase.jsx";
+import StyleGuide from "./pages/StyleGuide.jsx";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -32,6 +33,7 @@ const router = createBrowserRouter([
       { path: "/submissions/:sid", element: <SubmissionPlay /> },
       { path: "/stats", element: <Stats /> },
       { path: "/words", element: <WordDatabase /> },
+      { path: "/style-guide", element: <StyleGuide /> },
       { path: "/:puzzleId", element: <PuzzlePage /> },
     ],
   },
