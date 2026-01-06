@@ -213,7 +213,7 @@ const PuzzleCreatorSimple = () => {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="text-3xl font-bold mb-2">Puzzle Creator</h1>
-              <p className="text-gray-400">Create and submit your own Stepwords puzzles</p>
+              <p className="text-gray-400">Create and submit your own Stepword puzzles</p>
               <div className="mt-4">
                 <Link 
                   to="/style-guide" 
@@ -268,7 +268,7 @@ const PuzzleCreatorSimple = () => {
           <div className="mb-6">
             <h2 className="text-2xl font-bold mb-4">Submit a Puzzle</h2>
             <p className="text-gray-400 mb-4">
-              Create and submit your own Stepwords puzzle for review. Each word must be an anagram of the previous word plus exactly one new letter.
+              Create and submit your own Stepword puzzle for review. Each word must be an anagram of the previous word plus exactly one new letter.
             </p>
             <p className="text-gray-400 text-sm">
               Questions? Email us at{' '}
