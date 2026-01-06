@@ -170,6 +170,11 @@ const PuzzleCreatorSimple = () => {
       if (submissionEmoji.trim()) {
         puzzleData.emoji = submissionEmoji.trim();
       }
+      
+      // Add notes if provided
+      if (submissionNotes.trim()) {
+        puzzleData.notes = submissionNotes.trim();
+      }
 
       // Try API first, fallback to localStorage
       let submissionSuccess = false;
