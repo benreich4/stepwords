@@ -1,6 +1,15 @@
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 
 export default function StyleGuide() {
+  useEffect(() => {
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'style_guide_viewed', {});
+      }
+    } catch {}
+  }, []);
+
   return (
     <div className="min-h-screen bg-black text-white p-4">
       <div className="max-w-3xl mx-auto">

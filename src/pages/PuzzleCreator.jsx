@@ -18,6 +18,15 @@ const PuzzleCreatorSimple = () => {
 
   const navigate = useNavigate();
 
+  // Track page view
+  useEffect(() => {
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'create_page_viewed', {});
+      }
+    } catch {}
+  }, []);
+
   // Check for pre-populated data from Explore page
   useEffect(() => {
     const exploreWords = localStorage.getItem('explorePuzzleWords');
@@ -163,6 +172,7 @@ const PuzzleCreatorSimple = () => {
       }
 
       // Try API first, fallback to localStorage
+      let submissionSuccess = false;
       try {
         const response = await fetch('/api/submit-puzzle.php', {
           method: 'POST',
@@ -175,16 +185,32 @@ const PuzzleCreatorSimple = () => {
         if (!response.ok) {
           throw new Error('API failed');
         }
+        submissionSuccess = true;
       } catch (error) {
         // Fallback to localStorage in puzzle file format
         const submissions = JSON.parse(localStorage.getItem('puzzleSubmissions') || '[]');
         const fallback = { author: puzzleData.author, rows };
         if (puzzleData.emoji) fallback.emoji = puzzleData.emoji;
+        if (puzzleData.notes) fallback.notes = puzzleData.notes;
         submissions.push(fallback);
         localStorage.setItem('puzzleSubmissions', JSON.stringify(submissions));
+        submissionSuccess = true;
       }
 
-      setSubmissionStatus('Puzzle submitted successfully! Thank you for your contribution.');
+      if (submissionSuccess) {
+        setSubmissionStatus('Puzzle submitted successfully! Thank you for your contribution.');
+        
+        // Track puzzle submission
+        try {
+          if (window.gtag && typeof window.gtag === 'function') {
+            window.gtag('event', 'puzzle_submitted', {
+              word_count: rows.length,
+              has_emoji: !!submissionEmoji.trim(),
+              has_notes: !!submissionNotes.trim()
+            });
+          }
+        } catch {}
+      }
       
       // Reset form
       setTimeout(() => {
