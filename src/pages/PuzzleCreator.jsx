@@ -333,6 +333,9 @@ const PuzzleCreatorSimple = () => {
                     placeholder="your.email@example.com"
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your email will not be made public and will only be used if we need to contact you about your puzzle.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">
@@ -347,6 +350,9 @@ const PuzzleCreatorSimple = () => {
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
                     title="Optional: a single emoji to use instead of the default stepladder 🪜"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Custom step emojis should only be used for themed puzzles, such as holidays or special events.
+                  </p>
                 </div>
               </div>
 
@@ -435,6 +441,17 @@ const PuzzleCreatorSimple = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+                
+                {/* Add Word button at bottom */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={addWordRow}
+                    disabled={submissionWords.length >= 15}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                  >
+                    + Add Word
+                  </button>
                 </div>
               </div>
 
