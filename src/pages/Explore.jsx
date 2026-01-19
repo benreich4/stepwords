@@ -22,7 +22,7 @@ const Explore = () => {
   useEffect(() => {
     const loadWordList = async () => {
       try {
-        const response = await fetch('/XwiWordList.txt');
+        const response = await fetch('/XwiJeffChenList.txt');
         const text = await response.text();
         const lines = text.split('\n');
         
@@ -61,7 +61,7 @@ const Explore = () => {
   const reloadWithCutoff = async (cutoff) => {
     try {
       setReloading(true);
-      const response = await fetch('/XwiWordList.txt');
+      const response = await fetch('/XwiJeffChenList.txt');
       const text = await response.text();
       const lines = text.split('\n');
 
