@@ -18,6 +18,8 @@ export default function LetterGrid({
   userStepGuesses = null, // array of null or column index for each row
   onToggleUserStep = null, // function(row, col) to toggle user step guess
   stepEmoji = '🪜', // emoji to use for step indicator
+  showAllClues = false, // whether to show all clues next to each row
+  renderClueText = null, // function to render clue text with references
 }) {
   // Long-press tracking for mobile/desktop: start diff after hold on row number
   const longPressTimerRef = useRef(null);
@@ -233,6 +235,7 @@ export default function LetterGrid({
         // deemphasize intermediate step letters when dragging across multiple rows
         // ONLY if that step letter is actually revealed/locked on that row
         const isIntermediateStep = (diffFromRow != null && diffToRow != null && i > diffToRow && i < diffFromRow && stepPos >= 0);
+        const clue = rows[i]?.clue || "";
         return (
           <div key={i} data-row-index={i} className="w-full flex flex-row items-center gap-1 px-0">
             <button
@@ -290,6 +293,11 @@ export default function LetterGrid({
                 );
               })}
             </div>
+            {showAllClues && clue && (
+              <div className={`ml-2 text-xs sm:text-sm flex-1 min-w-0 text-left ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
+                <span className="break-words">{renderClueText ? renderClueText(clue) : clue}</span>
+              </div>
+            )}
           </div>
         );
       })}

@@ -223,13 +223,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [settings, setSettings] = useState(() => {
     try {
       const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}');
-      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true, lightMode: s.lightMode === true };
+      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true, lightMode: s.lightMode === true, showAllClues: s.showAllClues === true };
     } catch {
-      return { hardMode: false, easyMode: false, lightMode: false };
+      return { hardMode: false, easyMode: false, lightMode: false, showAllClues: false };
     }
   });
   useEffect(() => {
-    try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode })); } catch {}
+    try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode, showAllClues: settings.showAllClues })); } catch {}
   }, [settings]);
   const [showSettings, setShowSettings] = useState(false);
   // Easy mode now saved globally in settings (like hardMode)
@@ -1669,6 +1669,29 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                   </button>
                 </label>
                 <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Shows your device keyboard instead of the on‑screen keys. Not saved.</div>
+                
+                {!isMobile && (
+                  <>
+                    <div className={`my-2 border-t ${settings.lightMode ? 'border-gray-200' : 'border-gray-800'}`}></div>
+                    
+                    <label className="flex items-center justify-between py-1">
+                      <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Show all clues</span>
+                      <button
+                        role="switch"
+                        aria-checked={settings.showAllClues ? "true" : "false"}
+                        onClick={() => {
+                          const checked = !settings.showAllClues;
+                          setSettings(s => ({ ...s, showAllClues: checked }));
+                        }}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.showAllClues ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                        aria-label="Toggle show all clues"
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.showAllClues ? 'translate-x-4' : 'translate-x-1'}`}></span>
+                      </button>
+                    </label>
+                    <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Display all clues next to their answer spaces instead of showing one at a time.</div>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -1678,27 +1701,29 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       {/* Top toast */}
       <Toast text={toast} variant={toastVariant} lightMode={settings.lightMode} />
 
-      <div ref={clueBarRef} className={`w-full px-3 py-2 sticky top-[32px] backdrop-blur border-b z-10 ${settings.lightMode ? 'bg-gray-100/95 border-gray-300' : 'bg-gray-900/95 border-sky-900/60'}`}>
-        <div className="flex items-center justify-between">
+      {(!settings.showAllClues || isMobile) && (
+        <div ref={clueBarRef} className={`w-full px-3 py-2 sticky top-[32px] backdrop-blur border-b z-10 ${settings.lightMode ? 'bg-gray-100/95 border-gray-300' : 'bg-gray-900/95 border-sky-900/60'}`}>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => moveLevel(-1)}
+              aria-label="Previous word"
+              className={`px-2 py-1 rounded ${settings.lightMode ? 'text-gray-800 hover:bg-gray-200' : 'text-gray-300 hover:text-white hover:bg-gray-900/40'}`}
+            >
+              ←
+            </button>
+            <div className={`text-sm xl:text-base 2xl:text-lg mx-2 flex-1 text-center ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
+              <span className="font-semibold">Clue:</span> {renderClueText(clue)}
+            </div>
           <button
-            onClick={() => moveLevel(-1)}
-            aria-label="Previous word"
-            className={`px-2 py-1 rounded ${settings.lightMode ? 'text-gray-800 hover:bg-gray-200' : 'text-gray-300 hover:text-white hover:bg-gray-900/40'}`}
-          >
-            ←
+              onClick={() => moveLevel(1)}
+              aria-label="Next word"
+              className={`px-2 py-1 rounded ${settings.lightMode ? 'text-gray-800 hover:bg-gray-200' : 'text-gray-300 hover:text-white hover:bg-gray-900/40'}`}
+            >
+              →
           </button>
-          <div className={`text-sm xl:text-base 2xl:text-lg mx-2 flex-1 text-center ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
-            <span className="font-semibold">Clue:</span> {renderClueText(clue)}
           </div>
-        <button
-            onClick={() => moveLevel(1)}
-            aria-label="Next word"
-            className={`px-2 py-1 rounded ${settings.lightMode ? 'text-gray-800 hover:bg-gray-200' : 'text-gray-300 hover:text-white hover:bg-gray-900/40'}`}
-          >
-            →
-        </button>
         </div>
-      </div>
+      )}
 
 
 
@@ -1760,6 +1785,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           referencedRows={referencedRows}
           diffFromRow={dragStartRow}
           diffToRow={dragOverRow}
+          showAllClues={settings.showAllClues && !isMobile}
+          renderClueText={renderClueText}
                   />
 
         <div className={`text-xs px-3 mt-1 mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-300'}`}>{message}</div>
