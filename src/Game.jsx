@@ -295,7 +295,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Lifeline functionality
   const { generatePrefixData, showPrefixes, extendPrefixes, canExtend } = useLifelines(
     rows, 
-    lockColors, 
+    lockColors,
+    guesses,
     lifelineLevel, 
     setLifelineLevel, 
     setHintCount, 

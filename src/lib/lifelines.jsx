@@ -4,34 +4,26 @@ import { useMemo, useState } from 'react';
  * Custom hook for lifeline functionality
  * @param {Array} rows - Array of puzzle rows with answers
  * @param {Array} lockColors - Array of row color states
+ * @param {Array} guesses - Array of current guesses for each row
  * @param {number} lifelineLevel - Current lifeline level (0-5)
  * @param {Function} setLifelineLevel - Function to update lifeline level
  * @param {Function} setHintCount - Function to update hint count
  * @param {Function} showToast - Function to show toast messages
  * @returns {Object} Lifeline state and functions
  */
-export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, setHintCount, showToast, puzzle, isQuick) {
+export function useLifelines(rows, lockColors, guesses, lifelineLevel, setLifelineLevel, setHintCount, showToast, puzzle, isQuick) {
   // Generate prefix data for lifeline system
   const { generatePrefixData, maxLevel } = useMemo(() => {
     if (!rows || rows.length === 0) return { generatePrefixData: {}, maxLevel: 0 };
 
     const maxLen = rows.reduce((m, r) => Math.max(m, (r?.answer || '').length), 0);
     const prefixData = {};
-    const solvedWords = new Set();
-
-    // Track which words are solved (all letters are colored, not null/undefined)
-    rows.forEach((row, index) => {
-      const rowColors = lockColors[index];
-      if (rowColors && rowColors.every(Boolean)) {
-        solvedWords.add(row.answer.toLowerCase());
-      }
-    });
 
     // Generate tokens for each level up to max word length
     for (let level = 1; level <= maxLen; level++) {
       const tokenCounts = {};
 
-      rows.forEach(row => {
+      rows.forEach((row, rowIndex) => {
         const word = (row.answer || '').toLowerCase();
         if (!word) return;
         const token = word.slice(0, Math.min(level, word.length)); // full word if shorter than level
@@ -39,7 +31,27 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
           tokenCounts[token] = { total: 0, solved: 0 };
         }
         tokenCounts[token].total++;
-        if (solvedWords.has(word)) tokenCounts[token].solved++;
+        
+        // Check if the first X letters (where X = level) are correct and checked
+        const rowColors = lockColors[rowIndex];
+        const guess = (guesses[rowIndex] || '').toUpperCase();
+        const answer = word.toUpperCase();
+        if (rowColors) {
+          const prefixLength = Math.min(level, word.length);
+          let allPrefixChecked = true;
+          for (let i = 0; i < prefixLength; i++) {
+            // A letter is "checked" if lockColors[i] is truthy (not null/undefined)
+            // AND the guess matches the answer at that position
+            // This means it's been revealed or correctly submitted
+            if (!rowColors[i] || (guess[i] || '').toUpperCase() !== answer[i]) {
+              allPrefixChecked = false;
+              break;
+            }
+          }
+          if (allPrefixChecked) {
+            tokenCounts[token].solved++;
+          }
+        }
       });
 
       // Convert to array and sort alphabetically
@@ -51,7 +63,7 @@ export function useLifelines(rows, lockColors, lifelineLevel, setLifelineLevel, 
     }
 
     return { generatePrefixData: prefixData, maxLevel: maxLen };
-  }, [rows, lockColors]);
+  }, [rows, lockColors, guesses]);
 
   const showPrefixes = () => {
     setLifelineLevel(1);
