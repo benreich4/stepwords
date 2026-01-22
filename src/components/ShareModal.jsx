@@ -41,6 +41,19 @@ export default function ShareModal({
 
   const hasTime = Boolean(elapsedTime && !didFail);
 
+  // Handle ESCAPE key to close modal
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose?.();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
   // Determine CTA destination: if today's target mode is already solved, link to most recent unsolved; else link to today's in target mode
   useEffect(() => {
     let cancelled = false;
