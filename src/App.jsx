@@ -16,6 +16,10 @@ export default function App() {
   const isOther = location.pathname.startsWith('/other');
   const [mainTarget, setMainTarget] = useState("/");
   const [quickTarget, setQuickTarget] = useState("/quick");
+  const [currentMainId, setCurrentMainId] = useState(null);
+  const [currentQuickId, setCurrentQuickId] = useState(null);
+  const [mainCompleted, setMainCompleted] = useState(false);
+  const [quickCompleted, setQuickCompleted] = useState(false);
   const [headerCollapsed, setHeaderCollapsed] = useState(() => {
     try { return localStorage.getItem('stepwords-header-collapsed') === '1'; } catch { return false; }
   });
@@ -27,12 +31,24 @@ export default function App() {
   const [hasSolvedFive, setHasSolvedFive] = useState(false);
 
   useEffect(() => {
+    const checkCompletion = () => {
+      try {
+        const mainCompletedList = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
+        const quickCompletedList = JSON.parse(localStorage.getItem('quickstep-completed') || '[]');
+        setMainCompleted(currentMainId ? mainCompletedList.includes(String(currentMainId)) : false);
+        setQuickCompleted(currentQuickId ? quickCompletedList.includes(String(currentQuickId)) : false);
+      } catch {}
+    };
+    
     const onStorage = (e) => {
       if (e.key === 'stepwords-header-collapsed') {
         try { setHeaderCollapsed(localStorage.getItem('stepwords-header-collapsed') === '1'); } catch {}
       }
       if (e.key === 'stepwords-settings') {
         try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); setLightMode(s.lightMode === true); } catch {}
+      }
+      if (e.key === 'stepwords-completed' || e.key === 'quickstep-completed') {
+        checkCompletion();
       }
     };
     window.addEventListener('storage', onStorage);
@@ -48,8 +64,23 @@ export default function App() {
       try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); setLightMode(s.lightMode === true); } catch {}
     };
     document.addEventListener('stepwords-settings-updated', onSettingsUpdated);
-    return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('stepwords-header-toggle', onCustom); document.removeEventListener('stepwords-settings-updated', onSettingsUpdated); };
-  }, []);
+    
+    // Also listen for custom completion events (for same-tab updates)
+    const onCompletionUpdated = () => {
+      checkCompletion();
+    };
+    document.addEventListener('stepwords-puzzle-completed', onCompletionUpdated);
+    
+    // Check completion whenever current puzzle IDs change
+    checkCompletion();
+    
+    return () => { 
+      window.removeEventListener('storage', onStorage); 
+      document.removeEventListener('stepwords-header-toggle', onCustom); 
+      document.removeEventListener('stepwords-settings-updated', onSettingsUpdated);
+      document.removeEventListener('stepwords-puzzle-completed', onCompletionUpdated);
+    };
+  }, [currentMainId, currentQuickId]);
 
   // Enhanced traffic source tracking
   useEffect(() => {
@@ -204,6 +235,10 @@ export default function App() {
           const q = date ? quickList.find(qp => qp.date === date) : null;
           setQuickTarget(q ? `/quick/${q.id}` : "/quick");
           setMainTarget(`/${mainId}`);
+          
+          // Track current puzzle IDs for completion checking
+          setCurrentMainId(mainId);
+          setCurrentQuickId(q ? q.id : null);
         })
         .catch(() => {
           if (!cancelled) { setQuickTarget("/quick"); setMainTarget(`/${mainId}`); }
@@ -221,6 +256,10 @@ export default function App() {
           const m = date ? mainList.find(mp => mp.date === date) : null;
           setMainTarget(m ? `/${m.id}` : "/");
           setQuickTarget(`/quick/${quickId}`);
+          
+          // Track current puzzle IDs for completion checking
+          setCurrentMainId(m ? m.id : null);
+          setCurrentQuickId(quickId);
         })
         .catch(() => {
           if (!cancelled) { setMainTarget("/"); setQuickTarget(`/quick/${quickId}`); }
@@ -228,7 +267,7 @@ export default function App() {
       return () => { cancelled = true; };
     }
 
-    // On index pages, link to today's corresponding puzzle when available
+    // On index pages or other pages (archives, stats, etc.), link to today's corresponding puzzle when available
     Promise.all([fetchManifest(), fetchQuickManifest()])
       .then(([mainList, quickList]) => {
         if (cancelled) return;
@@ -236,6 +275,13 @@ export default function App() {
         const qToday = quickList.find(p => p.date === today);
         setMainTarget(mToday ? `/${mToday.id}` : "/");
         setQuickTarget(qToday ? `/quick/${qToday.id}` : "/quick");
+        
+        // On non-puzzle pages (archives, stats, etc.), show today's completion status
+        // On puzzle pages, the IDs are set above in onMainPuzzle/onQuickPuzzle handlers
+        if (!onMainPuzzle && !onQuickPuzzle) {
+          setCurrentMainId(mToday ? mToday.id : null);
+          setCurrentQuickId(qToday ? qToday.id : null);
+        }
       })
       .catch(() => { if (!cancelled) { setMainTarget("/"); setQuickTarget("/quick"); } });
 
@@ -298,23 +344,23 @@ export default function App() {
             <div className="flex items-center gap-1">
               <Link 
                 to={mainTarget} 
-                className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
+                className={`px-2 py-0.5 rounded text-[10px] border transition-colors flex items-center gap-1 ${
                   (!isQuick && !isArchives && !isStats && !isOther)
                     ? 'bg-blue-600 border-blue-500 text-white' 
                     : (lightMode ? 'bg-gray-200 border-gray-300 text-gray-800 hover:bg-gray-300' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600')
                 }`}
               >
-                Main
+                Main{mainCompleted && <span className="text-[8px]">✓</span>}
               </Link>
               <Link 
                 to={quickTarget} 
-                className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
+                className={`px-2 py-0.5 rounded text-[10px] border transition-colors flex items-center gap-1 ${
                   (isQuick && !isArchives)
                     ? 'bg-blue-600 border-blue-500 text-white' 
                     : (lightMode ? 'bg-gray-200 border-gray-300 text-gray-800 hover:bg-gray-300' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600')
                 }`}
               >
-                Quick
+                Quick{quickCompleted && <span className="text-[8px]">✓</span>}
               </Link>
             </div>
           </div>

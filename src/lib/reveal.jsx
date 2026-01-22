@@ -89,6 +89,10 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
             completedPuzzles.push(puzzle.id);
             localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
           }
+          // Dispatch event to notify App.jsx of completion
+          try {
+            document.dispatchEvent(new CustomEvent('stepwords-puzzle-completed'));
+          } catch {}
         } catch {}
         
         setShowShare(true);

@@ -1077,6 +1077,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           completedPuzzles.push(puzzle.id);
           localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
         }
+        
+        // Dispatch event to notify App.jsx of completion
+        try {
+          document.dispatchEvent(new CustomEvent('stepwords-puzzle-completed'));
+        } catch {}
 
         // Perfect tracking no longer needed (covered by 3-star score)
         return;
@@ -1374,6 +1379,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           completedPuzzles.push(puzzle.id);
           localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
         }
+        // Dispatch event to notify App.jsx of completion
+        try {
+          document.dispatchEvent(new CustomEvent('stepwords-puzzle-completed'));
+        } catch {}
       } catch {}
 
       autoSubmitDoneRef.current = true;
