@@ -7,9 +7,20 @@ import SharePromptModal from "./components/SharePromptModal.jsx";
 import SubmissionPromptModal from "./components/SubmissionPromptModal.jsx";
 // Inline analytics - no separate module needed
 
+// Check if print mode is enabled via URL parameter
+function isPrintMode() {
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    return params.get('print') === '1';
+  } catch {
+    return false;
+  }
+}
+
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  const printMode = isPrintMode();
   const isQuick = location.pathname.startsWith('/quick');
   const isArchives = location.pathname.startsWith('/archives');
   const isStats = location.pathname.startsWith('/stats');
@@ -325,8 +336,9 @@ export default function App() {
 
   return (
     <div className={`min-h-screen w-screen ${lightMode ? 'bg-white text-gray-900' : 'bg-black text-gray-100'}`}>
-      <header
-        className={`w-full px-2 py-1 border-b ${lightMode ? 'bg-white border-gray-300' : 'bg-black border-gray-800'}`}
+      {!printMode && (
+        <header
+          className={`app-header w-full px-2 py-1 border-b ${lightMode ? 'bg-white border-gray-300' : 'bg-black border-gray-800'}`}
         onClick={(e) => {
           // Toggle collapse when clicking the header bar background, but ignore clicks on interactive elements
           const tgt = e.target;
@@ -416,21 +428,23 @@ export default function App() {
             </Link>
           </div>
         </div>
-      </header>
+        </header>
+      )}
       <main className="w-full">
         <Outlet />
       </main>
 
-      {showSharePrompt && (
+      {!printMode && showSharePrompt && (
         <SharePromptModal onClose={() => setShowSharePrompt(false)} lightMode={lightMode} />
       )}
       
-      {showSubmissionPrompt && (
+      {!printMode && showSubmissionPrompt && (
         <SubmissionPromptModal onClose={() => setShowSubmissionPrompt(false)} lightMode={lightMode} />
       )}
       
       {/* Copyright notice */}
-      <footer className="w-full px-3 py-2 text-xs text-gray-500 border-t border-gray-800">
+      {!printMode && (
+        <footer className="app-footer w-full px-3 py-2 text-xs text-gray-500 border-t border-gray-800">
         <div className="flex justify-between items-center">
           <span>© 2025 Stepwords™. All rights reserved.</span>
           <a 
@@ -440,7 +454,8 @@ export default function App() {
             hello@stepwords.xyz
           </a>
         </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

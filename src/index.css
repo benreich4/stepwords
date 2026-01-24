@@ -22,3 +22,120 @@
 .kb-pop-in {
   animation: slide-up-in 300ms ease-out both;
 }
+
+/* Print mode styles */
+@media print {
+  @page {
+    margin: 0.5in;
+    size: letter;
+  }
+  
+  html, body {
+    background: white !important;
+    color: black !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Ensure root container doesn't interfere with centering */
+  #root {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  
+  /* Hide header and footer */
+  header.app-header,
+  footer.app-footer,
+  header,
+  footer {
+    display: none !important;
+  }
+  
+  .print-header {
+    page-break-after: avoid;
+  }
+  
+  /* Center print content - reset all containers */
+  body > #root > div {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+  
+  /* Ensure print content is centered */
+  #grid-scroll {
+    max-width: 42rem !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  /* Center Explore page and other page content when printing */
+  body > #root > div > main {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    text-align: center !important;
+  }
+  
+  /* Target pages with min-h-screen (like Explore page) - center it */
+  body > #root > div > main > div.min-h-screen {
+    max-width: 56rem !important; /* max-w-4xl equivalent */
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding: 1rem !important;
+    min-height: auto !important;
+    background: white !important;
+    color: black !important;
+    text-align: left !important; /* Reset text alignment for content */
+  }
+  
+  /* Ensure nested max-w containers are centered */
+  body > #root > div > main > div > div.max-w-4xl,
+  body > #root > div > main > div > div.max-w-2xl,
+  body > #root > div > main > div > div.max-w-xl {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  /* Hide interactive elements, but keep letter boxes visible */
+  button:not(.letter-box),
+  a[href],
+  input:not([type="hidden"]),
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Letter boxes should be visible and print properly */
+  .letter-box {
+    display: inline-flex !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  /* Ensure letter boxes have visible borders and backgrounds */
+  .letter-box {
+    border-width: 2px !important;
+    border-style: solid !important;
+  }
+  
+  /* Ensure text is black on white for non-letter-box elements */
+  *:not(.letter-box) {
+    color: black !important;
+  }
+  
+  /* Allow backgrounds on letter boxes */
+  .letter-box.bg-green-600,
+  .letter-box.bg-yellow-400,
+  .letter-box.bg-gray-100,
+  .letter-box.bg-gray-900 {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}

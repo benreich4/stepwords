@@ -11,7 +11,19 @@ import { useLifelines, LifelineMenu } from "./lib/lifelines.jsx";
 import { useReveal, RevealConfirmModal } from "./lib/reveal.jsx";
 import { usePuzzleTimer } from "./lib/timer.js";
 // Inline analytics - no separate module needed
+
+// Check if print mode is enabled via URL parameter
+function isPrintMode() {
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    return params.get('print') === '1';
+  } catch {
+    return false;
+  }
+}
+
 export default function Game({ puzzle, isQuick = false, prevId = null, nextId = null, storageNamespace }) {
+  const printMode = isPrintMode();
   const rowsRaw = puzzle.rows || [];
   // Normalize answers: ignore spaces and non-letter characters (e.g., "The abc's" -> "Theabcs")
   const rows = useMemo(() => rowsRaw.map(r => ({
@@ -228,9 +240,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       return { hardMode: false, easyMode: false, lightMode: false, showAllClues: false };
     }
   });
+  // In print mode, force light mode and show all clues
+  const effectiveSettings = useMemo(() => {
+    return printMode 
+      ? { ...settings, lightMode: true, showAllClues: true }
+      : settings;
+  }, [printMode, settings]);
+  
   useEffect(() => {
-    try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode, showAllClues: settings.showAllClues })); } catch {}
-  }, [settings]);
+    if (!printMode) {
+      try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode, showAllClues: settings.showAllClues })); } catch {}
+    }
+  }, [settings, printMode]);
   const [showSettings, setShowSettings] = useState(false);
   // Easy mode now saved globally in settings (like hardMode)
   // Legacy hint fields kept for save compatibility
@@ -750,8 +771,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <button
             key={`ref-${m.index}`}
             type="button"
-            className={`inline-flex items-center justify-center w-5 h-5 rounded border text-[9px] leading-none align-middle -translate-y-[1px] ${settings.lightMode ? 'bg-yellow-100 border-yellow-400 text-yellow-800 hover:bg-yellow-200' : 'bg-yellow-700/30 border-yellow-400 text-yellow-200 hover:bg-yellow-700/40'}`}
-            onClick={() => {
+            className={`inline-flex items-center justify-center w-5 h-5 rounded border text-[9px] leading-none align-middle -translate-y-[1px] ${effectiveSettings.lightMode ? 'bg-yellow-100 border-yellow-400 text-yellow-800 hover:bg-yellow-200' : 'bg-yellow-700/30 border-yellow-400 text-yellow-200 hover:bg-yellow-700/40'}`}
+            onClick={printMode ? undefined : () => {
               setLevel(jumpIndex);
               const firstOpen = nearestUnlockedInRow(jumpIndex, 0);
         setCursor(firstOpen === -1 ? 0 : firstOpen);
@@ -1453,35 +1474,72 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   return (
     <>
-    <div className={`w-screen h-[105vh] flex flex-col ${settings.lightMode ? 'bg-white text-black' : 'bg-black text-white'}`}>
-      <div className={`px-3 text-center transition-all duration-300 ease-out ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0 opacity-0' : 'pt-1 opacity-100'}`}>
-        {!headerCollapsed && (
-        <>
-        {puzzle.date && (
-          <div className={`text-sm sm:text-lg md:text-xl font-bold mb-0.5 flex items-center justify-center gap-3 ${settings.lightMode ? 'text-gray-900' : 'text-gray-100'}`}>
-            {prevId && (
-              <a href={`/${isQuick ? 'quick/' : ''}${prevId}`} className={`px-2 py-1 rounded ${settings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Previous puzzle">←</a>
-            )}
-            <span>{formatDateWithDayOfWeek(puzzle.date)}</span>
-            {nextId && (
-              <a href={`/${isQuick ? 'quick/' : ''}${nextId}`} className={`px-2 py-1 rounded ${settings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Next puzzle">→</a>
-            )}
+    <div className={`w-screen h-[105vh] flex flex-col ${printMode ? 'items-center justify-center' : ''} ${effectiveSettings.lightMode ? 'bg-white text-black' : 'bg-black text-white'}`}>
+      {/* Print Mode Header */}
+      {printMode && (
+        <div className="bg-white border-b-2 border-black px-6 py-4 print-header w-full max-w-4xl mx-auto">
+          <div className="text-center mb-4">
+            <h1 className="text-4xl font-bold text-black mb-2">Stepword Puzzle</h1>
+            <div className="text-lg text-gray-700">https://stepwords.xyz</div>
           </div>
-        )}
-        {puzzle.author && (
-          <div className={`text-xs sm:text-sm mb-1 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
-            By {puzzle.author}
+          {puzzle.date && (
+            <div className="text-center text-gray-600 mb-2">
+              {formatDateWithDayOfWeek(puzzle.date)}
+            </div>
+          )}
+          {puzzle.author && (
+            <div className="text-center text-sm text-gray-600 mb-1">
+              By {puzzle.author}
+            </div>
+          )}
+          {puzzle.title && (
+            <div className="text-center text-sm italic text-gray-700 mb-4">
+              {puzzle.title}
+            </div>
+          )}
+          <div className="border-t border-gray-300 pt-4 text-sm text-gray-800 space-y-2">
+            <p><strong>How to Play:</strong></p>
+            <ul className="list-disc list-inside space-y-1 ml-2">
+              <li>Each answer is an <strong>anagram</strong> of the previous answer plus one additional letter.</li>
+              <li>The {stepEmoji} shows where the new letter was added.</li>
+              <li>Every clue includes the length of each word in the answer (e.g., "Audit (3,2,2)" is a clue for "sit in on").</li>
+              <li>Write your answers in the blank spaces below each clue.</li>
+            </ul>
           </div>
-        )}
-        <div className={`text-xs sm:text-base italic mb-1 ${settings.lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
-          {puzzle.title}
         </div>
-        </>
-        )}
-      </div>
+      )}
+      
+      {!printMode && (
+        <div className={`px-3 text-center transition-all duration-300 ease-out ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0 opacity-0' : 'pt-1 opacity-100'}`}>
+          {!headerCollapsed && (
+          <>
+          {puzzle.date && (
+            <div className={`text-sm sm:text-lg md:text-xl font-bold mb-0.5 flex items-center justify-center gap-3 ${effectiveSettings.lightMode ? 'text-gray-900' : 'text-gray-100'}`}>
+              {prevId && (
+                <a href={`/${isQuick ? 'quick/' : ''}${prevId}`} className={`px-2 py-1 rounded ${effectiveSettings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Previous puzzle">←</a>
+              )}
+              <span>{formatDateWithDayOfWeek(puzzle.date)}</span>
+              {nextId && (
+                <a href={`/${isQuick ? 'quick/' : ''}${nextId}`} className={`px-2 py-1 rounded ${effectiveSettings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Next puzzle">→</a>
+              )}
+            </div>
+          )}
+          {puzzle.author && (
+            <div className={`text-xs sm:text-sm mb-1 ${effectiveSettings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
+              By {puzzle.author}
+            </div>
+          )}
+          <div className={`text-xs sm:text-base italic mb-1 ${effectiveSettings.lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
+            {puzzle.title}
+          </div>
+          </>
+          )}
+        </div>
+      )}
 
-      <div className={`w-full px-3 xl:px-4 2xl:px-6 h-8 xl:h-10 2xl:h-12 flex items-center justify-between sticky top-0 backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b z-20 transition-[height,background-color] duration-300 ease-out ${settings.lightMode ? 'bg-white/90 border-gray-300' : 'bg-black/80 border-gray-800'}`}>
-        <div className={`flex items-center gap-2 text-xs xl:text-sm 2xl:text-base ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
+      {!printMode && (
+        <div className={`w-full px-3 xl:px-4 2xl:px-6 h-8 xl:h-10 2xl:h-12 flex items-center justify-between sticky top-0 backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b z-20 transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-white/90 border-gray-300' : 'bg-black/80 border-gray-800'}`}>
+          <div className={`flex items-center gap-2 text-xs xl:text-sm 2xl:text-base ${effectiveSettings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
           <div
             ref={starsRef}
             className={`px-2 py-0.5 rounded border flex items-center gap-0.5 cursor-pointer ${settings.lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/40'}`}
@@ -1706,13 +1764,14 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             )}
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Top toast */}
-      <Toast text={toast} variant={toastVariant} lightMode={settings.lightMode} />
+      {!printMode && <Toast text={toast} variant={toastVariant} lightMode={effectiveSettings.lightMode} />}
 
-      {(!settings.showAllClues || isMobile) && (
-        <div ref={clueBarRef} className={`w-full px-3 py-2 sticky top-[32px] backdrop-blur border-b z-10 ${settings.lightMode ? 'bg-gray-100/95 border-gray-300' : 'bg-gray-900/95 border-sky-900/60'}`}>
+      {!printMode && (!effectiveSettings.showAllClues || isMobile) && (
+        <div ref={clueBarRef} className={`w-full px-3 py-2 sticky top-[32px] backdrop-blur border-b z-10 ${effectiveSettings.lightMode ? 'bg-gray-100/95 border-gray-300' : 'bg-gray-900/95 border-sky-900/60'}`}>
           <div className="flex items-center justify-between">
             <button
               onClick={() => moveLevel(-1)}
@@ -1739,7 +1798,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
       <div 
         id="grid-scroll"
-        className="flex-1 overflow-y-auto pt-5 sm:pt-4 md:pt-3 pb-8"
+        className={`flex-1 overflow-y-auto pt-5 sm:pt-4 md:pt-3 pb-8 ${printMode ? 'w-full max-w-4xl mx-auto' : ''}`}
         onClick={() => {
           if ((useOsKeyboard || !isMobile) && inputRef.current) {
             inputRef.current.focus();
@@ -1772,21 +1831,21 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           guesses={guesses}
           lockColors={lockColors}
           stepIdx={stepIdx}
-          hardMode={settings.hardMode}
-          lightMode={settings.lightMode}
+          hardMode={effectiveSettings.hardMode}
+          lightMode={effectiveSettings.lightMode}
           level={level}
           cursor={cursor}
           userStepGuesses={userStepGuesses}
-          onToggleUserStep={toggleUserStepAt}
+          onToggleUserStep={printMode ? null : toggleUserStepAt}
           stepEmoji={stepEmoji}
-          onTileClick={(i, col) => {
+          onTileClick={printMode ? null : (i, col) => {
                         setLevel(i);
                         setCursor(col);
             if (!isMobile) {
                         inputRef.current?.focus();
                       }
                     }}
-          onJumpToRow={(i)=>{
+          onJumpToRow={printMode ? null : (i)=>{
             setLevel(i);
             const firstOpen = nearestUnlockedInRow(i, 0);
             setCursor(firstOpen === -1 ? 0 : firstOpen);
@@ -1795,77 +1854,93 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           referencedRows={referencedRows}
           diffFromRow={dragStartRow}
           diffToRow={dragOverRow}
-          showAllClues={settings.showAllClues && !isMobile}
+          showAllClues={effectiveSettings.showAllClues && !isMobile}
           renderClueText={renderClueText}
                   />
 
-        <div className={`text-xs px-3 mt-1 mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-300'}`}>{message}</div>
+        {!printMode && <div className={`text-xs px-3 mt-1 mb-2 ${effectiveSettings.lightMode ? 'text-gray-600' : 'text-gray-300'}`}>{message}</div>}
         {/* Spacer equal to keyboard height (updated dynamically) */}
         <div id="bottom-scroll-spacer" className="h-0" aria-hidden />
+        
+        {/* Print Mode QR Code */}
+        {printMode && (
+          <div className="mt-8 mb-4 flex flex-col items-center">
+            <p className="text-lg font-semibold text-black mb-4 text-center">
+              Need a hint? Want to see more puzzles?
+            </p>
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('https://stepwords.xyz/other/9?source=qr1')}`}
+              alt="QR Code"
+              className="w-48 h-48 border-2 border-black"
+            />
+          </div>
+        )}
       </div>
 
       {/* Sticky keyboard at bottom */}
-      <OnScreenKeyboard
-        lightMode={settings.lightMode}
-        onKeyPress={handleKeyPress}
-        onEnter={handleEnter}
-        onBackspace={handleBackspace}
-        filteredLetters={settings.easyMode ? lettersUsedInAnswers : null}
-        submitReady={(() => {
-          const len = rowLen(level);
-          const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
-          for (let col = 0; col < len; col++) {
-            if (!isBlocked(level, col) && cur[col] === " ") return false;
-          }
-          return true;
-        })()}
-        onResize={(h) => {
-          const spacer = document.getElementById('bottom-scroll-spacer');
-          if (spacer) spacer.style.height = Math.max(0, Math.floor(h)) + 'px';
-        }}
-        submitButtonRef={submitBtnRef}
-        collapsed={kbCollapsed || useOsKeyboard}
-        onToggleCollapse={(next) => {
-          try {
-            if (next) {
-              localStorage.setItem('stepwords-kb-collapsed','1');
-              // first-time coachmark
-              if (localStorage.getItem('stepwords-kb-collapse-coach') !== '1') {
-                // Wait for collapse animation to finish, then place coachmark at the arrow's new location
-                setTimeout(() => {
-                  const btn = collapseBtnRef.current;
-                  if (btn) {
-                    const r = btn.getBoundingClientRect();
-                    const mark = document.createElement('div');
-                    mark.style.position = 'fixed';
-                    mark.style.left = (r.left + r.width / 2) + 'px';
-                    mark.style.transform = 'translateX(-50%)';
-                    // Place just above the collapsed arrow location
-                    mark.style.top = Math.max(8, r.top - 28) + 'px';
-                    mark.style.zIndex = '9999';
-                    mark.style.pointerEvents = 'none';
-                    mark.className = 'px-2 py-1 rounded bg-sky-700 text-white text-xs border border-sky-500 shadow';
-                    mark.textContent = 'Tap ▲ to uncollapse the keyboard';
-                    document.body.appendChild(mark);
-                    setTimeout(()=>{ try { document.body.removeChild(mark); } catch {} }, 2600);
-                    localStorage.setItem('stepwords-kb-collapse-coach','1');
-                  }
-                }, 340);
-              }
-            } else {
-              localStorage.removeItem('stepwords-kb-collapsed');
+      {!printMode && (
+        <OnScreenKeyboard
+          lightMode={effectiveSettings.lightMode}
+          onKeyPress={handleKeyPress}
+          onEnter={handleEnter}
+          onBackspace={handleBackspace}
+          filteredLetters={effectiveSettings.easyMode ? lettersUsedInAnswers : null}
+          submitReady={(() => {
+            const len = rowLen(level);
+            const cur = (guesses[level] || "").toUpperCase().padEnd(len, " ").slice(0, len);
+            for (let col = 0; col < len; col++) {
+              if (!isBlocked(level, col) && cur[col] === " ") return false;
             }
-          } catch {}
-          // If user expands the keyboard, disable OS keyboard mode
-          if (!next && useOsKeyboard) {
-            setUseOsKeyboard(false);
-          }
-          setKbCollapsed(next);
-        }}
-        toggleRef={collapseBtnRef}
-      />
+            return true;
+          })()}
+          onResize={(h) => {
+            const spacer = document.getElementById('bottom-scroll-spacer');
+            if (spacer) spacer.style.height = Math.max(0, Math.floor(h)) + 'px';
+          }}
+          submitButtonRef={submitBtnRef}
+          collapsed={kbCollapsed || useOsKeyboard}
+          onToggleCollapse={(next) => {
+            try {
+              if (next) {
+                localStorage.setItem('stepwords-kb-collapsed','1');
+                // first-time coachmark
+                if (localStorage.getItem('stepwords-kb-collapse-coach') !== '1') {
+                  // Wait for collapse animation to finish, then place coachmark at the arrow's new location
+                  setTimeout(() => {
+                    const btn = collapseBtnRef.current;
+                    if (btn) {
+                      const r = btn.getBoundingClientRect();
+                      const mark = document.createElement('div');
+                      mark.style.position = 'fixed';
+                      mark.style.left = (r.left + r.width / 2) + 'px';
+                      mark.style.transform = 'translateX(-50%)';
+                      // Place just above the collapsed arrow location
+                      mark.style.top = Math.max(8, r.top - 28) + 'px';
+                      mark.style.zIndex = '9999';
+                      mark.style.pointerEvents = 'none';
+                      mark.className = 'px-2 py-1 rounded bg-sky-700 text-white text-xs border border-sky-500 shadow';
+                      mark.textContent = 'Tap ▲ to uncollapse the keyboard';
+                      document.body.appendChild(mark);
+                      setTimeout(()=>{ try { document.body.removeChild(mark); } catch {} }, 2600);
+                      localStorage.setItem('stepwords-kb-collapse-coach','1');
+                    }
+                  }, 340);
+                }
+              } else {
+                localStorage.removeItem('stepwords-kb-collapsed');
+              }
+            } catch {}
+            // If user expands the keyboard, disable OS keyboard mode
+            if (!next && useOsKeyboard) {
+              setUseOsKeyboard(false);
+            }
+            setKbCollapsed(next);
+          }}
+          toggleRef={collapseBtnRef}
+        />
+      )}
    
-      {showShare && (
+      {!printMode && showShare && (
         <ShareModal
           shareText={shareText}
           hintCount={hintCount}
@@ -1876,7 +1951,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           stars={stars}
           didFail={didFail}
           elapsedTime={!hideZeroTime ? formatElapsed(elapsedMs) : null}
-          lightMode={settings.lightMode}
+          lightMode={effectiveSettings.lightMode}
           onShare={() => {
             try {
               if (window.gtag && typeof window.gtag === 'function') {
@@ -1895,28 +1970,28 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       )}
 
 
-      {showHowToPlay && (
-        <HowToPlayModal onClose={handleCloseHowToPlay} lightMode={settings.lightMode} stepEmoji={stepEmoji} />
+      {!printMode && showHowToPlay && (
+        <HowToPlayModal onClose={handleCloseHowToPlay} lightMode={effectiveSettings.lightMode} stepEmoji={stepEmoji} />
       )}
-      {showQuickIntro && (
-        <QuickIntroModal onClose={() => { setShowQuickIntro(false); try { localStorage.setItem('quickstep-intro-shown','1'); } catch {} }} lightMode={settings.lightMode} />
+      {!printMode && showQuickIntro && (
+        <QuickIntroModal onClose={() => { setShowQuickIntro(false); try { localStorage.setItem('quickstep-intro-shown','1'); } catch {} }} lightMode={effectiveSettings.lightMode} />
       )}
       {/* Reveal confirmation modal */}
-      <RevealConfirmModal
+      {!printMode && <RevealConfirmModal
         showWordRevealConfirm={showWordRevealConfirm}
         setShowWordRevealConfirm={setShowWordRevealConfirm}
         revealCurrentWord={revealCurrentWord}
-        lightMode={settings.lightMode}
-      />
+        lightMode={effectiveSettings.lightMode}
+      />}
 
-      {showLoss && (
+      {!printMode && showLoss && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className={`w-full max-w-sm rounded-lg border p-4 ${settings.lightMode ? 'border-gray-300 bg-white text-gray-900' : 'border-gray-700 bg-gray-900 text-gray-200'}`}>
+          <div className={`w-full max-w-sm rounded-lg border p-4 ${effectiveSettings.lightMode ? 'border-gray-300 bg-white text-gray-900' : 'border-gray-700 bg-gray-900 text-gray-200'}`}>
             <div className="text-lg font-semibold mb-2">Out of missteps</div>
-            <div className={`text-sm mb-4 ${settings.lightMode ? 'text-gray-700' : ''}`}>You ran out of missteps. Better luck tomorrow!</div>
+            <div className={`text-sm mb-4 ${effectiveSettings.lightMode ? 'text-gray-700' : ''}`}>You ran out of missteps. Better luck tomorrow!</div>
             <div className="flex justify-end gap-2 text-sm">
               <button
-                className={`px-3 py-1.5 rounded-md border ${settings.lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
+                className={`px-3 py-1.5 rounded-md border ${effectiveSettings.lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
                 onClick={() => setShowLoss(false)}
               >Close</button>
               <a

@@ -18,10 +18,10 @@ export default function LetterBox({
   stepEmoji = '🪜',     // emoji to use for step indicator
 }) {
   const COLOR_CLASSES = {
-    G: "bg-green-600 border-green-500 text-white transition-colors duration-200",
-    Y: "bg-yellow-400 border-yellow-400 text-black transition-colors duration-200",
+    G: lightMode ? "bg-green-600 border-green-700 text-white transition-colors duration-200" : "bg-green-600 border-green-500 text-white transition-colors duration-200",
+    Y: lightMode ? "bg-yellow-400 border-yellow-600 text-black transition-colors duration-200" : "bg-yellow-400 border-yellow-400 text-black transition-colors duration-200",
   };
-  const EMPTY_CLASSES = lightMode ? "bg-gray-100 border-gray-300 text-gray-900 transition-colors duration-200" : "bg-gray-900 border-gray-700 text-gray-200 transition-colors duration-200";
+  const EMPTY_CLASSES = lightMode ? "bg-gray-100 border-gray-500 text-gray-900 transition-colors duration-200" : "bg-gray-900 border-gray-700 text-gray-200 transition-colors duration-200";
   const stateClass = state ? (COLOR_CLASSES[state] || EMPTY_CLASSES) : EMPTY_CLASSES;
 
   // Calculate dynamic tile size based on viewport and word length, with sane min/max caps
@@ -58,7 +58,7 @@ export default function LetterBox({
       type="button" 
       onClick={onClick}
       onContextMenu={onContextMenu}
-      className={`${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''} ${isPopping ? 'scale-105' : ''}`}
+      className={`letter-box ${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''} ${isPopping ? 'scale-105' : ''}`}
       style={{
         width: tileSize,
         fontSize: textSize,
