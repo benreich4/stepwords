@@ -299,7 +299,7 @@ export default function Archives() {
                     ? 'text-yellow-300'
                     : (isPerfect ? 'text-yellow-300' : (solved ? 'text-yellow-300' : hasProgress ? 'text-yellow-300' : 'text-gray-300')));
                 const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })();
-                const bg = lightMode ? (solved ? 'bg-gray-200' : 'bg-gray-100') : (solved ? 'bg-gray-900/60' : 'bg-gray-900/40');
+                const bg = lightMode ? (solved ? 'bg-green-200' : 'bg-gray-100') : (solved ? 'bg-green-900/60' : 'bg-gray-900/40');
                 return (
                   <Link key={idx} to={`/${puzzle.id}`} className={`h-8 rounded border ${lightMode ? 'border-gray-300 hover:border-gray-400' : 'border-gray-800 hover:border-gray-600'} ${bg} flex items-center justify-center gap-1`}>
                     <span className={`text-[10px] ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
@@ -363,7 +363,7 @@ export default function Archives() {
                       ? 'text-yellow-300'
                       : (qIsPerfect ? 'text-yellow-300' : (qSolved ? 'text-yellow-300' : qHasProgress ? 'text-yellow-300' : 'text-gray-300')));
                   const lightMode2 = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })();
-                  const qBg = lightMode2 ? (qSolved ? 'bg-gray-200' : 'bg-gray-100') : (qSolved ? 'bg-gray-900/60' : 'bg-gray-900/40');
+                  const qBg = lightMode2 ? (qSolved ? 'bg-green-200' : 'bg-gray-100') : (qSolved ? 'bg-green-900/60' : 'bg-gray-900/40');
                   return (
                     <Link key={idx} to={`/quick/${puzzle.id}`} className={`h-8 rounded border ${lightMode2 ? 'border-gray-300 hover:border-gray-400' : 'border-gray-800 hover:border-gray-600'} ${qBg} flex items-center justify-center gap-1`}>
                       <span className={`text-[10px] ${lightMode2 ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
