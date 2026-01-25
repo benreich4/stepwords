@@ -25,6 +25,7 @@ export default function App() {
   const isArchives = location.pathname.startsWith('/archives');
   const isStats = location.pathname.startsWith('/stats');
   const isOther = location.pathname.startsWith('/other');
+  const isPromo = location.pathname.startsWith('/promo');
   const [mainTarget, setMainTarget] = useState("/");
   const [quickTarget, setQuickTarget] = useState("/quick");
   const [currentMainId, setCurrentMainId] = useState(null);
@@ -336,7 +337,7 @@ export default function App() {
 
   return (
     <div className={`min-h-screen w-screen ${lightMode ? 'bg-white text-gray-900' : 'bg-black text-gray-100'}`}>
-      {!printMode && (
+      {!printMode && !isPromo && (
         <header
           className={`app-header w-full px-2 py-1 border-b ${lightMode ? 'bg-white border-gray-300' : 'bg-black border-gray-800'}`}
         onClick={(e) => {
@@ -443,7 +444,7 @@ export default function App() {
       )}
       
       {/* Copyright notice */}
-      {!printMode && (
+      {!printMode && !isPromo && (
         <footer className="app-footer w-full px-3 py-2 text-xs text-gray-500 border-t border-gray-800">
         <div className="flex justify-between items-center">
           <span>© 2025 Stepwords™. All rights reserved.</span>
