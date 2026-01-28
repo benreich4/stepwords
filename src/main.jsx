@@ -16,6 +16,8 @@ import SubmissionPlay from "./pages/SubmissionPlay.jsx";
 import Stats from "./pages/Stats.jsx";
 import WordDatabase from "./pages/WordDatabase.jsx";
 import StyleGuide from "./pages/StyleGuide.jsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
+import TermsOfService from "./pages/TermsOfService.jsx";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -34,6 +36,8 @@ const router = createBrowserRouter([
       { path: "/stats", element: <Stats /> },
       { path: "/words", element: <WordDatabase /> },
       { path: "/style-guide", element: <StyleGuide /> },
+      { path: "/privacy", element: <PrivacyPolicy /> },
+      { path: "/terms", element: <TermsOfService /> },
       { path: "/:puzzleId", element: <PuzzlePage /> },
     ],
   },

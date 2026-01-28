@@ -446,8 +446,16 @@ export default function App() {
       {/* Copyright notice */}
       {!printMode && !isPromo && (
         <footer className="app-footer w-full px-3 py-2 text-xs text-gray-500 border-t border-gray-800">
-        <div className="flex justify-between items-center">
-          <span>© 2025 Stepwords™. All rights reserved.</span>
+        <div className="flex justify-between items-center flex-wrap gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span>© 2025 Stepwords™. All rights reserved.</span>
+            <Link to="/privacy" className="text-sky-400 hover:underline">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="text-sky-400 hover:underline">
+              Terms of Service
+            </Link>
+          </div>
           <a 
             href="mailto:hello@stepwords.xyz"
             className="text-sky-400 hover:underline"
