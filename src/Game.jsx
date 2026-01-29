@@ -991,6 +991,23 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const newWrongTotal = wrongGuessCount + (hadWrong ? 1 : 0);
 
     const solvedThisRow = rowColors.every(Boolean);
+    
+    // Track row submission event
+    try {
+      if (window.gtag && typeof window.gtag === 'function') {
+        const derivedMode = storageNamespace === 'otherstep' ? 'other' : (isQuick ? 'quick' : 'main');
+        window.gtag('event', 'row_submitted', {
+          puzzle_id: puzzle.id || 'unknown',
+          row_index: i,
+          is_correct: solvedThisRow,
+          has_wrong_letters: hadWrong,
+          guess_count: guessCount + 1,
+          wrong_guess_count: newWrongTotal,
+          hint_count: hintCount,
+          mode: derivedMode,
+        });
+      }
+    } catch (_err) { void 0; }
 
     // Warn when score reaches 0 (but not loss yet)
     const usedAfter = hintCount + newWrongTotal;
