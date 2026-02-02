@@ -1,0 +1,42 @@
+{
+  "id": "163",
+  "rows": [
+    {
+      "answer": "out",
+      "clue": "Away? (3)"
+    },
+    {
+      "answer": "rout",
+      "clue": "A big loss (4)"
+    },
+    {
+      "answer": "route",
+      "clue": "A way (5)"
+    },
+    {
+      "answer": "detour",
+      "clue": "Another way? (6)"
+    },
+    {
+      "answer": "courted",
+      "clue": "Attracted (7)"
+    },
+    {
+      "answer": "trounced",
+      "clue": "Lost in a big way (8)"
+    },
+    {
+      "answer": "reduction",
+      "clue": "Another loss? (9)"
+    },
+    {
+      "answer": "counterbid",
+      "clue": "Another offer (10)"
+    },
+    {
+      "answer": "contributed",
+      "clue": "Added to, in a way? (11)"
+    }
+  ],
+  "emoji": "🦕"
+}
