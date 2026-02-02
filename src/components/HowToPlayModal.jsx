@@ -59,6 +59,7 @@ export default function HowToPlayModal({ onClose, lightMode = false, stepEmoji =
               <li><strong>Hard mode</strong>: hides {stepEmoji} step locations</li>
               <li><strong>Easy mode</strong>: filters the keyboard.</li>
               <li><strong>Stars</strong>: Achieve more stars the fewer missteps and hints used. Use too many and you lose the game!</li>
+              <li><strong>Streaks</strong>: Solve today's puzzle before midnight ET to keep your streak going. Separate streaks for Main and Quick puzzles.</li>
               <li><strong>Quick Stepword</strong>: a daily warm‑up.</li>
             </ul>
           </div>

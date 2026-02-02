@@ -246,12 +246,16 @@ export default function Archives() {
 
         {currentMonthData && (
           <div>
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-500 mb-1">
-              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
-                <div key={d}>{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
+            {/* Main Stepwords Calendar */}
+            {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
+            <div className={`rounded-lg border-2 p-3 mb-6 ${lightMode ? 'border-blue-300 bg-blue-50/30' : 'border-blue-800 bg-blue-900/20'}`}>
+              <div className={`text-sm font-semibold mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Main Stepword Puzzles</div>
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-500 mb-1">
+                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
+                  <div key={d}>{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
               {currentMonthData.cells.map((cell, idx) => {
                 if (cell === null) {
                   return <div key={idx} className="h-8" />;
@@ -260,7 +264,7 @@ export default function Archives() {
                 const puzzle = cell.puzzle;
                 if (!puzzle) {
                   return (
-                    <div key={idx} className={`h-8 rounded border flex items-center justify-center ${(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return lightMode ? 'border-gray-300 bg-gray-100 text-gray-500' : 'border-gray-800 bg-gray-900/40 text-gray-600'; })()}`}>
+                    <div key={idx} className={`h-8 rounded border flex items-center justify-center ${lightMode ? 'border-gray-300 bg-gray-100 text-gray-500' : 'border-gray-800 bg-gray-900/40 text-gray-600'}`}>
                       {dayNum}
                     </div>
                   );
@@ -298,21 +302,28 @@ export default function Archives() {
                   : (Number.isFinite(starScore)
                     ? 'text-yellow-300'
                     : (isPerfect ? 'text-yellow-300' : (solved ? 'text-yellow-300' : hasProgress ? 'text-yellow-300' : 'text-gray-300')));
-                const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })();
                 const bg = lightMode ? (solved ? 'bg-green-200' : 'bg-gray-100') : (solved ? 'bg-green-900/60' : 'bg-gray-900/40');
+                const borderColor = lightMode ? (solved ? 'border-green-300 hover:border-green-400' : 'border-gray-300 hover:border-gray-400') : (solved ? 'border-green-800 hover:border-green-600' : 'border-gray-800 hover:border-gray-600');
                 return (
-                  <Link key={idx} to={`/${puzzle.id}`} className={`h-8 rounded border ${lightMode ? 'border-gray-300 hover:border-gray-400' : 'border-gray-800 hover:border-gray-600'} ${bg} flex items-center justify-center gap-1`}>
+                  <Link key={idx} to={`/${puzzle.id}`} className={`h-8 rounded border ${borderColor} ${bg} flex items-center justify-center gap-1`}>
                     <span className={`text-[10px] ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
                     <span className={`${color} text-xs leading-none`}>{icon}</span>
                   </Link>
                 );
               })}
+              </div>
             </div>
+            )})()}
+            
             {/* Quick Stepword calendar */}
-            <div className="mt-6">
-              {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
-              <div className={`text-xs mb-1 ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Quick Stepwords</div>
-              )})()}
+            {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
+            <div className={`rounded-lg border-2 p-3 ${lightMode ? 'border-orange-300 bg-orange-50/30' : 'border-orange-800 bg-orange-900/20'}`}>
+              <div className={`text-sm font-semibold mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Quick Stepword Puzzles</div>
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-500 mb-1">
+                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
+                  <div key={d}>{d}</div>
+                ))}
+              </div>
               <div className="grid grid-cols-7 gap-1">
                 {currentMonthData.cells.map((cell, idx) => {
                   if (cell === null) {
@@ -325,7 +336,7 @@ export default function Archives() {
                   const puzzle = (preview2 || iso <= todayET2) ? (quickByDate.get(iso) || null) : null;
                   if (!puzzle) {
                     return (
-                      <div key={idx} className={`h-8 rounded border flex items-center justify-center ${(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return lightMode ? 'border-gray-300 bg-gray-100 text-gray-500' : 'border-gray-800 bg-gray-900/40 text-gray-600'; })()}`}>
+                      <div key={idx} className={`h-8 rounded border flex items-center justify-center ${lightMode ? 'border-gray-300 bg-gray-100 text-gray-500' : 'border-gray-800 bg-gray-900/40 text-gray-600'}`}>
                         {dayNum}
                       </div>
                     );
@@ -362,17 +373,18 @@ export default function Archives() {
                     : (Number.isFinite(qStarScore)
                       ? 'text-yellow-300'
                       : (qIsPerfect ? 'text-yellow-300' : (qSolved ? 'text-yellow-300' : qHasProgress ? 'text-yellow-300' : 'text-gray-300')));
-                  const lightMode2 = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })();
-                  const qBg = lightMode2 ? (qSolved ? 'bg-green-200' : 'bg-gray-100') : (qSolved ? 'bg-green-900/60' : 'bg-gray-900/40');
+                  const qBg = lightMode ? (qSolved ? 'bg-green-200' : 'bg-gray-100') : (qSolved ? 'bg-green-900/60' : 'bg-gray-900/40');
+                  const qBorderColor = lightMode ? (qSolved ? 'border-green-300 hover:border-green-400' : 'border-gray-300 hover:border-gray-400') : (qSolved ? 'border-green-800 hover:border-green-600' : 'border-gray-800 hover:border-gray-600');
                   return (
-                    <Link key={idx} to={`/quick/${puzzle.id}`} className={`h-8 rounded border ${lightMode2 ? 'border-gray-300 hover:border-gray-400' : 'border-gray-800 hover:border-gray-600'} ${qBg} flex items-center justify-center gap-1`}>
-                      <span className={`text-[10px] ${lightMode2 ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
+                    <Link key={idx} to={`/quick/${puzzle.id}`} className={`h-8 rounded border ${qBorderColor} ${qBg} flex items-center justify-center gap-1`}>
+                      <span className={`text-[10px] ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
                       <span className={`${qColor} text-xs leading-none`}>{qIcon}</span>
                     </Link>
                   );
                 })}
               </div>
             </div>
+            )})()}
             {/* Legend */}
             {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
             <div className={`mt-3 flex flex-wrap items-center justify-center gap-4 text-[10px] ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>

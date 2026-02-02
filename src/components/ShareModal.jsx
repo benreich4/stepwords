@@ -100,12 +100,16 @@ export default function ShareModal({
   }, [isQuick]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-6">
-      <div className={`w-full max-w-lg rounded-2xl border p-5 shadow-2xl max-h-[85vh] overflow-y-auto ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gradient-to-b from-gray-900 to-black'}`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-6 animate-in fade-in duration-300">
+      <div className={`relative w-full max-w-lg rounded-2xl border p-5 shadow-2xl max-h-[85vh] overflow-y-auto transform transition-all duration-500 will-change-transform ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900'}`}>
         <div className="flex items-center justify-between mb-2">
-          <div className={`text-xl font-semibold ${lightMode ? 'text-gray-900' : 'text-white'}`}>{didFail ? 'Too many missteps' : 'You solved it!'}</div>
+          <div className={`text-2xl font-bold ${lightMode ? 'text-gray-900' : 'text-white'}`}>
+            {didFail ? 'Too many missteps' : '🎊 You solved it! 🎊'}
+          </div>
           {!didFail && (hintCount === 0 && wrongGuessCount === 0) && (
-            <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${lightMode ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-700 text-white border-emerald-500'}`}>Perfect!</span>
+            <span className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border font-bold ${lightMode ? 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-md shadow-emerald-300/30' : 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/30'}`}>
+              ✨ Perfect! ✨
+            </span>
           )}
         </div>
 
@@ -113,7 +117,7 @@ export default function ShareModal({
         <div className="mb-3">
           <Link
             to={ctaHref}
-            className="block w-full text-center px-4 py-2 rounded-md bg-emerald-600 text-white font-semibold hover:bg-emerald-700"
+            className="block w-full text-center px-4 py-2 rounded-md bg-emerald-500 text-white font-semibold hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all duration-200"
             onClick={() => {
               try {
                 if (window.gtag && typeof window.gtag === 'function') {
@@ -129,29 +133,29 @@ export default function ShareModal({
         </div>
 
         <div className={`mb-3 grid gap-2 text-sm ${hasTime ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/60'}`}>
+          <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
             <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Guesses</div>
             <div className={`text-lg font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{guessCount}/{rowsLength}</div>
           </div>
-          <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/60'}`}>
+          <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
             <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Hints used</div>
             <div className={`text-lg font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{hintCount}</div>
           </div>
           {hasTime && (
-            <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/60'}`}>
+            <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
               <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Time</div>
               <div className={`text-lg font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{elapsedTime}</div>
             </div>
           )}
           {Number.isFinite(stars) && !didFail && (
-            <div className={`${hasTime ? 'col-span-3' : 'col-span-2'} rounded-lg border p-3 flex items-center justify-between ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/60'}`}>
+            <div className={`${hasTime ? 'col-span-3' : 'col-span-2'} rounded-lg border p-3 flex items-center justify-between ${lightMode ? 'border-gray-300 bg-yellow-50/50' : 'border-gray-700 bg-yellow-900/30'}`}>
               <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Stars</div>
               <div className="text-xl font-semibold text-yellow-400">{'★'.repeat(Math.max(0,Math.min(3,stars||0)))}{'☆'.repeat(Math.max(0,3-(stars||0)))}</div>
             </div>
           )}
         </div>
 
-        <pre className={`whitespace-pre-wrap text-2xl leading-snug mb-4 p-3 rounded-lg border ${lightMode ? 'border-gray-300 bg-white text-gray-900' : 'border-gray-700 bg-gray-900/60 text-gray-100'}`}>
+        <pre className={`whitespace-pre-wrap text-2xl leading-snug mb-4 p-3 rounded-lg border ${lightMode ? 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-900' : 'border-gray-700 bg-gradient-to-br from-gray-900/70 to-gray-800/70 text-gray-100'}`}>
           {shareText}
         </pre>
 

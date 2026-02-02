@@ -5,11 +5,16 @@ import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import OnScreenKeyboard from "./components/OnScreenKeyboard.jsx";
 import Toast from "./components/Toast.jsx";
 import QuickIntroModal from "./components/QuickIntroModal.jsx";
+import Confetti from "./components/Confetti.jsx";
+import MilestoneModal from "./components/MilestoneModal.jsx";
 import { formatDateWithDayOfWeek, getTodayIsoInET } from "./lib/date.js";
 import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./lib/gameUtils.js";
 import { useLifelines, LifelineMenu } from "./lib/lifelines.jsx";
 import { useReveal, RevealConfirmModal } from "./lib/reveal.jsx";
 import { usePuzzleTimer } from "./lib/timer.js";
+import { updateStreak, getStreak } from "./lib/streak.js";
+import { getInitialLightMode, saveLightModePreference } from "./lib/theme.js";
+import { checkMilestones, checkPerfectSolve } from "./lib/milestones.js";
 // Inline analytics - no separate module needed
 
 // Check if print mode is enabled via URL parameter
@@ -268,8 +273,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [showShare, setShowShare] = useState(false);
   const [shareText, setShareText] = useState("");
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
+  const [streak, setStreak] = useState(() => getStreak(isQuick));
   const [showQuickIntro, setShowQuickIntro] = useState(false);
   const [gameStartTime] = useState(Date.now());
+  const [milestone, setMilestone] = useState(null);
+  const [rowCompletionAnimation, setRowCompletionAnimation] = useState(null);
   const [showLoss, setShowLoss] = useState(false);
   const [stars, setStars] = useState(null);
   const [didFail, setDidFail] = useState(false);
@@ -597,6 +606,16 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         const share = buildEmojiShareGridFrom(rows, lockColors);
         setShareText(share);
         setShowShare(true);
+        
+        // Update streak if this is today's puzzle (in case it wasn't updated when completed)
+        try {
+          const today = getTodayIsoInET();
+          const puzzleDateStr = puzzle.date?.split('T')[0];
+          if (puzzleDateStr === today) {
+            const updatedStreak = updateStreak(puzzle.date, isQuick);
+            setStreak(updatedStreak);
+          }
+        } catch {}
       }
     } catch {}
 
@@ -1051,6 +1070,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     }
 
     if (solvedThisRow) {
+      // Row completion animation
+      setRowCompletionAnimation(i);
+      setTimeout(() => setRowCompletionAnimation(null), 1000);
+      
       // ✅ Only consider the puzzle solved if *every* row is fully colored
       if (isPuzzleSolved(colorsAfter, rows)) {
         applyRowColorsStaggered();
@@ -1063,6 +1086,52 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         const awarded = wordRevealed ? 0 : (finalScore >= 7 ? 3 : (finalScore >= 4 ? 2 : (finalScore >= 1 ? 1 : 0)));
         setStars(awarded);
         setDidFail(false);
+        
+        // Check for perfect solve
+        const isPerfect = checkPerfectSolve(hintCount, wrongGuessCount);
+        if (isPerfect) {
+          showToast("✨ Perfect solve! ✨", 3000, "success");
+        }
+        
+        // Trigger confetti celebration!
+        setConfettiTrigger(prev => prev + 1);
+        
+        // Update streak (only if this is today's puzzle)
+        const newStreak = updateStreak(puzzle.date, isQuick);
+        setStreak(newStreak);
+        
+        // Mark puzzle as completed first (needed for milestone check)
+        try {
+          const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
+          if (!completedPuzzles.includes(puzzle.id)) {
+            completedPuzzles.push(puzzle.id);
+            localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
+          }
+        } catch {}
+        
+        // Check for milestones (after marking as completed)
+        try {
+          const stats = {
+            hintCount,
+            wrongGuessCount,
+            elapsedMs,
+            finalScore,
+          };
+          const milestones = checkMilestones(puzzle.id, isQuick, stats, puzzleNamespace);
+          if (milestones.length > 0) {
+            // Show first milestone, then queue others
+            setMilestone(milestones[0]);
+            if (milestones.length > 1) {
+              // Queue additional milestones
+              milestones.slice(1).forEach((m, idx) => {
+                setTimeout(() => setMilestone(m), (idx + 1) * 3500);
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('Error checking milestones:', error);
+        }
+        
         try {
           const key = `${puzzleNamespace}-stars`;
           const map = JSON.parse(localStorage.getItem(key) || '{}');
@@ -1109,12 +1178,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         // Clear saved state when puzzle is completed
         localStorage.removeItem(puzzleKey);
         
-        // Mark puzzle as completed
-        const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-        if (!completedPuzzles.includes(puzzle.id)) {
-          completedPuzzles.push(puzzle.id);
-          localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
-        }
+        // Note: Puzzle completion is already marked above for milestone checking
         
         // Dispatch event to notify App.jsx of completion
         try {
@@ -1527,7 +1591,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       )}
       
       {!printMode && (
-        <div className={`px-3 text-center transition-all duration-300 ease-out ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0 opacity-0' : 'pt-1 opacity-100'}`}>
+        <div className={`px-3 text-center transition-all duration-300 ease-out ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0 opacity-0' : 'pt-1 opacity-100'} ${isQuick 
+          ? (effectiveSettings.lightMode ? 'bg-orange-50 border-t border-b border-orange-300' : 'bg-orange-900/40 border-t border-b border-orange-800')
+          : (effectiveSettings.lightMode ? 'bg-blue-50 border-t border-b border-blue-300' : 'bg-blue-900/40 border-t border-b border-blue-800')
+        }`}>
           {!headerCollapsed && (
           <>
           {puzzle.date && (
@@ -1535,7 +1602,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               {prevId && (
                 <a href={`/${isQuick ? 'quick/' : ''}${prevId}`} className={`px-2 py-1 rounded ${effectiveSettings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Previous puzzle">←</a>
               )}
-              <span>{formatDateWithDayOfWeek(puzzle.date)}</span>
+              <span>
+                {formatDateWithDayOfWeek(puzzle.date)}
+              </span>
               {nextId && (
                 <a href={`/${isQuick ? 'quick/' : ''}${nextId}`} className={`px-2 py-1 rounded ${effectiveSettings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Next puzzle">→</a>
               )}
@@ -1555,28 +1624,54 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       )}
 
       {!printMode && (
-        <div className={`w-full px-3 xl:px-4 2xl:px-6 h-8 xl:h-10 2xl:h-12 flex items-center justify-between sticky top-0 backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b z-20 transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-white/90 border-gray-300' : 'bg-black/80 border-gray-800'}`}>
-          <div className={`flex items-center gap-2 text-xs xl:text-sm 2xl:text-base ${effectiveSettings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
+        <div className={`w-full px-2 sm:px-3 xl:px-4 2xl:px-6 h-8 xl:h-10 2xl:h-12 flex items-center justify-between sticky top-0 backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b z-20 transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}>
+          <div className={`flex items-center gap-1 sm:gap-2 text-xs xl:text-sm 2xl:text-base ${effectiveSettings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
           <div
             ref={starsRef}
-            className={`px-2 py-0.5 rounded border flex items-center gap-0.5 cursor-pointer ${settings.lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900/40'}`}
+            className={`px-2 py-0.5 rounded border flex items-center gap-0.5 cursor-pointer transition-all duration-300 ${settings.lightMode ? 'border-gray-300 bg-gray-50 shadow-sm' : 'border-gray-700 bg-gray-800 shadow-lg shadow-yellow-500/20'}`}
             title="Current stars"
             role="button"
             tabIndex={0}
             onClick={showStarsInfo}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showStarsInfo(); } }}
           >
-            <span className={`leading-none ${currentStars >= 1 ? 'text-yellow-300' : 'text-gray-500'}`}>★</span>
-            <span className={`leading-none ${currentStars >= 2 ? 'text-yellow-300' : 'text-gray-500'}`}>★</span>
-            <span className={`leading-none ${currentStars >= 3 ? 'text-yellow-300' : 'text-gray-500'}`}>★</span>
+            <span className={`leading-none transition-all duration-300 ${currentStars >= 1 ? 'text-yellow-300 drop-shadow-[0_0_4px_rgba(253,224,71,0.8)]' : 'text-gray-500'}`}>★</span>
+            <span className={`leading-none transition-all duration-300 ${currentStars >= 2 ? 'text-yellow-300 drop-shadow-[0_0_4px_rgba(253,224,71,0.8)]' : 'text-gray-500'}`}>★</span>
+            <span className={`leading-none transition-all duration-300 ${currentStars >= 3 ? 'text-yellow-300 drop-shadow-[0_0_4px_rgba(253,224,71,0.8)]' : 'text-gray-500'}`}>★</span>
         </div>
+        
+        {/* Streak Display */}
+        <div 
+          className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded border text-[9px] sm:text-[10px] cursor-pointer transition-opacity hover:opacity-80 ${isQuick 
+            ? (effectiveSettings.lightMode ? 'border-orange-300 bg-orange-50 text-orange-800 shadow-sm' : 'border-orange-600 bg-orange-900/40 text-orange-300 shadow-lg shadow-orange-500/20')
+            : (effectiveSettings.lightMode ? 'border-blue-300 bg-blue-50 text-blue-800 shadow-sm' : 'border-blue-600 bg-blue-900/40 text-blue-300 shadow-lg shadow-blue-500/20')
+          }`}
+          onClick={() => {
+            const puzzleType = isQuick ? 'Quick' : 'Main';
+            showToast(`Your ${puzzleType} puzzle streak! Solve today's puzzle before midnight ET to keep it going.`, 5000, 'info');
+          }}
+          title="Click to learn about streaks"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              const puzzleType = isQuick ? 'Quick' : 'Main';
+              showToast(`Your ${puzzleType} puzzle streak! Solve today's puzzle before midnight ET to keep it going.`, 5000, 'info');
+            }
+          }}
+        >
+          <span className="text-xs sm:text-sm">🔥</span>
+          <span className="font-semibold">{streak.current}</span>
+        </div>
+        
         {!hideZeroTime && (
-          <div className={`ml-2 px-2 py-0.5 rounded border text-xs xl:text-sm font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-white text-gray-800' : 'border-gray-700 bg-gray-900/40 text-gray-300'}`} title="Elapsed time">
+          <div className={`hidden sm:block ml-2 px-2 py-0.5 rounded border text-xs xl:text-sm font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-800' : 'border-gray-700 bg-gray-800 text-gray-300'}`} title="Elapsed time">
             {formatElapsed(elapsedMs)}
           </div>
         )}
           {pointsNow === 0 && (
-            <div className={`${settings.lightMode ? 'px-2 py-0.5 rounded border border-red-300 bg-red-50 text-red-700' : 'px-2 py-0.5 rounded border border-red-600 bg-red-900/40 text-red-300'}`}>
+            <div className={`${settings.lightMode ? 'px-2 py-0.5 rounded border border-red-300 bg-red-50 text-red-700 shadow-sm' : 'px-2 py-0.5 rounded border border-red-600 bg-red-900/50 text-red-300 shadow-lg shadow-red-500/20'}`}>
               {didFail ? 'You already lost.' : 'Next misstep loses the game!'}
             </div>
           )}
@@ -1587,7 +1682,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <div ref={lifelineRef} className="relative">
             <button
               onClick={() => setShowLifelineMenu((v) => !v)}
-              className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50' : 'border-gray-700 text-gray-300 hover:bg-gray-900/40'}`}
+              className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
               aria-label="Hints"
             >
               <span className="relative inline-flex items-center justify-center" aria-hidden>
@@ -1640,7 +1735,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           </div>
           <button
             onClick={() => setShowHowToPlay(true)}
-            className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50' : 'border-gray-700 text-gray-300 hover:bg-gray-900/40'}`}
+            className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
             title="How to Play"
           >
             ?
@@ -1649,13 +1744,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <div ref={settingsRef} className="relative">
             <button
               onClick={() => setShowSettings((v) => !v)}
-              className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50' : 'border-gray-700 text-gray-300 hover:bg-gray-900/40'}`}
+              className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
               aria-label="Settings"
             >
               ⚙️
             </button>
             {showSettings && (
-              <div className={`absolute right-0 top-full mt-1 w-60 rounded-lg border backdrop-blur-sm shadow-xl p-2 text-xs menu-pop-in ${settings.lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5' : 'border-gray-700 bg-gray-900/95 ring-1 ring-white/10'}`}>
+              <div className={`absolute right-0 top-full mt-1 w-60 rounded-lg border backdrop-blur-sm shadow-xl p-2 text-xs menu-pop-in ${settings.lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5' : 'border-gray-700 bg-gray-900 ring-1 ring-white/10'}`}>
                 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hard mode</span>
@@ -1717,6 +1812,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     onClick={() => {
                       const checked = !settings.lightMode;
                       setSettings(s => ({ ...s, lightMode: checked }));
+                      // Save preference when user manually changes it
+                      saveLightModePreference(checked);
                       try {
                         if (window.gtag && typeof window.gtag === 'function') {
                           window.gtag('event', checked ? 'light_mode_turned_on' : 'light_mode_turned_off', { puzzle_id: puzzle.id || 'unknown' });
@@ -1788,7 +1885,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       {!printMode && <Toast text={toast} variant={toastVariant} lightMode={effectiveSettings.lightMode} />}
 
       {!printMode && (!effectiveSettings.showAllClues || isMobile) && (
-        <div ref={clueBarRef} className={`w-full px-3 py-2 sticky top-[32px] backdrop-blur border-b z-10 ${effectiveSettings.lightMode ? 'bg-gray-100/95 border-gray-300' : 'bg-gray-900/95 border-sky-900/60'}`}>
+        <div ref={clueBarRef} className={`w-full px-3 py-2 sticky top-[32px] backdrop-blur border-b z-10 ${effectiveSettings.lightMode ? 'bg-gray-200 border-gray-300' : 'bg-gray-800 border-sky-900/60'}`}>
           <div className="flex items-center justify-between">
             <button
               onClick={() => moveLevel(-1)}
@@ -1873,6 +1970,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           diffToRow={dragOverRow}
           showAllClues={effectiveSettings.showAllClues && !isMobile}
           renderClueText={renderClueText}
+          rowCompletionAnimation={rowCompletionAnimation}
                   />
 
         {!printMode && <div className={`text-xs px-3 mt-1 mb-2 ${effectiveSettings.lightMode ? 'text-gray-600' : 'text-gray-300'}`}>{message}</div>}
@@ -1957,6 +2055,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         />
       )}
    
+      {!printMode && <Confetti trigger={confettiTrigger} lightMode={effectiveSettings.lightMode} />}
+      
       {!printMode && showShare && (
         <ShareModal
           shareText={shareText}
@@ -1992,6 +2092,14 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       )}
       {!printMode && showQuickIntro && (
         <QuickIntroModal onClose={() => { setShowQuickIntro(false); try { localStorage.setItem('quickstep-intro-shown','1'); } catch {} }} lightMode={effectiveSettings.lightMode} />
+      )}
+      {/* Milestone modal */}
+      {!printMode && milestone && (
+        <MilestoneModal 
+          milestone={milestone} 
+          onClose={() => setMilestone(null)} 
+          lightMode={effectiveSettings.lightMode} 
+        />
       )}
       {/* Reveal confirmation modal */}
       {!printMode && <RevealConfirmModal

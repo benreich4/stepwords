@@ -20,6 +20,7 @@ export default function LetterGrid({
   stepEmoji = '🪜', // emoji to use for step indicator
   showAllClues = false, // whether to show all clues next to each row
   renderClueText = null, // function to render clue text with references
+  rowCompletionAnimation = null, // row index that just completed (for animation)
 }) {
   // Long-press tracking for mobile/desktop: start diff after hold on row number
   const longPressTimerRef = useRef(null);
@@ -236,8 +237,18 @@ export default function LetterGrid({
         // ONLY if that step letter is actually revealed/locked on that row
         const isIntermediateStep = (diffFromRow != null && diffToRow != null && i > diffToRow && i < diffFromRow && stepPos >= 0);
         const clue = rows[i]?.clue || "";
+        const isRowCompleting = rowCompletionAnimation === i;
         return (
-          <div key={i} data-row-index={i} className="w-full flex flex-row items-center gap-1 px-0">
+          <div 
+            key={i} 
+            data-row-index={i} 
+            className={`w-full flex flex-row items-center gap-1 px-0 transition-all duration-500 ${
+              isRowCompleting ? 'scale-105 transform-gpu will-change-transform' : ''
+            }`}
+            style={isRowCompleting ? {
+              animation: 'pulse 0.5s ease-out',
+            } : {}}
+          >
             <button
               type="button"
               onClick={() => onJumpToRow && onJumpToRow(i)}
@@ -252,7 +263,7 @@ export default function LetterGrid({
             >
               {i+1}
             </button>
-            <div className="flex gap-0 px-0 mx-0">
+            <div className="flex gap-0.5 px-0 mx-0">
               {Array.from({ length: len }).map((_, col) => {
                 const actualStepRevealed = i >= 1 && col === stepPos && (hardMode ? lockColors[i][stepPos] !== null : true);
                 const showUserStep = Boolean(

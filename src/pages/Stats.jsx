@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchManifest } from "../lib/puzzles.js";
 import { fetchQuickManifest } from "../lib/quickPuzzles.js";
 import { getTodayIsoInET } from "../lib/date.js";
+import { getAllStreaks } from "../lib/streak.js";
+import { getInitialLightMode } from "../lib/theme.js";
 
 function formatAvg(ms) {
   if (!Number.isFinite(ms) || ms <= 0) return "—";
@@ -14,30 +16,34 @@ function formatAvg(ms) {
 function StarsHistogram({ counts = {}, lightMode }) {
   const total = (counts[0]||0)+(counts[1]||0)+(counts[2]||0)+(counts[3]||0);
   const pct = (n) => total ? Math.round((n/total)*100) : 0;
-  const bar = (n, color) => (
-    <div className="flex items-center gap-2">
-      <div className="w-12 text-right text-xs">{n}★</div>
-      <div className={`h-3 rounded ${lightMode ? 'bg-gray-200' : 'bg-gray-800'} flex-1 overflow-hidden`}>
-        <div className={`h-full ${color}`} style={{ width: `${pct(counts[n]||0)}%` }} />
-      </div>
-      <div className="w-10 text-xs text-right">{pct(counts[n]||0)}%</div>
-    </div>
-  );
+  const maxCount = Math.max(counts[0]||0, counts[1]||0, counts[2]||0, counts[3]||0);
+  const barHeight = (n) => maxCount > 0 ? Math.max((counts[n]||0) / maxCount * 100, counts[n] > 0 ? 8 : 0) : 0;
+  
   return (
     <div className="space-y-1">
-      {bar(3, 'bg-yellow-400')}
-      {bar(2, 'bg-yellow-300')}
-      {bar(1, 'bg-yellow-200')}
-      {bar(0, 'bg-gray-400')}
+      {[3, 2, 1, 0].map((n) => {
+        const color = n === 3 ? 'bg-yellow-400' : n === 2 ? 'bg-yellow-300' : n === 1 ? 'bg-yellow-200' : 'bg-gray-400';
+        const count = counts[n] || 0;
+        return (
+          <div key={n} className="flex items-center gap-1.5">
+            <div className="w-6 text-[10px] text-right">{n}★</div>
+            <div className={`flex-1 h-2 rounded ${lightMode ? 'bg-gray-200' : 'bg-gray-800'} overflow-hidden`}>
+              <div className={`h-full ${color}`} style={{ width: `${barHeight(n)}%` }} />
+            </div>
+            <div className="w-8 text-[10px] text-right">{count}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 export default function Stats() {
   const [mainTotal, setMainTotal] = useState(0);
+  const [streaks, setStreaks] = useState(() => getAllStreaks());
   const [quickTotal, setQuickTotal] = useState(0);
   const [lightMode, setLightMode] = useState(() => {
-    try { const s = JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; }
+    return getInitialLightMode();
   });
   const debugStats = useMemo(() => {
     try { return new URLSearchParams(window.location.search).get('statsdebug') === '1'; } catch { return false; }
@@ -61,8 +67,16 @@ export default function Stats() {
     const onSettings = () => {
       try { const s = JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); setLightMode(s.lightMode===true); } catch {}
     };
+    // Refresh streaks when puzzle is completed
+    const onComplete = () => {
+      setStreaks(getAllStreaks());
+    };
     document.addEventListener('stepwords-settings-updated', onSettings);
-    return () => document.removeEventListener('stepwords-settings-updated', onSettings);
+    document.addEventListener('stepwords-puzzle-completed', onComplete);
+    return () => {
+      document.removeEventListener('stepwords-settings-updated', onSettings);
+      document.removeEventListener('stepwords-puzzle-completed', onComplete);
+    };
   }, [today]);
 
   const mainCompleted = useMemo(() => { try { return new Set(JSON.parse(localStorage.getItem('stepwords-completed')||'[]')); } catch { return new Set(); } }, []);
@@ -143,40 +157,118 @@ export default function Stats() {
   const quickH = histo(quickStars);
 
   return (
-    <div className={`px-4 py-6 flex justify-center ${lightMode ? 'text-gray-900' : 'text-gray-200'}`}>
-      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Main Stats */}
-        <div className={`rounded-xl border p-4 ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-800 bg-gray-900/40'}`}>
-          <div className="text-lg font-semibold mb-3">Main Stats</div>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300' : 'border-gray-800'}`}>
-              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Solved</div>
-              <div className="text-xl font-semibold">{pct(mainCompleted.size, mainTotal)}% <span className="text-xs">({mainCompleted.size}/{mainTotal})</span></div>
+    <div className={`px-3 sm:px-4 py-4 flex justify-center ${lightMode ? 'text-gray-900' : 'text-gray-200'}`}>
+      <div className="w-full max-w-3xl space-y-4">
+        {/* Main Section */}
+        <div className={`rounded-lg border p-4 ${lightMode ? 'border-blue-300 bg-blue-50' : 'border-blue-800 bg-blue-900/40'}`}>
+          <div className="text-lg font-semibold mb-3">
+            Main Puzzle
+          </div>
+          
+          {/* Streak */}
+          <div className={`rounded border p-3 mb-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-800 bg-gray-900/40'}`}>
+            <div className={`${lightMode ? 'text-gray-700' : 'text-gray-300'} text-sm mb-2 font-semibold flex items-center gap-1.5`}>
+              <span>🔥</span>
+              <span>Streak</span>
             </div>
-            <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300' : 'border-gray-800'}`}>
-              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Avg time</div>
-              <div className="text-xl font-semibold">{formatAvg(mainAvg)}</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs mb-1`}>Current</div>
+                <div className={`text-xl font-bold ${lightMode ? 'text-gray-900' : 'text-gray-200'}`}>
+                  {streaks.main.current} {streaks.main.current === 1 ? 'day' : 'days'}
+                </div>
+              </div>
+              <div>
+                <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs mb-1`}>Longest</div>
+                <div className={`text-xl font-bold ${lightMode ? 'text-gray-900' : 'text-gray-200'}`}>
+                  {streaks.main.longest} {streaks.main.longest === 1 ? 'day' : 'days'}
+                </div>
+              </div>
+            </div>
+            {streaks.main.current === 0 && (
+              <div className={`text-xs mt-2 ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                Solve today's main puzzle to start!
+              </div>
+            )}
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Left half: Stars histogram */}
+            <div className={`rounded border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-800 bg-gray-900/40'}`}>
+              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs mb-2`}>Stars</div>
+              <StarsHistogram counts={mainH} lightMode={lightMode} />
+            </div>
+            
+            {/* Right half: Solved and Avg time */}
+            <div className={`rounded border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-800 bg-gray-900/40'} flex flex-col gap-3`}>
+              <div>
+                <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs mb-1`}>Solved</div>
+                <div className="text-lg font-semibold">{pct(mainCompleted.size, mainTotal)}%</div>
+                <div className={`text-xs ${lightMode ? 'text-gray-500' : 'text-gray-500'}`}>{mainCompleted.size}/{mainTotal} puzzles</div>
+              </div>
+              <div>
+                <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs mb-1`}>Avg time</div>
+                <div className="text-lg font-semibold">{formatAvg(mainAvg)}</div>
+              </div>
             </div>
           </div>
-          <div className={`${lightMode ? 'text-gray-700' : 'text-gray-400'} text-sm mb-2`}>Stars histogram</div>
-          <StarsHistogram counts={mainH} lightMode={lightMode} />
         </div>
 
-        {/* Quick Stats */}
-        <div className={`rounded-xl border p-4 ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-800 bg-gray-900/40'}`}>
-          <div className="text-lg font-semibold mb-3">Quick Stats</div>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300' : 'border-gray-800'}`}>
-              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Solved</div>
-              <div className="text-xl font-semibold">{pct(quickCompleted.size, quickTotal)}% <span className="text-xs">({quickCompleted.size}/{quickTotal})</span></div>
+        {/* Quick Section */}
+        <div className={`rounded-lg border p-4 ${lightMode ? 'border-orange-300 bg-orange-50' : 'border-orange-800 bg-orange-900/40'}`}>
+          <div className="text-lg font-semibold mb-3">
+            Quick Puzzle
+          </div>
+          
+          {/* Streak */}
+          <div className={`rounded border p-3 mb-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-800 bg-gray-900/40'}`}>
+            <div className={`${lightMode ? 'text-gray-700' : 'text-gray-300'} text-sm mb-2 font-semibold flex items-center gap-1.5`}>
+              <span>🔥</span>
+              <span>Streak</span>
             </div>
-            <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300' : 'border-gray-800'}`}>
-              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Avg time</div>
-              <div className="text-xl font-semibold">{formatAvg(quickAvg)}</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs mb-1`}>Current</div>
+                <div className={`text-xl font-bold ${lightMode ? 'text-gray-900' : 'text-gray-200'}`}>
+                  {streaks.quick.current} {streaks.quick.current === 1 ? 'day' : 'days'}
+                </div>
+              </div>
+              <div>
+                <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs mb-1`}>Longest</div>
+                <div className={`text-xl font-bold ${lightMode ? 'text-gray-900' : 'text-gray-200'}`}>
+                  {streaks.quick.longest} {streaks.quick.longest === 1 ? 'day' : 'days'}
+                </div>
+              </div>
+            </div>
+            {streaks.quick.current === 0 && (
+              <div className={`text-xs mt-2 ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                Solve today's quick puzzle to start!
+              </div>
+            )}
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Left half: Stars histogram */}
+            <div className={`rounded border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-800 bg-gray-900/40'}`}>
+              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs mb-2`}>Stars</div>
+              <StarsHistogram counts={quickH} lightMode={lightMode} />
+            </div>
+            
+            {/* Right half: Solved and Avg time */}
+            <div className={`rounded border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-800 bg-gray-900/40'} flex flex-col gap-3`}>
+              <div>
+                <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs mb-1`}>Solved</div>
+                <div className="text-lg font-semibold">{pct(quickCompleted.size, quickTotal)}%</div>
+                <div className={`text-xs ${lightMode ? 'text-gray-500' : 'text-gray-500'}`}>{quickCompleted.size}/{quickTotal} puzzles</div>
+              </div>
+              <div>
+                <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs mb-1`}>Avg time</div>
+                <div className="text-lg font-semibold">{formatAvg(quickAvg)}</div>
+              </div>
             </div>
           </div>
-          <div className={`${lightMode ? 'text-gray-700' : 'text-gray-400'} text-sm mb-2`}>Stars histogram</div>
-          <StarsHistogram counts={quickH} lightMode={lightMode} />
         </div>
       </div>
     </div>
