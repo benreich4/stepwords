@@ -360,8 +360,8 @@ export default function App() {
                 to={mainTarget} 
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors flex items-center gap-1 ${
                   (!isQuick && !isArchives && !isStats && !isOther)
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 border-blue-500 text-white shadow-sm' 
-                    : (lightMode ? 'bg-gradient-to-r from-gray-200 to-gray-300 border-gray-300 text-gray-800 hover:from-gray-300 hover:to-gray-400' : 'bg-gradient-to-r from-gray-700 to-gray-800 border-gray-600 text-gray-300 hover:from-gray-600 hover:to-gray-700')
+                    ? 'bg-blue-500 border-blue-500 text-white shadow-sm' 
+                    : (lightMode ? 'bg-gray-50 border-gray-300 text-gray-800 hover:bg-gray-100' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700')
                 }`}
               >
                 Main{mainCompleted && <span className="text-[8px]">✓</span>}
@@ -370,8 +370,8 @@ export default function App() {
                 to={quickTarget} 
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors flex items-center gap-1 ${
                   (isQuick && !isArchives)
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 border-blue-500 text-white shadow-sm' 
-                    : (lightMode ? 'bg-gradient-to-r from-gray-200 to-gray-300 border-gray-300 text-gray-800 hover:from-gray-300 hover:to-gray-400' : 'bg-gradient-to-r from-gray-700 to-gray-800 border-gray-600 text-gray-300 hover:from-gray-600 hover:to-gray-700')
+                    ? 'bg-blue-500 border-blue-500 text-white shadow-sm' 
+                    : (lightMode ? 'bg-gray-50 border-gray-300 text-gray-800 hover:bg-gray-100' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700')
                 }`}
               >
                 Quick{quickCompleted && <span className="text-[8px]">✓</span>}
@@ -400,7 +400,7 @@ export default function App() {
             <Link 
               to="/create" 
               className={`px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
-                (lightMode ? 'border-gray-300 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 hover:from-gray-300 hover:to-gray-400' : 'border-gray-600 bg-gradient-to-r from-gray-700 to-gray-800 text-gray-300 hover:from-gray-600 hover:to-gray-700 hover:text-white')
+                (lightMode ? 'border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700')
               }`}
               title="Create"
             >
@@ -410,8 +410,8 @@ export default function App() {
               to="/stats" 
               className={`ml-2 px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
                 isStats
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 border-blue-500 text-white shadow-sm'
-                  : (lightMode ? 'border-gray-300 bg-gradient-to-r from-gray-200 to-gray-250 text-gray-800 hover:from-gray-250 hover:to-gray-300' : 'border-gray-600 bg-gradient-to-r from-gray-700 to-gray-800 text-gray-300 hover:from-gray-600 hover:to-gray-700 hover:text-white')
+                  ? 'bg-blue-500 border-blue-500 text-white shadow-sm'
+                  : (lightMode ? 'border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700')
               }`}
               title="Stats"
             >
@@ -421,8 +421,8 @@ export default function App() {
               to="/archives" 
               className={`ml-2 px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
                 isArchives
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 border-blue-500 text-white shadow-sm'
-                  : (lightMode ? 'border-gray-300 bg-gradient-to-r from-gray-200 to-gray-250 text-gray-800 hover:from-gray-250 hover:to-gray-300' : 'border-gray-600 bg-gradient-to-r from-gray-700 to-gray-800 text-gray-300 hover:from-gray-600 hover:to-gray-700 hover:text-white')
+                  ? 'bg-blue-500 border-blue-500 text-white shadow-sm'
+                  : (lightMode ? 'border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700')
               }`}
               title="Archives"
             >

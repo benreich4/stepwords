@@ -1691,16 +1691,16 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <div className={`flex items-center gap-1 sm:gap-2 text-xs xl:text-sm 2xl:text-base ${effectiveSettings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
           <div
             ref={starsRef}
-            className={`px-2 py-0.5 rounded border flex items-center gap-0.5 cursor-pointer transition-all duration-300 ${settings.lightMode ? 'border-gray-300 bg-gray-50 shadow-sm' : 'border-gray-700 bg-gray-800 shadow-lg shadow-yellow-500/20'}`}
+            className={`px-2 py-0.5 rounded border flex items-center gap-0.5 cursor-pointer transition-all duration-300 ${settings.lightMode ? 'border-gray-300 bg-gray-50 shadow-sm' : 'border-gray-700 bg-gray-800 shadow-sm'}`}
             title="Current stars"
             role="button"
             tabIndex={0}
             onClick={showStarsInfo}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showStarsInfo(); } }}
           >
-            <span className={`leading-none transition-all duration-300 ${currentStars >= 1 ? 'text-yellow-300 drop-shadow-[0_0_4px_rgba(253,224,71,0.8)]' : 'text-gray-500'}`}>★</span>
-            <span className={`leading-none transition-all duration-300 ${currentStars >= 2 ? 'text-yellow-300 drop-shadow-[0_0_4px_rgba(253,224,71,0.8)]' : 'text-gray-500'}`}>★</span>
-            <span className={`leading-none transition-all duration-300 ${currentStars >= 3 ? 'text-yellow-300 drop-shadow-[0_0_4px_rgba(253,224,71,0.8)]' : 'text-gray-500'}`}>★</span>
+            <span className={`leading-none transition-all duration-300 ${currentStars >= 1 ? 'text-yellow-300 drop-shadow-[0_0_1px_rgba(253,224,71,0.6)]' : 'text-gray-500'}`}>★</span>
+            <span className={`leading-none transition-all duration-300 ${currentStars >= 2 ? 'text-yellow-300 drop-shadow-[0_0_1px_rgba(253,224,71,0.6)]' : 'text-gray-500'}`}>★</span>
+            <span className={`leading-none transition-all duration-300 ${currentStars >= 3 ? 'text-yellow-300 drop-shadow-[0_0_1px_rgba(253,224,71,0.6)]' : 'text-gray-500'}`}>★</span>
         </div>
         
         {/* Streak Display */}
