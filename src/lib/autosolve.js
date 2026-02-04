@@ -11,8 +11,6 @@ export function useAutosolve({
   setGuessAt,
   setGuesses,
   submitRow,
-  effectiveSettings,
-  gameContainerRef,
   setShowAutosolveIntro,
   setShowAutosolveIntroMoved,
   setShowAutosolveFinal,
@@ -59,15 +57,7 @@ export function useAutosolve({
       measureBeforeMove();
       setTimeout(measureBeforeMove, 50);
       setTimeout(measureBeforeMove, 100);
-      setTimeout(() => {
-        // Ensure position is set before starting transition
-        measureBeforeMove();
-        setTimeout(() => {
-          setShowAutosolveIntroMoved(true);
-        }, 50);
-      }, 150);
-      
-      // Start solving after popup moves
+      // Define solveNextRow function first
       const solveNextRow = (rowIndex) => {
         // Skip the last row - show final popup instead
         if (rowIndex >= rows.length - 1) {
@@ -149,7 +139,21 @@ export function useAutosolve({
         }, 400); // Wait before starting to type
       };
       
-      solveNextRow(0);
+      // Now trigger the popup movement and wait for transition to complete
+      setTimeout(() => {
+        // Ensure position is set before starting transition
+        measureBeforeMove();
+        setTimeout(() => {
+          setShowAutosolveIntroMoved(true);
+          
+          // Wait for the popup transition to complete (1500ms) before starting to solve
+          // The transition duration is defined in AutosolveIntroPopup.jsx as duration-[1500ms]
+          setTimeout(() => {
+            // Now start solving after transition is complete
+            solveNextRow(0);
+          }, 1500);
+        }, 50);
+      }, 150);
     }, 2000);
   }, [
     autosolveMode,
@@ -159,8 +163,6 @@ export function useAutosolve({
     setGuessAt,
     setGuesses,
     submitRow,
-    effectiveSettings,
-    gameContainerRef,
     setShowAutosolveIntro,
     setShowAutosolveIntroMoved,
     setShowAutosolveFinal,

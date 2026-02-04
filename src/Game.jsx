@@ -15,6 +15,10 @@ import { usePuzzleTimer } from "./lib/timer.js";
 import { updateStreak, getStreak } from "./lib/streak.js";
 import { getInitialLightMode, saveLightModePreference } from "./lib/theme.js";
 import { checkMilestones, checkPerfectSolve } from "./lib/milestones.js";
+import { useAutosolve } from "./lib/autosolve.js";
+import { isAutosolveMode } from "./lib/autosolveUtils.js";
+import AutosolveIntroPopup from "./components/AutosolveIntroPopup.jsx";
+import AutosolveFinalPopup from "./components/AutosolveFinalPopup.jsx";
 // Inline analytics - no separate module needed
 
 // Check if print mode is enabled via URL parameter
@@ -29,6 +33,7 @@ function isPrintMode() {
 
 export default function Game({ puzzle, isQuick = false, prevId = null, nextId = null, storageNamespace }) {
   const printMode = isPrintMode();
+  const autosolveMode = isAutosolveMode();
   const rowsRaw = puzzle.rows || [];
   // Normalize answers: ignore spaces and non-letter characters (e.g., "The abc's" -> "Theabcs")
   const rows = useMemo(() => rowsRaw.map(r => ({
@@ -55,6 +60,36 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   
   // Load saved state or initialize defaults
   const loadSavedState = () => {
+    // In autosolve mode, always start fresh (no saved state)
+    if (autosolveMode) {
+      return {
+        lockColors: rows.map(r => Array(r.answer.length).fill(null)),
+        level: 0,
+        guesses: rows.map(() => ""),
+        cursor: 0,
+        wasWrong: rows.map(r => Array(r.answer.length).fill(false)),
+        hintsUsed: {
+          stepLocations: false,
+          initialLetters: false,
+          stepLetters: false
+        },
+        rowsInitialHintUsed: rows.map(() => false),
+        rowsStepHintUsed: rows.map(() => false),
+        hintCount: 0,
+        guessCount: 0,
+        wrongGuessCount: 0,
+        lifelineLevel: 0,
+        lifelinesUsed: {
+          first3: false,
+          last3: false,
+          middle3: false,
+          firstLastStep: false
+        },
+        wordRevealed: false,
+        elapsedMs: 0,
+        timerFinished: false,
+      };
+    }
     try {
       const saved = localStorage.getItem(puzzleKey);
       if (saved) {
@@ -584,6 +619,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   // Show how to play modal on first visit and track puzzle start
   useEffect(() => {
+    // Skip "how to play" modal in autosolve mode
+    if (autosolveMode) {
+      return;
+    }
     const hasSeenHowToPlay = localStorage.getItem('stepwords-how-to-play');
     if (!hasSeenHowToPlay) {
       setShowHowToPlay(true);
@@ -628,7 +667,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         });
       }
     } catch (_err) { void 0; }
-  }, [puzzle.id]);
+  }, [puzzle.id, autosolveMode]);
 
   const handleCloseHowToPlay = () => {
     setShowHowToPlay(false);
@@ -682,6 +721,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   // Save game state to localStorage
   const saveGameState = () => {
+    // Don't save state in autosolve mode
+    if (autosolveMode) return;
     try {
       const stateToSave = {
         lockColors,
@@ -708,6 +749,36 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   useEffect(() => {
     saveGameState();
   }, [lockColors, level, guesses, cursor, wasWrong, hintCount, guessCount, wrongGuessCount, lifelineLevel, lifelinesUsed, wordRevealed, elapsedMs, timerFinished]);
+
+  // Autosolve mode: automatically solve the puzzle
+  const gridScrollRef = useRef(null);
+  const gameContainerRef = useRef(null);
+  const [lastRowPosition, setLastRowPosition] = useState(null);
+  const [introPopupPosition, setIntroPopupPosition] = useState(null);
+  const [finalPopupPosition, setFinalPopupPosition] = useState(null);
+  const [showAutosolveIntro, setShowAutosolveIntro] = useState(false);
+  const [showAutosolveIntroMoved, setShowAutosolveIntroMoved] = useState(false);
+  const [showAutosolveFinal, setShowAutosolveFinal] = useState(false);
+  const [showAutosolveFinalMoved, setShowAutosolveFinalMoved] = useState(false);
+  
+  // Autosolve hook handles all autosolve logic
+  const { autosolveGuessRef } = useAutosolve({
+    autosolveMode,
+    rows,
+    setLevel,
+    setCursor,
+    setGuessAt,
+    setGuesses,
+    submitRow,
+    setShowAutosolveIntro,
+    setShowAutosolveIntroMoved,
+    setShowAutosolveFinal,
+    setShowAutosolveFinalMoved,
+    gridScrollRef,
+    setLastRowPosition,
+    setIntroPopupPosition,
+    setFinalPopupPosition,
+  });
 
   const clue = rows[level]?.clue || "";
   const scoreBase = 10;
@@ -933,7 +1004,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     setMessage("");
   }
 
-  function submitRow(i) {
+  function submitRow(i, overrideGuess = null) {
     // If this row is already fully correct (all green), ignore submit and do not count a guess
     if (lockColors[i] && lockColors[i].length && lockColors[i].every((c) => c === 'G')) {
       return;
@@ -941,7 +1012,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
     const ans = rows[i].answer.toUpperCase();
     const len = ans.length;
-    const cur = (guesses[i] || "").toUpperCase().padEnd(len, " ").slice(0, len);
+    // In autosolve mode, use overrideGuess if provided, otherwise fall back to state
+    const guessToUse = overrideGuess !== null ? overrideGuess : (guesses[i] || "");
+    const cur = guessToUse.toUpperCase().padEnd(len, " ").slice(0, len);
 
     const nextGuess = Array.from(cur);
     const rowColors = lockColors[i].slice();
@@ -1010,23 +1083,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const newWrongTotal = wrongGuessCount + (hadWrong ? 1 : 0);
 
     const solvedThisRow = rowColors.every(Boolean);
-    
-    // Track row submission event
-    try {
-      if (window.gtag && typeof window.gtag === 'function') {
-        const derivedMode = storageNamespace === 'otherstep' ? 'other' : (isQuick ? 'quick' : 'main');
-        window.gtag('event', 'row_submitted', {
-          puzzle_id: puzzle.id || 'unknown',
-          row_index: i,
-          is_correct: solvedThisRow,
-          has_wrong_letters: hadWrong,
-          guess_count: guessCount + 1,
-          wrong_guess_count: newWrongTotal,
-          hint_count: hintCount,
-          mode: derivedMode,
-        });
-      }
-    } catch (_err) { void 0; }
 
     // Warn when score reaches 0 (but not loss yet)
     const usedAfter = hintCount + newWrongTotal;
@@ -1175,10 +1231,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           }
         } catch (_err) { void 0; }
         
-        // Clear saved state when puzzle is completed
-        localStorage.removeItem(puzzleKey);
-        
+        // Clear saved state when puzzle is completed (skip in autosolve mode)
         // Note: Puzzle completion is already marked above for milestone checking
+        if (!autosolveMode) {
+          localStorage.removeItem(puzzleKey);
+        }
         
         // Dispatch event to notify App.jsx of completion
         try {
@@ -1189,14 +1246,16 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         return;
       }
 
-      // Not fully solved yet → advance if there’s a next row
+      // Not fully solved yet → advance if there's a next row
       applyRowColorsStaggered();
       if (i + 1 < rows.length) {
         const nextRow = i + 1;
         setLevel(nextRow);
         const firstOpen = nearestUnlockedInRow(nextRow, 0);
         setCursor(firstOpen === -1 ? 0 : firstOpen);
-        showToast("Nice! Next word →", 2000, "success");
+        if (!autosolveMode) {
+          showToast("Nice! Next word →", 2000, "success");
+        }
         requestAnimationFrame(() => inputRef.current?.focus());
       } else {
         // Last row solved but earlier rows aren’t → encourage finishing the rest
@@ -1328,6 +1387,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // One-time coachmark to highlight the clue bar for first-time players
   // Show only after the How To modal has been closed the first time
   useEffect(() => {
+    if (autosolveMode) return; // Skip in autosolve mode
     if (isExperienced) return; // Skip coachmarks for experienced users
     try {
       if (showHowToPlay) return; // wait until How To is closed
@@ -1352,7 +1412,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       }, 400);
       return () => clearTimeout(t);
     } catch {}
-  }, [isExperienced, showHowToPlay]);
+  }, [autosolveMode, isExperienced, showHowToPlay]);
 
   // One-time coachmark to highlight the Hints button after 60s (for new players)
   useEffect(() => {
@@ -1555,7 +1615,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   return (
     <>
-    <div className={`w-screen h-[105vh] flex flex-col ${printMode ? 'items-center justify-center' : ''} ${effectiveSettings.lightMode ? 'bg-white text-black' : 'bg-black text-white'}`}>
+    <div 
+      ref={gameContainerRef}
+      className={`w-screen h-[105vh] flex flex-col ${printMode ? 'items-center justify-center' : ''} ${effectiveSettings.lightMode ? 'bg-white text-black' : 'bg-black text-white'}`}
+    >
       {/* Print Mode Header */}
       {printMode && (
         <div className="bg-white border-b-2 border-black px-6 py-4 print-header w-full max-w-4xl mx-auto">
@@ -1910,9 +1973,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
 
 
-      <div 
-        id="grid-scroll"
-        className={`flex-1 overflow-y-auto pt-5 sm:pt-4 md:pt-3 pb-8 ${printMode ? 'w-full max-w-4xl mx-auto' : ''}`}
+        <div 
+          ref={gridScrollRef}
+          id="grid-scroll"
+          className={`flex-1 overflow-y-auto pt-5 sm:pt-4 md:pt-3 pb-8 ${printMode ? 'w-full max-w-4xl mx-auto' : ''}`}
         onClick={() => {
           if ((useOsKeyboard || !isMobile) && inputRef.current) {
             inputRef.current.focus();
@@ -2089,6 +2153,25 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
       {!printMode && showHowToPlay && (
         <HowToPlayModal onClose={handleCloseHowToPlay} lightMode={effectiveSettings.lightMode} stepEmoji={stepEmoji} />
+      )}
+
+      {/* Autosolve popups */}
+      {!printMode && autosolveMode && (
+        <>
+          <AutosolveIntroPopup
+            show={showAutosolveIntro}
+            moved={showAutosolveIntroMoved}
+            position={introPopupPosition}
+            fallbackPosition={lastRowPosition}
+            lightMode={effectiveSettings.lightMode}
+          />
+          <AutosolveFinalPopup
+            show={showAutosolveFinal}
+            moved={showAutosolveFinalMoved}
+            position={finalPopupPosition}
+            lightMode={effectiveSettings.lightMode}
+          />
+        </>
       )}
       {!printMode && showQuickIntro && (
         <QuickIntroModal onClose={() => { setShowQuickIntro(false); try { localStorage.setItem('quickstep-intro-shown','1'); } catch {} }} lightMode={effectiveSettings.lightMode} />

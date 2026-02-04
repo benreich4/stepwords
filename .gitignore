@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Autosolve videos
+autosolve_videos/
+
+# YouTube API credentials and tokens
+youtube-token.json
+youtube-credentials.json
+
+# Todos file
+todos

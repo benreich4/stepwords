@@ -3,6 +3,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Smooth autosolve popup transitions */
+.autosolve-popup-centered {
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.autosolve-popup-moved {
+  /* Position will be set via inline style, but ensure transform is stable */
+  transform: translateX(-50%) !important;
+}
+
 /* Simple open animation for menus (mount animation) */
 @keyframes fade-scale-in {
   from { opacity: 0; transform: scale(0.98) translateY(-4px); }
