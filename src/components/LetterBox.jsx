@@ -33,11 +33,22 @@ export default function LetterBox({
 
   // Calculate dynamic tile size based on viewport and word length, with sane min/max caps
   // - Slightly reduce available width to account for borders/padding so no overflow on mobile
+  // - Account for gap-0.5 (0.125rem) between letters: (maxWordLength - 1) gaps
   // - Mobile: ensure tiles aren't too small (min ~30px)
   // - Desktop: cap tiles so they don't get huge (max ~40px)
-  const rawSize = `(100vw - 3rem) / ${maxWordLength}`;
+  // - For short puzzles (maxWordLength <= 8), allow tiles to be bigger
   const isWide = (typeof window !== 'undefined') && window.matchMedia && window.matchMedia('(min-width: 1536px)').matches;
-  const tileMaxPx = isWide ? 56 : 40;
+  const isShortPuzzle = maxWordLength <= 8;
+  
+  // Use less padding for short puzzles to allow bigger tiles
+  const padding = isShortPuzzle ? '2rem' : '3rem';
+  const gapWidth = maxWordLength > 1 ? `(${maxWordLength - 1} * 0.125rem)` : '0';
+  const rawSize = `(100vw - ${padding} - ${gapWidth}) / ${maxWordLength}`;
+  
+  // Allow larger tiles for short puzzles (but not too big)
+  const tileMaxPx = isShortPuzzle 
+    ? (isWide ? 60 : 44)
+    : (isWide ? 56 : 40);
   const tileMinPx = isWide ? 34 : 30;
   const textMaxPx = isWide ? 20 : 16;
   const textScale = isWide ? 0.45 : 0.42;
