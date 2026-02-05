@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { shouldSendAnalytics } from "../lib/autosolveUtils.js";
 
 export default function SubmissionPromptModal({ onClose, lightMode }) {
   useEffect(() => {
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'submission_prompt_shown', {});
       }
     } catch {}
@@ -12,7 +13,7 @@ export default function SubmissionPromptModal({ onClose, lightMode }) {
 
   const handleCreateClick = () => {
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'submission_prompt_create_clicked', {});
       }
     } catch {}
@@ -25,7 +26,7 @@ export default function SubmissionPromptModal({ onClose, lightMode }) {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => { 
           try { localStorage.setItem('stepwords-submission-prompt-shown', '1'); } catch {}; 
-          try { if (window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'submission_prompt_dismissed', { action: 'backdrop' }); } } catch {}; 
+          try { if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'submission_prompt_dismissed', { action: 'backdrop' }); } } catch {}; 
           onClose?.(); 
         }}
       />
@@ -45,7 +46,7 @@ export default function SubmissionPromptModal({ onClose, lightMode }) {
             <button
               onClick={() => { 
                 try { localStorage.setItem('stepwords-submission-prompt-shown', '1'); } catch {}; 
-                try { if (window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'submission_prompt_dismissed', { action: 'not_now' }); } } catch {}; 
+                try { if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'submission_prompt_dismissed', { action: 'not_now' }); } } catch {}; 
                 onClose?.(); 
               }}
               className={`${lightMode ? 'border-gray-300 hover:bg-gray-100' : 'border-gray-700 hover:bg-gray-800'} px-4 py-2 text-sm rounded border`}

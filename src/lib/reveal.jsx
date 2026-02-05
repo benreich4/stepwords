@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { shouldSendAnalytics } from './autosolveUtils.js';
 
 /**
  * Custom hook for reveal word functionality
@@ -36,7 +37,7 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
     if (currentWord) {
       // Track reveal usage
       try {
-        if (window.gtag && typeof window.gtag === 'function') {
+        if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
           window.gtag('event', 'reveal_used', {
             reveal_type: 'word',
             puzzle_id: puzzle.id || 'unknown',
@@ -99,7 +100,7 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
         
         // Track game completion
         try {
-          if (window.gtag && typeof window.gtag === 'function') {
+          if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
             window.gtag('event', 'game_completed', {
               puzzle_id: puzzle.id || 'unknown',
               hints_used: hintCount,

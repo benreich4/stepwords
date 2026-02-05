@@ -6,7 +6,7 @@ export default function SharePromptModal({ onClose, lightMode }) {
 
   useEffect(() => {
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'share_prompt_shown', {});
         window.gtag('event', 'special_alert', { alert_name: 'share_prompt' });
       }
@@ -21,13 +21,13 @@ export default function SharePromptModal({ onClose, lightMode }) {
       if (navigator.share) {
         // Share the full message as text (no url field) so platforms don't override with current URL
         await navigator.share({ text: msg });
-        try { if (window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'share_prompt_shared', { method: 'web_share' }); } } catch {}
+        try { if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'share_prompt_shared', { method: 'web_share' }); } } catch {}
       } else {
         await navigator.clipboard.writeText(msg);
         setCopied(true);
         // brief, natural auto-close after showing copied state
         setTimeout(() => { try { localStorage.setItem('stepwords-share-nudge', '1'); } catch {}; onClose?.(); }, 900);
-        try { if (window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'share_prompt_shared', { method: 'clipboard' }); } } catch {}
+        try { if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'share_prompt_shared', { method: 'clipboard' }); } } catch {}
       }
     } catch (_) { /* ignore */ }
     finally {
@@ -42,7 +42,7 @@ export default function SharePromptModal({ onClose, lightMode }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={() => { try { localStorage.setItem('stepwords-share-nudge', '1'); } catch {}; try { if (window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'share_prompt_dismissed', { action: 'backdrop' }); } } catch {}; onClose?.(); }}
+        onClick={() => { try { localStorage.setItem('stepwords-share-nudge', '1'); } catch {}; try { if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'share_prompt_dismissed', { action: 'backdrop' }); } } catch {}; onClose?.(); }}
       />
       <div className={`${lightMode ? 'bg-white text-gray-900 border-gray-300' : 'bg-gray-900 text-gray-100 border-gray-700'} relative z-10 w-[90vw] max-w-sm rounded-xl border shadow-xl`}
         role="dialog" aria-modal="true" aria-label="Share Stepwords">
@@ -56,7 +56,7 @@ export default function SharePromptModal({ onClose, lightMode }) {
           )}
           <div className="flex justify-end gap-2">
             <button
-              onClick={() => { try { localStorage.setItem('stepwords-share-nudge', '1'); } catch {}; try { if (window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'share_prompt_dismissed', { action: 'not_now' }); } } catch {}; onClose?.(); }}
+              onClick={() => { try { localStorage.setItem('stepwords-share-nudge', '1'); } catch {}; try { if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'share_prompt_dismissed', { action: 'not_now' }); } } catch {}; onClose?.(); }}
               className={`${lightMode ? 'border-gray-300 hover:bg-gray-100' : 'border-gray-700 hover:bg-gray-800'} px-3 py-1.5 text-sm rounded border`}
             >
               Not now

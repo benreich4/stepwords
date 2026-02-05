@@ -156,7 +156,11 @@ export default function App() {
       }
       
       // Track page view with enhanced traffic source data
-      if (window.gtag && typeof window.gtag === 'function') {
+      // Skip analytics in autosolve mode
+      const params = new URLSearchParams(location.search || '');
+      const isAutosolve = params.get('autosolve') === '1';
+      
+      if (!isAutosolve && window.gtag && typeof window.gtag === 'function') {
         const eventParams = {
           page_path: pagePath,
           page_location: window.location.href,

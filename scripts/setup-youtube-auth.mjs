@@ -13,7 +13,11 @@ const TOKEN_PATH = path.join(__dirname, '..', 'youtube-token.json');
 const CREDENTIALS_PATH = path.join(__dirname, '..', 'youtube-credentials.json');
 
 // YouTube API scopes
-const SCOPES = ['https://www.googleapis.com/auth/youtube.upload'];
+const SCOPES = [
+  'https://www.googleapis.com/auth/youtube.upload',
+  'https://www.googleapis.com/auth/youtube.force-ssl', // Required for comments
+  'https://www.googleapis.com/auth/youtube' // Required for playlists (read/write)
+];
 
 /**
  * Create an OAuth2 client with the given credentials

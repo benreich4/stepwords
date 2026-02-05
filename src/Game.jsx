@@ -16,7 +16,7 @@ import { updateStreak, getStreak } from "./lib/streak.js";
 import { getInitialLightMode, saveLightModePreference } from "./lib/theme.js";
 import { checkMilestones, checkPerfectSolve } from "./lib/milestones.js";
 import { useAutosolve } from "./lib/autosolve.js";
-import { isAutosolveMode } from "./lib/autosolveUtils.js";
+import { isAutosolveMode, shouldSendAnalytics } from "./lib/autosolveUtils.js";
 import AutosolveIntroPopup from "./components/AutosolveIntroPopup.jsx";
 import AutosolveFinalPopup from "./components/AutosolveFinalPopup.jsx";
 // Inline analytics - no separate module needed
@@ -576,7 +576,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     setHintCount((n) => n + 2);
     showToast("Revealed letter.", 2000, "info");
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'reveal_used', { reveal_type: 'letter', puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' });
       }
     } catch {}
@@ -660,7 +660,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
     // Track puzzle start
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'puzzle_started', { 
           puzzle_id: puzzle.id || 'unknown',
           mode: isQuick ? 'quick' : 'main'
@@ -1071,7 +1071,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     if (pointsNow === 0 && hadWrong) {
       const { newLock } = revealAllAsYellowAndFill();
       try { const key = `${puzzleNamespace}-stars`; const map = JSON.parse(localStorage.getItem(key) || '{}'); map[puzzle.id] = 0; localStorage.setItem(key, JSON.stringify(map)); } catch {}
-      try { if (window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'puzzle_out_of_score', { puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' }); } } catch {}
+      try { if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') { window.gtag('event', 'puzzle_out_of_score', { puzzle_id: puzzle.id || 'unknown', mode: isQuick ? 'quick' : 'main' }); } } catch {}
       const share = buildEmojiShareGridFrom(rows, newLock);
       setShareText(share);
       setStars(0);
@@ -1519,7 +1519,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
       // Analytics
       try {
-        if (window.gtag && typeof window.gtag === 'function') {
+        if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
           window.gtag('event', 'game_completed', {
             puzzle_id: puzzle.id || 'unknown',
             hints_used: hintCount,
@@ -1780,7 +1780,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                   
                   // Track letter reveal usage
                   try {
-                    if (window.gtag && typeof window.gtag === 'function') {
+                    if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
                       window.gtag('event', 'reveal_used', {
                         reveal_type: 'letter',
                         puzzle_id: puzzle.id || 'unknown',
@@ -1825,7 +1825,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                       setSettings(s => ({ ...s, hardMode: checked }));
                       if (checked) {
                         try {
-                          if (window.gtag && typeof window.gtag === 'function') {
+                          if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
                             window.gtag('event', 'hard_mode_turned_on', { puzzle_id: puzzle.id || 'unknown' });
                           }
                         } catch {}
@@ -1851,7 +1851,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                       setSettings(s => ({ ...s, easyMode: checked }));
                       if (checked) {
                         try {
-                          if (window.gtag && typeof window.gtag === 'function') {
+                          if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
                             window.gtag('event', 'easy_mode_turned_on', { puzzle_id: puzzle.id || 'unknown' });
                           }
                         } catch {}
@@ -1878,7 +1878,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                       // Save preference when user manually changes it
                       saveLightModePreference(checked);
                       try {
-                        if (window.gtag && typeof window.gtag === 'function') {
+                        if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
                           window.gtag('event', checked ? 'light_mode_turned_on' : 'light_mode_turned_off', { puzzle_id: puzzle.id || 'unknown' });
                         }
                         document.dispatchEvent(new CustomEvent('stepwords-settings-updated', { detail: { lightMode: checked } }));
@@ -2135,7 +2135,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           lightMode={effectiveSettings.lightMode}
           onShare={() => {
             try {
-              if (window.gtag && typeof window.gtag === 'function') {
+              if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
                 window.gtag('event', 'puzzle_shared', {
                   puzzle_id: puzzle.id || 'unknown',
                   hints_used: hintCount,

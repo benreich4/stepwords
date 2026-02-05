@@ -13,3 +13,10 @@ export function isAutosolveMode() {
     return false;
   }
 }
+
+/**
+ * Check if analytics should be sent (returns false in autosolve mode)
+ */
+export function shouldSendAnalytics() {
+  return !isAutosolveMode();
+}

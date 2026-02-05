@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
+import { shouldSendAnalytics } from '../lib/autosolveUtils.js';
 
 export default function StyleGuide() {
   useEffect(() => {
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'style_guide_viewed', {});
       }
     } catch {}

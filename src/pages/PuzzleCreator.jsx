@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { isPreviewEnabled } from '../lib/date.js';
+import { shouldSendAnalytics } from '../lib/autosolveUtils.js';
 
 const PuzzleCreatorSimple = () => {
   const [submissionWords, setSubmissionWords] = useState(['', '', '', '', '']);
@@ -207,7 +208,7 @@ const PuzzleCreatorSimple = () => {
         
         // Track puzzle submission
         try {
-          if (window.gtag && typeof window.gtag === 'function') {
+          if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
             window.gtag('event', 'puzzle_submitted', {
               word_count: rows.length,
               has_emoji: !!submissionEmoji.trim(),

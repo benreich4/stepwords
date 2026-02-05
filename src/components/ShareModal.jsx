@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { fetchManifest } from "../lib/puzzles.js";
 import { fetchQuickManifest } from "../lib/quickPuzzles.js";
 import { getTodayIsoInET } from "../lib/date.js";
+import { shouldSendAnalytics } from "../lib/autosolveUtils.js";
 
 export default function ShareModal({
   shareText,
@@ -120,7 +121,7 @@ export default function ShareModal({
             className="block w-full text-center px-4 py-2 rounded-md bg-emerald-500 text-white font-semibold hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all duration-200"
             onClick={() => {
               try {
-                if (window.gtag && typeof window.gtag === 'function') {
+                if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
                   const target = ctaHref.startsWith('/quick') ? 'quick' : (ctaHref === '/archives' ? 'archives' : 'main');
                   window.gtag('event', 'cta_navigate', { target, source: 'completion_modal_top', mode: isQuick ? 'quick' : 'main' });
                 }

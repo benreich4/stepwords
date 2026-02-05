@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { shouldSendAnalytics } from './autosolveUtils.js';
 
 /**
  * Custom hook for lifeline functionality
@@ -72,7 +73,7 @@ export function useLifelines(rows, lockColors, guesses, lifelineLevel, setLifeli
 
     // Track initial hint usage (extending from 0 to 1)
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'word_extension_used', {
           extension_type: 'initial',
           puzzle_id: puzzle.id || 'unknown',
@@ -92,7 +93,7 @@ export function useLifelines(rows, lockColors, guesses, lifelineLevel, setLifeli
 
       // Track extend hint usage
       try {
-        if (window.gtag && typeof window.gtag === 'function') {
+        if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'word_extension_used', {
           extension_type: 'extend',
           puzzle_id: puzzle.id || 'unknown',
