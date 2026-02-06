@@ -417,7 +417,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     
     // Track lifeline usage
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'lifeline_used', {
           lifeline_type: isQuick ? 'first2' : 'first3',
           puzzle_id: puzzle.id || 'unknown',
@@ -437,7 +437,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     
     // Track lifeline usage
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'lifeline_used', {
           lifeline_type: isQuick ? 'last2' : 'last3',
           puzzle_id: puzzle.id || 'unknown',
@@ -458,7 +458,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       
       // Track lifeline usage
       try {
-        if (window.gtag && typeof window.gtag === 'function') {
+        if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
           window.gtag('event', 'lifeline_used', {
             lifeline_type: isQuick ? 'middle2' : 'middle3',
             puzzle_id: puzzle.id || 'unknown',
@@ -484,7 +484,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     
     // Track lifeline usage
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'lifeline_used', {
           lifeline_type: isQuick ? 'middle2' : 'middle3',
           puzzle_id: puzzle.id || 'unknown',
@@ -514,7 +514,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     
     // Track lifeline usage
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'lifeline_used', {
           lifeline_type: isQuick ? 'first_last' : 'first_last_step',
           puzzle_id: puzzle.id || 'unknown',
@@ -1216,7 +1216,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         
         // Track game completion
         try {
-          if (window.gtag && typeof window.gtag === 'function') {
+          if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
             const derivedMode = storageNamespace === 'otherstep' ? 'other' : (isQuick ? 'quick' : 'main');
             window.gtag('event', 'game_completed', {
               puzzle_id: puzzle.id || 'unknown',

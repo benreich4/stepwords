@@ -32,8 +32,8 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 const OUTPUT_DIR = path.join(__dirname, '..', 'autosolve_videos');
 const OUTPUT_FILENAME = `autosolve-${IS_QUICK ? 'quick-' : ''}${PUZZLE_ID}-${Date.now()}.mov`;
 const OUTPUT_PATH = path.join(OUTPUT_DIR, OUTPUT_FILENAME);
-const PUZZLE_URL_WITHOUT_AUTOSOLVE = `${BASE_URL}/${IS_QUICK ? 'quick/' : ''}${PUZZLE_ID}`;
-const PUZZLE_URL = `${BASE_URL}/${IS_QUICK ? 'quick/' : ''}${PUZZLE_ID}?autosolve=1`;
+const PUZZLE_URL_WITHOUT_AUTOSOLVE = `${BASE_URL}/${IS_QUICK ? 'quick/' : ''}${PUZZLE_ID}?noanalytics=1`;
+const PUZZLE_URL = `${BASE_URL}/${IS_QUICK ? 'quick/' : ''}${PUZZLE_ID}?autosolve=1&noanalytics=1`;
 
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -736,7 +736,7 @@ Creative Commons / Attribution 3.0 Unported License (CC BY 3.0)
           categoryId: '24', // Entertainment category
         },
         status: {
-          privacyStatus: 'private', // Change to 'public' or 'unlisted' if desired
+          privacyStatus: 'public', // Must be 'unlisted' or 'public' for comments to work
           selfDeclaredMadeForKids: false, // Not made for kids
         },
       },

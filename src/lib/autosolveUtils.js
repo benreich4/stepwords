@@ -15,8 +15,17 @@ export function isAutosolveMode() {
 }
 
 /**
- * Check if analytics should be sent (returns false in autosolve mode)
+ * Check if analytics should be sent (returns false in autosolve mode or when noanalytics=1)
  */
 export function shouldSendAnalytics() {
-  return !isAutosolveMode();
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    // Disable analytics in autosolve mode or when explicitly disabled
+    if (params.get('autosolve') === '1' || params.get('noanalytics') === '1') {
+      return false;
+    }
+    return true;
+  } catch {
+    return true;
+  }
 }

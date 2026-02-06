@@ -22,7 +22,7 @@ const PuzzleCreatorSimple = () => {
   // Track page view
   useEffect(() => {
     try {
-      if (window.gtag && typeof window.gtag === 'function') {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
         window.gtag('event', 'create_page_viewed', {});
       }
     } catch {}
