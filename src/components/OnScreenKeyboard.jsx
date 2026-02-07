@@ -156,8 +156,8 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
             ))}
           </div>
           {/* Copyright notice */}
-          <div className={`px-3 py-1 text-xs ${lightMode ? 'text-gray-500 border-t border-gray-200' : 'text-gray-500 border-t border-gray-700'} ${collapsed ? '' : 'kb-pop-in'}`} style={{ animationDelay: collapsed ? undefined : '60ms' }}>
-            <div className="flex justify-between items-center gap-2 min-w-0">
+          <div className={`px-3 pt-3 pb-1 text-xs ${lightMode ? 'text-gray-500 border-t border-gray-200' : 'text-gray-500 border-t border-gray-700'} ${collapsed ? '' : 'kb-pop-in'}`} style={{ animationDelay: collapsed ? undefined : '60ms' }}>
+            <div className="flex justify-between items-center gap-6 min-w-0">
               <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[60vw]">© 2025 Stepwords™. All rights reserved.</span>
               <a 
                 href="mailto:hello@stepwords.xyz"
