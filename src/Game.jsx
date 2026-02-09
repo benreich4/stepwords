@@ -16,7 +16,7 @@ import { updateStreak, getStreak } from "./lib/streak.js";
 import { getInitialLightMode, saveLightModePreference } from "./lib/theme.js";
 import { checkMilestones, checkPerfectSolve } from "./lib/milestones.js";
 import { useAutosolve } from "./lib/autosolve.js";
-import { isAutosolveMode, shouldSendAnalytics } from "./lib/autosolveUtils.js";
+import { isAutosolveMode, isPartialAutosolveMode, shouldSendAnalytics } from "./lib/autosolveUtils.js";
 import AutosolveIntroPopup from "./components/AutosolveIntroPopup.jsx";
 import AutosolveFinalPopup from "./components/AutosolveFinalPopup.jsx";
 // Inline analytics - no separate module needed
@@ -34,6 +34,7 @@ function isPrintMode() {
 export default function Game({ puzzle, isQuick = false, prevId = null, nextId = null, storageNamespace }) {
   const printMode = isPrintMode();
   const autosolveMode = isAutosolveMode();
+  const partialAutosolveMode = isPartialAutosolveMode();
   const rowsRaw = puzzle.rows || [];
   // Normalize answers: ignore spaces and non-letter characters (e.g., "The abc's" -> "Theabcs")
   const rows = useMemo(() => rowsRaw.map(r => ({
@@ -280,12 +281,16 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       return { hardMode: false, easyMode: false, lightMode: false, showAllClues: false };
     }
   });
-  // In print mode, force light mode and show all clues
+  // In print mode or partial autosolve mode, force light mode and show all clues
   const effectiveSettings = useMemo(() => {
-    return printMode 
-      ? { ...settings, lightMode: true, showAllClues: true }
-      : settings;
-  }, [printMode, settings]);
+    if (printMode) {
+      return { ...settings, lightMode: true, showAllClues: true };
+    }
+    if (partialAutosolveMode) {
+      return { ...settings, showAllClues: true };
+    }
+    return settings;
+  }, [printMode, partialAutosolveMode, settings]);
   
   useEffect(() => {
     if (!printMode) {
@@ -2170,6 +2175,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             moved={showAutosolveFinalMoved}
             position={finalPopupPosition}
             lightMode={effectiveSettings.lightMode}
+            isPartialMode={partialAutosolveMode}
           />
         </>
       )}

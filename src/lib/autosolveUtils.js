@@ -8,7 +8,19 @@
 export function isAutosolveMode() {
   try {
     const params = new URLSearchParams(window.location.search || '');
-    return params.get('autosolve') === '1';
+    return params.get('autosolve') === '1' || params.get('autosolve') === '2';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if partial autosolve mode is enabled (autosolve=2)
+ */
+export function isPartialAutosolveMode() {
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    return params.get('autosolve') === '2';
   } catch {
     return false;
   }
@@ -21,7 +33,7 @@ export function shouldSendAnalytics() {
   try {
     const params = new URLSearchParams(window.location.search || '');
     // Disable analytics in autosolve mode or when explicitly disabled
-    if (params.get('autosolve') === '1' || params.get('noanalytics') === '1') {
+    if (params.get('autosolve') === '1' || params.get('autosolve') === '2' || params.get('noanalytics') === '1') {
       return false;
     }
     return true;

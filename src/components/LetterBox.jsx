@@ -65,6 +65,7 @@ export default function LetterBox({
   const [isGlowing, setIsGlowing] = useState(false);
   const [particleTrigger, setParticleTrigger] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
+  const hasParticles = (state === 'G' || state === 'Y') && particleTrigger > 0;
   
   // Particle burst when state changes to G or Y
   useEffect(() => {
@@ -103,6 +104,7 @@ export default function LetterBox({
         width: tileSize,
         fontSize: textSize,
         transitionDelay: `${delayMs}ms`,
+        zIndex: hasParticles ? 10 : 'auto', // Raise z-index when particles are active
       }}
     >
       {/* Particle burst effect */}

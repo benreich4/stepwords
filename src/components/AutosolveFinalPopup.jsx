@@ -9,6 +9,7 @@ export default function AutosolveFinalPopup({
   moved,
   position,
   lightMode,
+  isPartialMode = false,
 }) {
   // Memoize popup style to prevent recalculation during transitions
   const popupStyle = useMemo(() => {
@@ -39,13 +40,27 @@ export default function AutosolveFinalPopup({
       >
         <div className={`${lightMode ? 'bg-white text-gray-900 border-gray-300' : 'bg-gray-900 text-gray-100 border-gray-700'} relative z-10 w-[90vw] max-w-md rounded-xl border shadow-xl`}>
           <div className="p-6">
-            <div className="text-xl font-semibold mb-3">Can you solve the last answer?</div>
-            <div className={`${lightMode ? 'text-gray-700' : 'text-gray-300'} text-sm mb-4`}>
-              Check out today's Stepword puzzle at{' '}
-              <a href="https://stepwords.xyz" className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">
-                https://stepwords.xyz
-              </a>
-            </div>
+            {isPartialMode ? (
+              <>
+                <div className="text-xl font-semibold mb-3">Can you solve the answers?</div>
+                <div className={`${lightMode ? 'text-gray-700' : 'text-gray-300'} text-sm mb-4`}>
+                  Leave a comment with the answers, and play daily at{' '}
+                  <a href="https://stepwords.xyz" className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">
+                    https://stepwords.xyz
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-xl font-semibold mb-3">Can you solve the last answer?</div>
+                <div className={`${lightMode ? 'text-gray-700' : 'text-gray-300'} text-sm mb-4`}>
+                  Check out today's Stepword puzzle at{' '}
+                  <a href="https://stepwords.xyz" className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">
+                    https://stepwords.xyz
+                  </a>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

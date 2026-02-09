@@ -131,14 +131,15 @@ export default function ParticleBurst({ trigger, color = 'green', lightMode = fa
   return (
     <canvas
       ref={canvasRef}
-      className="absolute pointer-events-none z-10"
+      className="absolute pointer-events-none"
       style={{ 
         position: 'absolute', 
         top: '50%', 
         left: '50%', 
         transform: 'translate(-50%, -50%)',
         width: '150px', 
-        height: '150px' 
+        height: '150px',
+        zIndex: 50 // High z-index to ensure particles appear above adjacent tiles
       }}
     />
   );

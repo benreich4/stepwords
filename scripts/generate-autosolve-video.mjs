@@ -14,13 +14,16 @@ const __dirname = path.dirname(__filename);
 const PUZZLE_INPUT = process.argv[2];
 const UPLOAD_TO_YOUTUBE = process.argv.includes('--upload-youtube');
 const DELETE_AFTER_UPLOAD = process.argv.includes('--delete-after-upload');
+const USE_PARTIAL_MODE = process.argv.includes('--partial');
 
 if (!PUZZLE_INPUT) {
-  console.error('Usage: npm run generate-video <puzzle-id> [--upload-youtube] [--delete-after-upload]');
+  console.error('Usage: npm run generate-video <puzzle-id> [--upload-youtube] [--delete-after-upload] [--partial]');
   console.error('Example: npm run generate-video 1');
   console.error('Example: npm run generate-video quick/5');
   console.error('Example: npm run generate-video 1 --upload-youtube');
   console.error('Example: npm run generate-video quick/5 --upload-youtube --delete-after-upload');
+  console.error('Example: npm run generate-video 1 --partial');
+  console.error('Example: npm run generate-video quick/5 --partial --upload-youtube');
   process.exit(1);
 }
 
@@ -32,8 +35,9 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 const OUTPUT_DIR = path.join(__dirname, '..', 'autosolve_videos');
 const OUTPUT_FILENAME = `autosolve-${IS_QUICK ? 'quick-' : ''}${PUZZLE_ID}-${Date.now()}.mov`;
 const OUTPUT_PATH = path.join(OUTPUT_DIR, OUTPUT_FILENAME);
+const AUTOSOLVE_MODE = USE_PARTIAL_MODE ? '2' : '1';
 const PUZZLE_URL_WITHOUT_AUTOSOLVE = `${BASE_URL}/${IS_QUICK ? 'quick/' : ''}${PUZZLE_ID}?noanalytics=1`;
-const PUZZLE_URL = `${BASE_URL}/${IS_QUICK ? 'quick/' : ''}${PUZZLE_ID}?autosolve=1&noanalytics=1`;
+const PUZZLE_URL = `${BASE_URL}/${IS_QUICK ? 'quick/' : ''}${PUZZLE_ID}?autosolve=${AUTOSOLVE_MODE}&noanalytics=1`;
 
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -41,6 +45,7 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 }
 
 console.log(`Generating video for Stepwords ${IS_QUICK ? 'Quick' : 'Daily'} puzzle ${PUZZLE_ID}...`);
+console.log(`Autosolve mode: ${USE_PARTIAL_MODE ? '2 (partial - 50% of each word)' : '1 (full - complete solve)'}`);
 console.log(`URL: ${PUZZLE_URL}`);
 console.log(`Output: ${OUTPUT_PATH}`);
 if (UPLOAD_TO_YOUTUBE) {

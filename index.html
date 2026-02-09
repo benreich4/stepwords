@@ -2,18 +2,32 @@
 <html lang="en">
   <head>
   <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-5GGCNCCW');</script>
-<!-- End Google Tag Manager -->
+  <script>
+    // Check URL parameters before initializing Google Tag Manager
+    try {
+      const urlParams = new URLSearchParams(window.location.search || '');
+      const isAutosolve = urlParams.get('autosolve') === '1' || urlParams.get('autosolve') === '2';
+      const noAnalytics = urlParams.get('noanalytics') === '1';
+      
+      // Skip GTM initialization if autosolve mode or noanalytics flag is present
+      if (!isAutosolve && !noAnalytics) {
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','GTM-5GGCNCCW');
+      }
+    } catch (e) {
+      // Silently fail
+    }
+  </script>
+  <!-- End Google Tag Manager -->
   <!-- Google Analytics -->
   <script>
     try {
       // Check URL parameters before initializing analytics
       const urlParams = new URLSearchParams(window.location.search || '');
-      const isAutosolve = urlParams.get('autosolve') === '1';
+      const isAutosolve = urlParams.get('autosolve') === '1' || urlParams.get('autosolve') === '2';
       const noAnalytics = urlParams.get('noanalytics') === '1';
       
       // Skip analytics initialization if autosolve mode or noanalytics flag is present
@@ -134,7 +148,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     </script>
   </head>
   <body>
-<!-- Google Tag Manager (noscript) -->
+<!-- Google Tag Manager (noscript) - Only show if analytics enabled -->
+<script>
+  try {
+    const urlParams = new URLSearchParams(window.location.search || '');
+    const isAutosolve = urlParams.get('autosolve') === '1' || urlParams.get('autosolve') === '2';
+    const noAnalytics = urlParams.get('noanalytics') === '1';
+    if (isAutosolve || noAnalytics) {
+      // Hide GTM noscript iframe in autosolve mode
+      document.write('<style>noscript iframe[src*="googletagmanager.com"] { display: none !important; }</style>');
+    }
+  } catch (e) {}
+</script>
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5GGCNCCW"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
