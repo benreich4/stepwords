@@ -158,7 +158,7 @@ export default function App() {
       // Track page view with enhanced traffic source data
       // Skip analytics in autosolve mode or when noanalytics=1
       const params = new URLSearchParams(location.search || '');
-      const isAutosolve = params.get('autosolve') === '1';
+      const isAutosolve = params.get('autosolve') === '1' || params.get('autosolve') === '2';
       const noAnalytics = params.get('noanalytics') === '1';
       
       if (!isAutosolve && !noAnalytics && window.gtag && typeof window.gtag === 'function') {
