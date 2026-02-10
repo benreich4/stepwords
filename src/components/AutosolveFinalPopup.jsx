@@ -37,12 +37,13 @@ export default function AutosolveFinalPopup({
       <div 
         className="fixed z-50 left-1/2 transition-all duration-[1500ms] ease-in-out will-change-[top,transform]"
         style={popupStyle}
+        data-autosolve-complete="true"
       >
         <div className={`${lightMode ? 'bg-white text-gray-900 border-gray-300' : 'bg-gray-900 text-gray-100 border-gray-700'} relative z-10 w-[90vw] max-w-md rounded-xl border shadow-xl`}>
           <div className="p-6">
             {isPartialMode ? (
               <>
-                <div className="text-xl font-semibold mb-3">Can you solve the answers?</div>
+                <div className="text-xl font-semibold mb-3">Can you solve the Stepword puzzle?</div>
                 <div className={`${lightMode ? 'text-gray-700' : 'text-gray-300'} text-sm mb-4`}>
                   Leave a comment with the answers, and play daily at{' '}
                   <a href="https://stepwords.xyz" className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">

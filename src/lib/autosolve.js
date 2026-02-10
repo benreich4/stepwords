@@ -47,18 +47,16 @@ export function useAutosolve({
             const marginBottom = parseFloat(computedStyle.marginBottom) || 0;
             const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
             // Calculate position relative to viewport (not document) for transform-based positioning
-            // rect.bottom is already relative to viewport, so we just add spacing
-            const viewportBottom = rect.bottom + marginBottom + paddingBottom + 50;
-            setLastRowPosition(viewportBottom);
-            setIntroPopupPosition(viewportBottom); // Store stable position for transition
+            // rect.bottom is already relative to viewport, so we add spacing
+            // Target: top edge of popup should be below the last answer
+            const targetTop = rect.bottom + marginBottom + paddingBottom + 50;
+            setLastRowPosition(targetTop);
+            setIntroPopupPosition(targetTop); // Store target top position
           }
         }
       };
       
-      // Measure multiple times to ensure accurate position
-      measureBeforeMove();
-      setTimeout(measureBeforeMove, 50);
-      setTimeout(measureBeforeMove, 100);
+      // Don't measure position here - will be measured right before move to prevent stutter
       
       if (isPartialMode) {
         // Partial autosolve mode: fill random letters until 50% are filled
@@ -183,13 +181,19 @@ export function useAutosolve({
         
         // Trigger popup movement and start filling
         setTimeout(() => {
+          // Measure position and ensure it's stable before triggering move
           measureBeforeMove();
           setTimeout(() => {
-            setShowAutosolveIntroMoved(true);
-            setTimeout(() => {
-              fillPartialLetters();
-            }, 1500);
-          }, 50);
+            // Use requestAnimationFrame to ensure position is set before transition starts
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                setShowAutosolveIntroMoved(true);
+                setTimeout(() => {
+                  fillPartialLetters();
+                }, 1500);
+              });
+            });
+          }, 100);
         }, 150);
       } else {
         // Full autosolve mode: solve each row completely
@@ -276,18 +280,21 @@ export function useAutosolve({
         
         // Now trigger the popup movement and wait for transition to complete
         setTimeout(() => {
-          // Ensure position is set before starting transition
+          // Measure position once right before triggering the move
           measureBeforeMove();
-          setTimeout(() => {
-            setShowAutosolveIntroMoved(true);
-            
-            // Wait for the popup transition to complete (1500ms) before starting to solve
-            // The transition duration is defined in AutosolveIntroPopup.jsx as duration-[1500ms]
-            setTimeout(() => {
-              // Now start solving after transition is complete
-              solveNextRow(0);
-            }, 1500);
-          }, 50);
+          // Use requestAnimationFrame to ensure position state is updated before transition starts
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setShowAutosolveIntroMoved(true);
+              
+              // Wait for the popup transition to complete (1500ms) before starting to solve
+              // The transition duration is defined in AutosolveIntroPopup.jsx as duration-[1500ms]
+              setTimeout(() => {
+                // Now start solving after transition is complete
+                solveNextRow(0);
+              }, 1500);
+            });
+          });
         }, 150);
       }
     }, 2000);

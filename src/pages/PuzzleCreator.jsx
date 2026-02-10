@@ -1,7 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { isPreviewEnabled } from '../lib/date.js';
 import { shouldSendAnalytics } from '../lib/autosolveUtils.js';
+
+const DRAFT_KEY = 'puzzleCreatorDraft';
+const LAST_AUTHOR_KEY = 'puzzleCreatorLastAuthor';
+const LAST_EMAIL_KEY = 'puzzleCreatorLastEmail';
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object') return null;
+    const words = Array.isArray(data.submissionWords) ? data.submissionWords : null;
+    const clues = Array.isArray(data.submissionClues) ? data.submissionClues : null;
+    const breakdowns = Array.isArray(data.submissionBreakdowns) ? data.submissionBreakdowns : null;
+    const touched = Array.isArray(data.breakdownTouched) ? data.breakdownTouched : null;
+    if (!words || !clues || words.length < 1 || words.length > 15) return null;
+    if (clues.length !== words.length) return null;
+    const author = typeof data.submissionAuthor === 'string' ? data.submissionAuthor : '';
+    const email = typeof data.submissionEmail === 'string' ? data.submissionEmail : '';
+    const emoji = typeof data.submissionEmoji === 'string' ? data.submissionEmoji : '';
+    const notes = typeof data.submissionNotes === 'string' ? data.submissionNotes : '';
+    const bd = breakdowns && breakdowns.length === words.length ? breakdowns : words.map(w => String((w || '').length));
+    const bt = touched && touched.length === words.length ? touched : Array(words.length).fill(false);
+    return { words, clues, breakdowns: bd, breakdownTouched: bt, author, email, emoji, notes };
+  } catch {
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    return null;
+  }
+}
+
+function loadLastAuthorEmail() {
+  try {
+    const author = localStorage.getItem(LAST_AUTHOR_KEY);
+    const email = localStorage.getItem(LAST_EMAIL_KEY);
+    return {
+      author: typeof author === 'string' ? author : '',
+      email: typeof email === 'string' ? email : '',
+    };
+  } catch {
+    return { author: '', email: '' };
+  }
+}
 
 const PuzzleCreatorSimple = () => {
   const [submissionWords, setSubmissionWords] = useState(['', '', '', '', '']);
@@ -16,8 +58,67 @@ const PuzzleCreatorSimple = () => {
   // title is not used in current backend format
   const [submissionStatus, setSubmissionStatus] = useState('');
   const [copying, setCopying] = useState(false);
+  const draftSaveTimeoutRef = useRef(null);
+  const hasRestoredRef = useRef(false);
 
   const navigate = useNavigate();
+
+  // Restore draft or last author/email on mount (once, safely)
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+    try {
+      const draft = loadDraft();
+      if (draft) {
+        setSubmissionWords(draft.words);
+        setSubmissionClues(draft.clues);
+        setSubmissionBreakdowns(draft.breakdowns);
+        setBreakdownTouched(draft.breakdownTouched);
+        setSubmissionAuthor(draft.author);
+        setSubmissionEmail(draft.email);
+        setSubmissionEmoji(draft.emoji);
+        setSubmissionNotes(draft.notes);
+        return;
+      }
+      const { author, email } = loadLastAuthorEmail();
+      if (author || email) {
+        setSubmissionAuthor(author);
+        setSubmissionEmail(email);
+      }
+    } catch {
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    }
+  }, []);
+
+  // Persist draft when form state changes (debounced); only save if there's something to save
+  const saveDraft = useCallback(() => {
+    try {
+      const hasContent = submissionWords.some(w => (w || '').trim() !== '') ||
+        (submissionAuthor || '').trim() !== '' || (submissionEmail || '').trim() !== '';
+      if (!hasContent) return;
+      const data = {
+        submissionWords,
+        submissionClues,
+        submissionBreakdowns,
+        breakdownTouched,
+        submissionAuthor,
+        submissionEmail,
+        submissionEmoji,
+        submissionNotes,
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+    } catch {
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    }
+  }, [submissionWords, submissionClues, submissionBreakdowns, breakdownTouched, submissionAuthor, submissionEmail, submissionEmoji, submissionNotes]);
+
+  useEffect(() => {
+    if (draftSaveTimeoutRef.current) clearTimeout(draftSaveTimeoutRef.current);
+    draftSaveTimeoutRef.current = setTimeout(saveDraft, 500);
+    return () => {
+      if (draftSaveTimeoutRef.current) clearTimeout(draftSaveTimeoutRef.current);
+    };
+  }, [saveDraft]);
 
   // Track page view
   useEffect(() => {
@@ -204,8 +305,14 @@ const PuzzleCreatorSimple = () => {
       }
 
       if (submissionSuccess) {
+        const savedAuthor = submissionAuthor.trim();
+        const savedEmail = submissionEmail.trim();
+        try {
+          localStorage.setItem(LAST_AUTHOR_KEY, savedAuthor);
+          localStorage.setItem(LAST_EMAIL_KEY, savedEmail);
+          localStorage.removeItem(DRAFT_KEY);
+        } catch {}
         setSubmissionStatus('Puzzle submitted successfully! Thank you for your contribution.');
-        
         // Track puzzle submission
         try {
           if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
@@ -216,21 +323,20 @@ const PuzzleCreatorSimple = () => {
             });
           }
         } catch {}
+        // Reset form but keep name and email so user doesn't have to type again
+        setTimeout(() => {
+          setSubmissionWords(['', '', '', '', '']);
+          setSubmissionClues(['', '', '', '', '']);
+          setSubmissionBreakdowns(['', '', '', '', '']);
+          setBreakdownTouched([false, false, false, false, false]);
+          setSubmissionAuthor(savedAuthor);
+          setSubmissionEmail(savedEmail);
+          setSubmissionEmoji('');
+          setSubmissionNotes('');
+          setTermsAgreed(false);
+          setSubmissionStatus('');
+        }, 3000);
       }
-      
-      // Reset form
-      setTimeout(() => {
-        setSubmissionWords(['', '', '', '', '']);
-        setSubmissionClues(['', '', '', '', '']);
-        setSubmissionBreakdowns(['', '', '', '', '']);
-        setBreakdownTouched([false, false, false, false, false]);
-        setSubmissionAuthor('');
-        setSubmissionEmail('');
-        setSubmissionEmoji('');
-        setSubmissionNotes('');
-        setTermsAgreed(false);
-        setSubmissionStatus('');
-      }, 3000);
     } catch (error) {
       console.error('Error submitting puzzle:', error);
       setSubmissionStatus('Error submitting puzzle. Please try again.');

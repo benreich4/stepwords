@@ -60,8 +60,9 @@ if (DELETE_AFTER_UPLOAD) {
 }
 
 async function generateVideo() {
-  const viewportWidth = 500;
-  const viewportHeight = Math.round(viewportWidth * 16 / 9); // 889 for 9:16 aspect ratio
+  // Use wider viewport for partial mode to accommodate clues
+  let viewportWidth = USE_PARTIAL_MODE ? 700 : 500;
+  let viewportHeight = Math.round(viewportWidth * 16 / 9); // Maintains 9:16 aspect ratio
   
   // Window position
   const windowX = 200;
@@ -84,6 +85,7 @@ async function generateVideo() {
       '--disable-extensions',
       '--disable-plugins',
       '--disable-default-apps',
+      // Note: window-size is set to viewport size; Playwright will add Chrome UI automatically
       `--window-size=${viewportWidth},${viewportHeight}`,
       `--window-position=${windowX},${windowY}`,
     ],
@@ -117,6 +119,22 @@ async function generateVideo() {
     }, { timeout: 60000 });
 
     console.log('✓ Puzzle loaded, setting up screen recording...');
+
+    // Verify actual viewport dimensions match expected
+    const actualViewport = await page.evaluate(() => {
+      return {
+        width: window.innerWidth,
+        height: window.innerHeight
+      };
+    });
+    console.log(`Expected viewport: ${viewportWidth}x${viewportHeight}`);
+    console.log(`Actual viewport: ${actualViewport.width}x${actualViewport.height}`);
+    if (actualViewport.width !== viewportWidth || actualViewport.height !== viewportHeight) {
+      console.warn(`⚠️  Viewport mismatch! Expected ${viewportWidth}x${viewportHeight}, got ${actualViewport.width}x${actualViewport.height}`);
+      // Use actual viewport dimensions for crop calculation
+      viewportWidth = actualViewport.width;
+      viewportHeight = actualViewport.height;
+    }
 
     // Get screen resolution and detect Retina scale factor
     let screenWidth, screenHeight, scaleFactor = 1;
@@ -332,16 +350,37 @@ async function generateVideo() {
     await new Promise(resolve => setTimeout(resolve, 1000));
     console.log('✓ Autosolve started - recording is active');
 
-    // Wait for autosolve to complete
+    // Wait for autosolve to complete (multiple strategies so we don't rely on one heuristic)
+    const completionTimeout = 180000;
+    let completed = false;
     try {
-      await page.waitForFunction(() => {
-        return document.body.innerText.includes('Can you solve the last answer?');
-      }, { timeout: 180000 });
+      // 1) Prefer data attribute added to final popup (most reliable)
+      await page.locator('[data-autosolve-complete="true"]').waitFor({ state: 'visible', timeout: completionTimeout });
+      completed = true;
+    } catch (e1) {
+      try {
+        // 2) Fallback: Playwright's getByText is resilient to DOM structure
+        await page.getByText(/Can you solve/, { exact: false }).first().waitFor({ state: 'visible', timeout: 10000 });
+        completed = true;
+      } catch (e2) {
+        try {
+          // 3) Fallback: any visible text that indicates completion
+          await page.waitForFunction(() => {
+            const text = document.documentElement?.textContent ?? '';
+            return text.includes('Can you solve') || text.includes('Leave a comment with the answers');
+          }, { timeout: 10000, polling: 300 });
+          completed = true;
+        } catch (e3) {
+          // none matched
+        }
+      }
+    }
+    if (completed) {
       console.log('✓ Autosolve completed');
       await page.waitForTimeout(1500);
       await page.waitForTimeout(5000);
-    } catch (error) {
-      console.warn('Could not detect completion, waiting fixed time:', error.message);
+    } else {
+      console.warn('Could not detect completion, waiting fixed time');
       await page.waitForTimeout(60000);
       await page.waitForTimeout(1500);
       await page.waitForTimeout(5000);
@@ -547,25 +586,102 @@ async function generateVideo() {
       }
     }
     
-    // Crop the video
+    // Crop the video to the full Chrome window (nothing more, nothing less).
+    // --window-size is viewport (content) size; Chrome adds a title bar, so total window height
+    // is viewportHeight + titleBarHeight. Window top-left is (windowX, windowY).
     if (fs.existsSync(tempOutputPath)) {
       console.log('\n=== Cropping video ===');
       
-      const menuBarHeightPoints = 25;
-      const titleBarHeightPoints = 28;
-      const menuBarHeightPixels = Math.round(menuBarHeightPoints * scaleFactor);
-      const titleBarHeightPixels = Math.round(titleBarHeightPoints * scaleFactor);
-      const windowXPixels = Math.round(windowX * scaleFactor);
-      const windowYPixels = Math.round(windowY * scaleFactor);
-      const viewportWidthPixels = Math.round(viewportWidth * scaleFactor);
-      const viewportHeightPixels = Math.round(viewportHeight * scaleFactor);
+      // Chrome tab bar; full window = viewport + this. Partial uses wider window so allow more for title/traffic lights.
+      const titleBarHeightPoints = USE_PARTIAL_MODE ? 52 : 28;
+      // Start crop this many points above window position so full title bar is in frame (partial).
+      const topBufferPoints = USE_PARTIAL_MODE ? 80 : 0;
       
-      const cropX = windowXPixels;
-      const cropY = windowYPixels + menuBarHeightPixels + titleBarHeightPixels;
-      const cropWidth = viewportWidthPixels;
-      const cropHeight = viewportHeightPixels;
+      // Get actual video dimensions - they determine coordinate system (Retina vs logical)
+      const probeResult = spawnSync('ffprobe', [
+        '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=width,height',
+        '-of', 'json',
+        tempOutputPath
+      ], { encoding: 'utf8' });
       
-      console.log(`Crop coordinates: x=${cropX}, y=${cropY}, width=${cropWidth}, height=${cropHeight}`);
+      let videoWidth = screenWidth;
+      let videoHeight = screenHeight;
+      try {
+        const probeData = JSON.parse(probeResult.stdout);
+        if (probeData.streams && probeData.streams[0]) {
+          videoWidth = probeData.streams[0].width || screenWidth;
+          videoHeight = probeData.streams[0].height || screenHeight;
+        }
+      } catch (e) {
+        console.warn('Could not probe video dimensions, using screen dimensions');
+      }
+      
+      // Full window rectangle (logical): start at (windowX, windowY - topBuffer) to include full title bar; size includes title + viewport + buffer.
+      const windowWidthLogical = viewportWidth;
+      const windowHeightLogical = viewportHeight + titleBarHeightPoints;
+      const cropYLogical = windowY - topBufferPoints; // start higher so full header is in frame
+      const cropHeightLogical = windowHeightLogical + topBufferPoints;
+      
+      // Detect if recording is in logical or physical pixels (avfoundation varies by Mac/FFmpeg)
+      const logicalScreenWidth = Math.round(screenWidth / scaleFactor);
+      const logicalScreenHeight = Math.round(screenHeight / scaleFactor);
+      const videoIsLogical = (
+        Math.abs(videoWidth - logicalScreenWidth) < Math.abs(videoWidth - screenWidth) ||
+        Math.abs(videoHeight - logicalScreenHeight) < Math.abs(videoHeight - screenHeight)
+      );
+      
+      let cropX, cropY, cropWidth, cropHeight;
+      if (videoIsLogical) {
+        cropX = windowX;
+        cropY = Math.max(0, cropYLogical);
+        cropWidth = windowWidthLogical;
+        cropHeight = cropHeightLogical;
+        console.log('Video is logical resolution - crop = full window in logical coords');
+      } else {
+        cropX = Math.round(windowX * scaleFactor);
+        cropY = Math.max(0, Math.round(cropYLogical * scaleFactor));
+        cropWidth = Math.round(windowWidthLogical * scaleFactor);
+        cropHeight = Math.round(cropHeightLogical * scaleFactor);
+        console.log('Video is physical resolution - crop = full window in physical coords');
+      }
+      
+      console.log(`\n=== Crop (full Chrome window) ===`);
+      console.log(`Window position: (${windowX}, ${windowY}) logical`);
+      console.log(`Window size: ${windowWidthLogical}x${windowHeightLogical} logical (viewport ${viewportWidth}x${viewportHeight} + title bar ${titleBarHeightPoints}pt)`);
+      if (topBufferPoints > 0) {
+        console.log(`Top buffer: ${topBufferPoints}pt (partial mode) so crop starts at y=${cropYLogical}`);
+      }
+      console.log(`Video dimensions: ${videoWidth}x${videoHeight}`);
+      console.log(`Crop: x=${cropX}, y=${cropY}, width=${cropWidth}, height=${cropHeight}`);
+      
+      // Clamp to video bounds so we never exceed the recorded frame
+      if (cropX + cropWidth > videoWidth) {
+        const originalWidth = cropWidth;
+        cropWidth = Math.max(0, videoWidth - cropX);
+        console.warn(`⚠️  Crop width clamped: ${originalWidth} → ${cropWidth} (video width)`);
+      }
+      if (cropY + cropHeight > videoHeight) {
+        const originalHeight = cropHeight;
+        cropHeight = Math.max(0, videoHeight - cropY);
+        console.warn(`⚠️  Crop height clamped: ${originalHeight} → ${cropHeight} (video height)`);
+      }
+      if (cropX < 0) {
+        cropWidth += cropX;
+        cropX = 0;
+        console.warn(`⚠️  Crop X was negative, adjusted`);
+      }
+      if (cropY < 0) {
+        cropHeight += cropY;
+        cropY = 0;
+        console.warn(`⚠️  Crop Y was negative, adjusted`);
+      }
+      if (cropWidth <= 0 || cropHeight <= 0) {
+        throw new Error(`Invalid crop: ${cropWidth}x${cropHeight} at (${cropX},${cropY}). Video: ${videoWidth}x${videoHeight}`);
+      }
+      
+      console.log(`Final crop: ${cropWidth}x${cropHeight} at (${cropX}, ${cropY})`);
       
       const croppedPath = absoluteOutputPath.replace('.mov', '-cropped.mov');
       const cropArgs = [

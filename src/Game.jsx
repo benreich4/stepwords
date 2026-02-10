@@ -1272,7 +1272,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     // Row not solved → commit and prompt to keep going
     applyRowColorsStaggered();
   // Inhibit this toast when at 0 points so the loss-warning toast is visible
-  if (!(pointsAfter === 0)) {
+  // Also inhibit in partial autosolve mode to avoid distracting toasts
+  if (!(pointsAfter === 0) && !partialAutosolveMode) {
     showToast("Kept correct letters. Try filling the rest.", 2400, "warning");
   }
   }

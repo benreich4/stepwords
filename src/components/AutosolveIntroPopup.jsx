@@ -16,9 +16,14 @@ export default function AutosolveIntroPopup({
     if (moved) {
       const finalPosition = position !== null ? position : (fallbackPosition !== null ? fallbackPosition : null);
       if (finalPosition !== null && typeof window !== 'undefined') {
+        // finalPosition is the target top edge position
+        // To keep transform consistent, we need to convert to center position
+        // The popup is approximately 200px tall, so add half its height
+        const popupHeight = 200; // Approximate popup height
+        const centerPosition = finalPosition + (popupHeight / 2);
         return { 
-          top: `${finalPosition}px`,
-          transform: 'translateX(-50%)'
+          top: `${centerPosition}px`,
+          transform: 'translate(-50%, -50%)' // Keep centered transform for smooth transition
         };
       }
     }
@@ -38,7 +43,7 @@ export default function AutosolveIntroPopup({
         style={{ opacity: moved ? 0 : 1 }} 
       />
       <div 
-        className="fixed z-50 left-1/2 transition-all duration-[1500ms] ease-in-out will-change-[top,transform]"
+        className="fixed z-50 left-1/2 transition-[top,transform] duration-[1500ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] will-change-[top,transform]"
         style={popupStyle}
       >
         <div className={`${lightMode ? 'bg-white text-gray-900 border-gray-300' : 'bg-gray-900 text-gray-100 border-gray-700'} relative z-10 w-[90vw] max-w-md rounded-xl border shadow-xl`}>
