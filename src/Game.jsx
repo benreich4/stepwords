@@ -15,6 +15,7 @@ import { usePuzzleTimer } from "./lib/timer.js";
 import { updateStreak, getStreak } from "./lib/streak.js";
 import { getInitialLightMode, saveLightModePreference } from "./lib/theme.js";
 import { checkMilestones, checkPerfectSolve } from "./lib/milestones.js";
+import { playSolveSound } from "./lib/solveSound.js";
 import { useAutosolve } from "./lib/autosolve.js";
 import { isAutosolveMode, isPartialAutosolveMode, shouldSendAnalytics } from "./lib/autosolveUtils.js";
 import AutosolveIntroPopup from "./components/AutosolveIntroPopup.jsx";
@@ -1156,7 +1157,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         
         // Trigger confetti celebration!
         setConfettiTrigger(prev => prev + 1);
-        
+        if (!autosolveMode) playSolveSound();
+
         // Update streak (only if this is today's puzzle)
         const newStreak = updateStreak(puzzle.date, isQuick);
         setStreak(newStreak);
@@ -1522,6 +1524,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         setShareText(share);
       } catch {}
       setShowShare(true);
+      if (!autosolveMode) playSolveSound();
 
       // Analytics
       try {
@@ -1555,7 +1558,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
       autoSubmitDoneRef.current = true;
     } catch {}
-  }, [guesses, rows, hintCount, wrongGuessCount, guessCount, wordRevealed, isQuick, puzzle.id, puzzleNamespace, scoreBase, elapsedMs, formatElapsed, showShare, gameStartTime]);
+  }, [guesses, rows, hintCount, wrongGuessCount, guessCount, wordRevealed, isQuick, puzzle.id, puzzleNamespace, scoreBase, elapsedMs, formatElapsed, showShare, gameStartTime, autosolveMode]);
 
   const handleEnter = () => {
     const len = rowLen(level);

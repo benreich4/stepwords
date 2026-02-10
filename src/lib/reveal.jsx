@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { shouldSendAnalytics } from './autosolveUtils.js';
+import { playSolveSound } from './solveSound.js';
 
 /**
  * Custom hook for reveal word functionality
@@ -65,7 +66,7 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
       // Check if puzzle is now solved
       if (isPuzzleSolved(newLockColors, rows)) {
         setLockColors(newLockColors);
-        
+        playSolveSound();
         showToast("🎉 You solved all the Stepwords!", 2800, "success");
         const share = buildEmojiShareGridFrom(rows, newLockColors);
         setShareText(share);
