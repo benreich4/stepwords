@@ -1244,6 +1244,20 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             });
           }
         } catch (_err) { void 0; }
+
+        // Server-side completion count (not blocked by ad blockers)
+        try {
+          const derivedMode = storageNamespace === 'otherstep' ? 'other' : (isQuick ? 'quick' : 'main');
+          fetch('/api/puzzle-complete.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              puzzle_id: puzzle.id || 'unknown',
+              mode: derivedMode,
+              ts: Math.floor(Date.now() / 1000),
+            }),
+          }).catch(() => {});
+        } catch (_err) { void 0; }
         
         // Clear saved state when puzzle is completed (skip in autosolve mode)
         // Note: Puzzle completion is already marked above for milestone checking
