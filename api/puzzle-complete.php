@@ -19,8 +19,8 @@ $puzzleId = isset($input['puzzle_id']) ? (string) $input['puzzle_id'] : 'unknown
 $mode = isset($input['mode']) ? (string) $input['mode'] : 'main';
 $ts = isset($input['ts']) ? (int) $input['ts'] : time();
 
-$logDir = __DIR__;
-$logFile = $logDir . '/puzzle-completions.log';
+// Use temp dir (usually writable); fall back to api dir
+$logFile = sys_get_temp_dir() . '/stepwords-puzzle-completions.log';
 
 $entry = json_encode([
     'ts' => $ts,
