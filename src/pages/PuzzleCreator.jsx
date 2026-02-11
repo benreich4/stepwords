@@ -94,7 +94,9 @@ const PuzzleCreatorSimple = () => {
   const saveDraft = useCallback(() => {
     try {
       const hasContent = submissionWords.some(w => (w || '').trim() !== '') ||
-        (submissionAuthor || '').trim() !== '' || (submissionEmail || '').trim() !== '';
+        (submissionClues || []).some(c => (c || '').trim() !== '') ||
+        (submissionAuthor || '').trim() !== '' || (submissionEmail || '').trim() !== '' ||
+        (submissionNotes || '').trim() !== '' || (submissionEmoji || '').trim() !== '';
       if (!hasContent) return;
       const data = {
         submissionWords,
@@ -118,6 +120,13 @@ const PuzzleCreatorSimple = () => {
     return () => {
       if (draftSaveTimeoutRef.current) clearTimeout(draftSaveTimeoutRef.current);
     };
+  }, [saveDraft]);
+
+  // Save draft immediately when leaving (handles reload before debounce)
+  useEffect(() => {
+    const onBeforeUnload = () => saveDraft();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [saveDraft]);
 
   // Track page view
