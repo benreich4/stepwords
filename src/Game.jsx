@@ -15,7 +15,8 @@ import { usePuzzleTimer } from "./lib/timer.js";
 import { updateStreak, getStreak } from "./lib/streak.js";
 import { getInitialLightMode, saveLightModePreference } from "./lib/theme.js";
 import { checkMilestones, checkPerfectSolve } from "./lib/milestones.js";
-import { playSolveSound } from "./lib/solveSound.js";
+import { playSolveSound, playApplauseSound } from "./lib/solveSound.js";
+import { playStepSound, playIncorrectSound, playIncompleteSound } from "./lib/progressSound.js";
 import { useAutosolve } from "./lib/autosolve.js";
 import { isAutosolveMode, isPartialAutosolveMode, shouldSendAnalytics } from "./lib/autosolveUtils.js";
 import AutosolveIntroPopup from "./components/AutosolveIntroPopup.jsx";
@@ -277,9 +278,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [settings, setSettings] = useState(() => {
     try {
       const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}');
-      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true, lightMode: s.lightMode === true, showAllClues: s.showAllClues === true };
+      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true, lightMode: s.lightMode === true, showAllClues: s.showAllClues === true, soundsEnabled: s.soundsEnabled !== false };
     } catch {
-      return { hardMode: false, easyMode: false, lightMode: false, showAllClues: false };
+      return { hardMode: false, easyMode: false, lightMode: false, showAllClues: false, soundsEnabled: true };
     }
   });
   // In print mode or partial autosolve mode, force light mode and show all clues
@@ -295,7 +296,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   
   useEffect(() => {
     if (!printMode) {
-      try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode, showAllClues: settings.showAllClues })); } catch {}
+      try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode, showAllClues: settings.showAllClues, soundsEnabled: settings.soundsEnabled })); } catch {}
     }
   }, [settings, printMode]);
   const [showSettings, setShowSettings] = useState(false);
@@ -819,7 +820,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     puzzle,
     isQuick,
     elapsedMs,
-    formatElapsed(elapsedMs)
+    formatElapsed(elapsedMs),
+    effectiveSettings.soundsEnabled
   );
   
   const pointsNow = Math.max(0, scoreBase - usedCount);
@@ -1048,6 +1050,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const colorsAfter = lockColors.map(r => r.slice());
     colorsAfter[i] = rowColors;
 
+    const solvedThisRow = rowColors.every(Boolean);
+
+    let stepSoundDone = Promise.resolve();
+    if (solvedThisRow && !autosolveMode && effectiveSettings.soundsEnabled) {
+      stepSoundDone = playStepSound(i, rows.length);
+    }
+
     // Helper: apply this row's color changes with a left-to-right stagger
     const applyRowColorsStaggered = () => {
       for (let col = 0; col < rowColors.length; col++) {
@@ -1087,8 +1096,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     }
 
     const newWrongTotal = wrongGuessCount + (hadWrong ? 1 : 0);
-
-    const solvedThisRow = rowColors.every(Boolean);
 
     // Warn when score reaches 0 (but not loss yet)
     const usedAfter = hintCount + newWrongTotal;
@@ -1135,7 +1142,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       // Row completion animation
       setRowCompletionAnimation(i);
       setTimeout(() => setRowCompletionAnimation(null), 1000);
-      
+
       // ✅ Only consider the puzzle solved if *every* row is fully colored
       if (isPuzzleSolved(colorsAfter, rows)) {
         applyRowColorsStaggered();
@@ -1157,7 +1164,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         
         // Trigger confetti celebration!
         setConfettiTrigger(prev => prev + 1);
-        if (!autosolveMode) playSolveSound();
+        if (!autosolveMode && effectiveSettings.soundsEnabled) stepSoundDone.then(() => (isPerfect ? playSolveSound() : playApplauseSound()));
 
         // Update streak (only if this is today's puzzle)
         const newStreak = updateStreak(puzzle.date, isQuick);
@@ -1273,10 +1280,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
     // Row not solved → commit and prompt to keep going
     applyRowColorsStaggered();
-  // Inhibit this toast when at 0 points so the loss-warning toast is visible
-  // Also inhibit in partial autosolve mode to avoid distracting toasts
+  // Same condition as the toast: when we show "Kept correct letters", play incomplete sound
   if (!(pointsAfter === 0) && !partialAutosolveMode) {
     showToast("Kept correct letters. Try filling the rest.", 2400, "warning");
+    if (!autosolveMode && effectiveSettings.soundsEnabled) playIncorrectSound();
   }
   }
 
@@ -1524,7 +1531,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         setShareText(share);
       } catch {}
       setShowShare(true);
-      if (!autosolveMode) playSolveSound();
+      if (!autosolveMode && effectiveSettings.soundsEnabled) {
+        const isPerfectAuto = checkPerfectSolve(hintCount, wrongGuessCount);
+        isPerfectAuto ? playSolveSound() : playApplauseSound();
+      }
 
       // Analytics
       try {
@@ -1900,6 +1910,20 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                   </button>
                 </label>
                 <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Invert colors for a light appearance.</div>
+
+                <label className="flex items-center justify-between py-1">
+                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Sounds</span>
+                  <button
+                    role="switch"
+                    aria-checked={settings.soundsEnabled ? "true" : "false"}
+                    onClick={() => setSettings(s => ({ ...s, soundsEnabled: !s.soundsEnabled }))}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.soundsEnabled ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    aria-label="Toggle sounds"
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.soundsEnabled ? 'translate-x-4' : 'translate-x-1'}`}></span>
+                  </button>
+                </label>
+                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Step, correct, and celebration sounds. Saved as your default.</div>
 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Use OS keyboard</span>

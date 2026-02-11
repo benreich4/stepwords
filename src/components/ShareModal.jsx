@@ -22,6 +22,8 @@ export default function ShareModal({
   const [notice, setNotice] = useState("");
   const [ctaHref, setCtaHref] = useState(isQuick ? "/" : "/quick");
   const [ctaText, setCtaText] = useState(isQuick ? "Try today’s Main Stepword Puzzle" : "Try today’s Quick Stepword Puzzle");
+  const isPerfect = !didFail && hintCount === 0 && wrongGuessCount === 0;
+  const [perfectPulse, setPerfectPulse] = useState(isPerfect);
   // Determine if this is today's puzzle in ET
   const { isTodayET, puzzleDateText } = (() => {
     try {
@@ -41,6 +43,13 @@ export default function ShareModal({
   })();
 
   const hasTime = Boolean(elapsedTime && !didFail);
+
+  // Run Perfect badge pulse animation once when modal opens (for duration of WOW sound)
+  useEffect(() => {
+    if (!isPerfect) return;
+    const t = setTimeout(() => setPerfectPulse(false), 1400);
+    return () => clearTimeout(t);
+  }, [isPerfect]);
 
   // Handle ESCAPE key to close modal
   useEffect(() => {
@@ -107,8 +116,10 @@ export default function ShareModal({
           <div className={`text-2xl font-bold ${lightMode ? 'text-gray-900' : 'text-white'}`}>
             {didFail ? 'Too many missteps' : '🎊 You solved it! 🎊'}
           </div>
-          {!didFail && (hintCount === 0 && wrongGuessCount === 0) && (
-            <span className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border font-bold ${lightMode ? 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-md shadow-emerald-300/30' : 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/30'}`}>
+          {isPerfect && (
+            <span
+              className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border font-bold ${lightMode ? 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-md shadow-emerald-300/30' : 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/30'} ${perfectPulse ? 'perfect-wow-animate' : ''}`}
+            >
               ✨ Perfect! ✨
             </span>
           )}

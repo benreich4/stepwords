@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { shouldSendAnalytics } from './autosolveUtils.js';
-import { playSolveSound } from './solveSound.js';
+import { playApplauseSound } from './solveSound.js';
 
 /**
  * Custom hook for reveal word functionality
@@ -27,9 +27,10 @@ import { playSolveSound } from './solveSound.js';
  * @param {boolean} isQuick - Whether this is a quick puzzle
  * @param {number} elapsedMs - Elapsed timer milliseconds
  * @param {string} elapsedDisplay - Formatted elapsed time
+ * @param {boolean} soundsEnabled - Whether to play the solve sound
  * @returns {Object} Reveal state and functions
  */
-export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, level, showToast, wordRevealed, setWordRevealed, isPuzzleSolved, buildEmojiShareGridFrom, setShareText, setStars, setDidFail, setShowShare, hintCount, wrongGuessCount, scoreBase, puzzleNamespace, puzzle, isQuick, elapsedMs, elapsedDisplay) {
+export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, level, showToast, wordRevealed, setWordRevealed, isPuzzleSolved, buildEmojiShareGridFrom, setShareText, setStars, setDidFail, setShowShare, hintCount, wrongGuessCount, scoreBase, puzzleNamespace, puzzle, isQuick, elapsedMs, elapsedDisplay, soundsEnabled = true) {
   const [showWordRevealConfirm, setShowWordRevealConfirm] = useState(false);
 
   // Reveal word function
@@ -66,7 +67,7 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
       // Check if puzzle is now solved
       if (isPuzzleSolved(newLockColors, rows)) {
         setLockColors(newLockColors);
-        playSolveSound();
+        if (soundsEnabled) playApplauseSound();
         showToast("🎉 You solved all the Stepwords!", 2800, "success");
         const share = buildEmojiShareGridFrom(rows, newLockColors);
         setShareText(share);

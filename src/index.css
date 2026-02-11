@@ -64,6 +64,30 @@
   animation: letter-glow 0.8s ease-in-out;
 }
 
+/* Perfect badge pulse when WOW sound plays (grow/shrink + highlight) */
+@keyframes perfect-wow-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+  25% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    transform: scale(1.18);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.7), 0 0 28px rgba(16, 185, 129, 0.5);
+  }
+  75% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5), 0 0 14px rgba(16, 185, 129, 0.35);
+  }
+}
+
+.perfect-wow-animate {
+  animation: perfect-wow-pulse 1.4s ease-in-out;
+}
+
 /* Shimmer animation for completed progress bar */
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
