@@ -67,6 +67,7 @@ export default function ShareModal({
   };
 
   const handleRate = async (value) => {
+    const previousRating = rating;
     setRating(value);
     saveRating(value);
     try {
@@ -76,6 +77,20 @@ export default function ShareModal({
     } catch (_err) {
       // Keep in localStorage; server sync may retry later or user can change again
     }
+    try {
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
+        window.gtag('event', 'puzzle_rated', {
+          puzzle_id: puzzleId || 'unknown',
+          mode: modeFromNamespace(ns),
+          rating: value,
+          value: value,
+          is_rating_change: previousRating !== null,
+          hint_count: hintCount,
+          guess_count: guessCount,
+          stars: Number.isFinite(stars) ? stars : null,
+        });
+      }
+    } catch (_err) { void 0; }
   };
   const [ctaHref, setCtaHref] = useState(isQuick ? "/" : "/quick");
   const [ctaText, setCtaText] = useState(isQuick ? "Try today’s Main Stepword Puzzle" : "Try today’s Quick Stepword Puzzle");
