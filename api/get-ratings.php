@@ -112,5 +112,7 @@ if ($puzzleId) {
         $byId->{$k} = ['avg' => $agg['avg'], 'count' => $agg['count']];
     }
 
-    echo json_encode(['puzzles' => $puzzles, 'by_id' => $byId]);
+    $totalCount = array_sum(array_column($aggregates, 'count'));
+
+    echo json_encode(['puzzles' => $puzzles, 'by_id' => $byId, 'total_count' => $totalCount]);
 }
