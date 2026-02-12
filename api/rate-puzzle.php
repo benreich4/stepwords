@@ -28,12 +28,8 @@ if (!$puzzleId || $rating < 1 || $rating > 5 || !$userId) {
 
 $mode = in_array($mode, ['main', 'quick', 'other'], true) ? $mode : 'main';
 
-$ratingsDir = __DIR__ . '/ratings';
-if (!file_exists($ratingsDir)) {
-    mkdir($ratingsDir, 0755, true);
-}
-
-$dataFile = $ratingsDir . '/ratings.json';
+// Use temp dir (usually writable); same pattern as puzzle-complete.php
+$dataFile = sys_get_temp_dir() . '/stepwords-ratings.json';
 $ts = time();
 $entry = [
     'user_id' => $userId,

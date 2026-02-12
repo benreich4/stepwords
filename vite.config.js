@@ -8,7 +8,14 @@ export default defineConfig({
     allowedHosts: [
       'stepwords.xyz',
       'www.stepwords.xyz'
-    ]
+    ],
+    // Proxy /api to PHP server for local dev. Run: php -S localhost:8000
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     // Optimize for production

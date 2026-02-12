@@ -19,7 +19,8 @@ $mode = isset($_GET['mode']) ? (string) $_GET['mode'] : '';
 $limit = isset($_GET['limit']) ? max(1, min(500, (int) $_GET['limit'])) : 100;
 $minCount = isset($_GET['min_count']) ? max(0, (int) $_GET['min_count']) : 0;
 
-$dataFile = __DIR__ . '/ratings/ratings.json';
+// Must match rate-puzzle.php - use temp dir
+$dataFile = sys_get_temp_dir() . '/stepwords-ratings.json';
 if (!file_exists($dataFile)) {
     if ($puzzleId) {
         echo json_encode(['puzzle_id' => $puzzleId, 'mode' => $mode ?: 'main', 'avg' => null, 'count' => 0, 'ratings' => []]);
