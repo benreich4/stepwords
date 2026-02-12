@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { shouldSendAnalytics } from './autosolveUtils.js';
 import { playApplauseSound } from './solveSound.js';
+import { updateStreak } from './streak.js';
 
 /**
  * Custom hook for reveal word functionality
@@ -100,6 +101,9 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
         
         setShowShare(true);
         
+        // Update streak (only if this is today's puzzle)
+        const streakData = updateStreak(puzzle.date, isQuick);
+        
         // Track game completion
         try {
           if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
@@ -113,6 +117,8 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
               revealed: true,
               solve_time_ms: elapsedMs,
               solve_time_display: elapsedDisplay,
+              streak_current: streakData?.current ?? 0,
+              streak_longest: streakData?.longest ?? 0,
             });
           }
         } catch {}

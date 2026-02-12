@@ -1241,6 +1241,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               mode: derivedMode,
               solve_time_ms: elapsedMs,
               solve_time_display: formatElapsed(elapsedMs),
+              streak_current: newStreak?.current ?? 0,
+              streak_longest: newStreak?.longest ?? 0,
             });
           }
         } catch (_err) { void 0; }
@@ -1550,6 +1552,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         isPerfectAuto ? playSolveSound() : playApplauseSound();
       }
 
+      // Update streak (only if this is today's puzzle)
+      const streakData = updateStreak(puzzle.date, isQuick);
+      setStreak(streakData);
+
       // Analytics
       try {
         if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
@@ -1562,6 +1568,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             mode: isQuick ? 'quick' : 'main',
             solve_time_ms: elapsedMs,
             solve_time_display: formatElapsed(elapsedMs),
+            streak_current: streakData?.current ?? 0,
+            streak_longest: streakData?.longest ?? 0,
           });
         }
       } catch {}
@@ -1582,7 +1590,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
       autoSubmitDoneRef.current = true;
     } catch {}
-  }, [guesses, rows, hintCount, wrongGuessCount, guessCount, wordRevealed, isQuick, puzzle.id, puzzleNamespace, scoreBase, elapsedMs, formatElapsed, showShare, gameStartTime, autosolveMode]);
+  }, [guesses, rows, hintCount, wrongGuessCount, guessCount, wordRevealed, isQuick, puzzle.id, puzzle.date, puzzleNamespace, scoreBase, elapsedMs, formatElapsed, showShare, gameStartTime, autosolveMode]);
 
   const handleEnter = () => {
     const len = rowLen(level);
