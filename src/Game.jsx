@@ -351,6 +351,16 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     if (showShare || didFail) stopTimer();
   }, [showShare, didFail]);
 
+  // Is this puzzle completed? (used to show "Rate" button when modal is closed)
+  const isPuzzleCompleted = useMemo(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
+      return Array.isArray(c) && c.includes(puzzle.id);
+    } catch {
+      return false;
+    }
+  }, [puzzle.id, puzzleNamespace, showShare]);
+
   // Lifeline state
   const [showLifelineMenu, setShowLifelineMenu] = useState(false);
   const [lifelineLevel, setLifelineLevel] = useState(savedState.lifelineLevel || 0);
@@ -1844,6 +1854,16 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           >
             ?
           </button>
+          {isPuzzleCompleted && !showShare && !didFail && (
+            <button
+              onClick={() => setShowShare(true)}
+              className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] gap-0.5 ${settings.lightMode ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-amber-600 bg-amber-900/40 text-amber-300 hover:bg-amber-800/60'}`}
+              title="Rate this puzzle"
+            >
+              <span>★</span>
+              <span>Rate</span>
+            </button>
+          )}
           {/* Settings gear moved to right */}
           <div ref={settingsRef} className="relative">
             <button
@@ -2188,6 +2208,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           didFail={didFail}
           elapsedTime={!hideZeroTime ? formatElapsed(elapsedMs) : null}
           lightMode={effectiveSettings.lightMode}
+          puzzleId={puzzle.id}
+          puzzleNamespace={puzzleNamespace}
           onShare={() => {
             try {
               if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {

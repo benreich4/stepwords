@@ -4,6 +4,9 @@ import { fetchManifest } from "../lib/puzzles.js";
 import { fetchQuickManifest } from "../lib/quickPuzzles.js";
 import { getTodayIsoInET } from "../lib/date.js";
 import { shouldSendAnalytics } from "../lib/autosolveUtils.js";
+import { getOrCreateUserId, submitRating, modeFromNamespace } from "../lib/ratings.js";
+
+const RATINGS_KEY = (ns) => `${ns}-ratings`;
 
 export default function ShareModal({
   shareText,
@@ -18,8 +21,44 @@ export default function ShareModal({
   elapsedTime = null,
   onShare = null,
   lightMode = false,
+  puzzleId = null,
+  puzzleNamespace = null,
 }) {
   const [notice, setNotice] = useState("");
+  const ns = puzzleNamespace || (isQuick ? 'quickstep' : 'stepwords');
+  const ratingsKey = RATINGS_KEY(ns);
+
+  const [rating, setRating] = useState(() => {
+    if (!puzzleId) return null;
+    try {
+      const map = JSON.parse(localStorage.getItem(ratingsKey) || '{}');
+      const r = map[puzzleId];
+      return typeof r === 'number' && r >= 1 && r <= 5 ? r : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const saveRating = (value) => {
+    if (!puzzleId) return;
+    try {
+      const map = JSON.parse(localStorage.getItem(ratingsKey) || '{}');
+      map[puzzleId] = value;
+      localStorage.setItem(ratingsKey, JSON.stringify(map));
+    } catch {}
+  };
+
+  const handleRate = async (value) => {
+    setRating(value);
+    saveRating(value);
+    try {
+      const userId = getOrCreateUserId();
+      const mode = modeFromNamespace(ns);
+      await submitRating(puzzleId, mode, value, userId);
+    } catch (_err) {
+      // Keep in localStorage; server sync may retry later or user can change again
+    }
+  };
   const [ctaHref, setCtaHref] = useState(isQuick ? "/" : "/quick");
   const [ctaText, setCtaText] = useState(isQuick ? "Try today’s Main Stepword Puzzle" : "Try today’s Quick Stepword Puzzle");
   const isPerfect = !didFail && hintCount === 0 && wrongGuessCount === 0;
@@ -170,6 +209,26 @@ export default function ShareModal({
         <pre className={`whitespace-pre-wrap text-2xl leading-snug mb-4 p-3 rounded-lg border ${lightMode ? 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-900' : 'border-gray-700 bg-gradient-to-br from-gray-900/70 to-gray-800/70 text-gray-100'}`}>
           {shareText}
         </pre>
+
+        {puzzleId && !didFail && (
+          <div className={`mb-4 rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
+            <p className={`text-sm mb-2 ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Rate this puzzle</p>
+            <div className="flex gap-1 items-center">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => handleRate(n)}
+                  className={`p-1 text-2xl leading-none transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-1 rounded ${lightMode ? 'focus:ring-amber-500 text-amber-500 hover:text-amber-600' : 'focus:ring-amber-400 text-amber-400 hover:text-amber-300'}`}
+                  aria-label={`${n} ${n === 1 ? 'star' : 'stars'}`}
+                  aria-pressed={rating === n}
+                >
+                  {rating !== null && n <= rating ? '★' : '☆'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mb-3 text-center">
           <p className={`text-sm mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Would love to hear your thoughts and ideas!</p>

@@ -26,6 +26,9 @@ dist-ssr
 # Autosolve videos
 autosolve_videos/
 
+# User ratings (stored at runtime)
+api/ratings/
+
 # YouTube API credentials and tokens
 youtube-token.json
 youtube-credentials.json
