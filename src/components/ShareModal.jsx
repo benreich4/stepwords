@@ -5,8 +5,10 @@ import { fetchQuickManifest } from "../lib/quickPuzzles.js";
 import { getTodayIsoInET } from "../lib/date.js";
 import { shouldSendAnalytics } from "../lib/autosolveUtils.js";
 import { getOrCreateUserId, submitRating, modeFromNamespace } from "../lib/ratings.js";
+import RatingIntroPopup from "./RatingIntroPopup.jsx";
 
 const RATINGS_KEY = (ns) => `${ns}-ratings`;
+const RATING_INTRO_SEEN_KEY = 'stepwords-rating-intro-seen';
 
 export default function ShareModal({
   shareText,
@@ -28,6 +30,15 @@ export default function ShareModal({
   const ns = puzzleNamespace || (isQuick ? 'quickstep' : 'stepwords');
   const ratingsKey = RATINGS_KEY(ns);
 
+  const [showRatingIntro, setShowRatingIntro] = useState(() => {
+    if (!puzzleId || didFail) return false;
+    try {
+      return localStorage.getItem(RATING_INTRO_SEEN_KEY) !== '1';
+    } catch {
+      return false;
+    }
+  });
+
   const [rating, setRating] = useState(() => {
     if (!puzzleId) return null;
     try {
@@ -45,6 +56,13 @@ export default function ShareModal({
       const map = JSON.parse(localStorage.getItem(ratingsKey) || '{}');
       map[puzzleId] = value;
       localStorage.setItem(ratingsKey, JSON.stringify(map));
+    } catch {}
+  };
+
+  const dismissRatingIntro = () => {
+    setShowRatingIntro(false);
+    try {
+      localStorage.setItem(RATING_INTRO_SEEN_KEY, '1');
     } catch {}
   };
 
@@ -149,6 +167,10 @@ export default function ShareModal({
   }, [isQuick]);
 
   return (
+    <>
+    {showRatingIntro && (
+      <RatingIntroPopup onClose={dismissRatingIntro} lightMode={lightMode} />
+    )}
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-6 animate-in fade-in duration-300">
       <div className={`relative w-full max-w-lg rounded-2xl border p-5 shadow-2xl max-h-[85vh] overflow-y-auto transform transition-all duration-500 will-change-transform ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900'}`}>
         <div className="flex items-center justify-between mb-2">
@@ -309,5 +331,6 @@ export default function ShareModal({
         </div>
       </div>
     </div>
+    </>
   );
 }
