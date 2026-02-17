@@ -2081,8 +2081,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           stepIdx={stepIdx}
           hardMode={effectiveSettings.hardMode}
           lightMode={effectiveSettings.lightMode}
-          level={level}
-          cursor={cursor}
+          level={printMode ? -1 : level}
+          cursor={printMode ? -1 : cursor}
           userStepGuesses={userStepGuesses}
           onToggleUserStep={printMode ? null : toggleUserStepAt}
           stepEmoji={stepEmoji}
@@ -2099,7 +2099,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             setCursor(firstOpen === -1 ? 0 : firstOpen);
             if (!isMobile) inputRef.current?.focus();
           }}
-          referencedRows={referencedRows}
+          referencedRows={printMode ? null : referencedRows}
           diffFromRow={dragStartRow}
           diffToRow={dragOverRow}
           showAllClues={effectiveSettings.showAllClues && !isMobile}
