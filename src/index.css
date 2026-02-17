@@ -127,6 +127,12 @@
   
   .print-header {
     page-break-after: avoid;
+    text-align: left !important;
+  }
+
+  /* Slightly smaller font so long bullets (e.g. third) fit on one line in narrow print area */
+  .print-how-to-play {
+    font-size: 0.75rem !important; /* 12px vs default 14px */
   }
   
   /* Center print content - reset all containers */

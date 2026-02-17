@@ -1677,11 +1677,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             <h1 className="text-4xl font-bold text-black mb-2">Stepword Puzzle</h1>
             <div className="text-lg text-gray-700">https://stepwords.xyz</div>
           </div>
-          {puzzle.date && (
-            <div className="text-center text-gray-600 mb-2">
-              {formatDateWithDayOfWeek(puzzle.date)}
-            </div>
-          )}
           {puzzle.author && (
             <div className="text-center text-sm text-gray-600 mb-1">
               By {puzzle.author}
@@ -1692,7 +1687,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               {puzzle.title}
             </div>
           )}
-          <div className="border-t border-gray-300 pt-4 text-sm text-gray-800 space-y-2">
+          <div className="print-how-to-play border-t border-gray-300 pt-4 text-sm text-gray-800 space-y-2">
             <p><strong>How to Play:</strong></p>
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>Each answer is an <strong>anagram</strong> of the previous answer plus one additional letter.</li>
@@ -2117,18 +2112,26 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         <div id="bottom-scroll-spacer" className="h-0" aria-hidden />
         
         {/* Print Mode QR Code */}
-        {printMode && (
+        {printMode && (() => {
+          const qrUrl = (() => {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('print');
+            url.searchParams.set('utm_source', 'qr1');
+            return url.toString();
+          })();
+          return (
           <div className="mt-8 mb-4 flex flex-col items-center">
             <p className="text-lg font-semibold text-black mb-4 text-center">
               Need a hint? Want to see more puzzles?
             </p>
             <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('https://stepwords.xyz/other/9?source=qr1')}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`}
               alt="QR Code"
               className="w-48 h-48 border-2 border-black"
             />
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Sticky keyboard at bottom */}
