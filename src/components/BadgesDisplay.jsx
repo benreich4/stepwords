@@ -28,7 +28,6 @@ export default function BadgesDisplay({ lightMode = false, compact = false }) {
             }`}
             title={desc}
           >
-            {isAchieved && <span className={lightMode ? 'text-emerald-600' : 'text-emerald-400'}>✓</span>}
             <span className={isAchieved ? color : 'text-gray-500'}>{e}</span>
             <span className={isAchieved ? (lightMode ? 'text-emerald-900 font-medium' : 'text-emerald-100 font-medium') : (lightMode ? 'text-gray-500' : 'text-gray-500')}>{desc}</span>
           </div>
