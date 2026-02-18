@@ -2,36 +2,13 @@ import { useState } from 'react';
 import { shouldSendAnalytics } from './autosolveUtils.js';
 import { playApplauseSound } from './solveSound.js';
 import { updateStreak } from './streak.js';
+import { checkMilestones } from './milestones.js';
 
 /**
  * Custom hook for reveal word functionality
- * @param {Array} rows - Array of puzzle rows with answers
- * @param {Array} guesses - Array of current guesses
- * @param {Function} setGuesses - Function to update guesses
- * @param {Array} lockColors - Array of row color states
- * @param {Function} setLockColors - Function to update lock colors
- * @param {number} level - Current word level
- * @param {Function} showToast - Function to show toast messages
- * @param {boolean} wordRevealed - Whether a word has been revealed
- * @param {Function} setWordRevealed - Function to update wordRevealed state
- * @param {Function} isPuzzleSolved - Function to check if puzzle is solved
- * @param {Function} buildEmojiShareGridFrom - Function to build share text
- * @param {Function} setShareText - Function to set share text
- * @param {Function} setStars - Function to set stars
- * @param {Function} setDidFail - Function to set failure state
- * @param {Function} setShowShare - Function to show share modal
- * @param {number} hintCount - Number of hints used
- * @param {number} wrongGuessCount - Number of wrong guesses
- * @param {number} scoreBase - Base score (usually 10)
- * @param {string} puzzleNamespace - Namespace for localStorage
- * @param {Object} puzzle - Puzzle object with id
- * @param {boolean} isQuick - Whether this is a quick puzzle
- * @param {number} elapsedMs - Elapsed timer milliseconds
- * @param {string} elapsedDisplay - Formatted elapsed time
- * @param {boolean} soundsEnabled - Whether to play the solve sound
- * @returns {Object} Reveal state and functions
+ * @param {Function} onPuzzleComplete - Callback(stats) when puzzle is solved via reveal; receives stats for badge checking
  */
-export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, level, showToast, wordRevealed, setWordRevealed, isPuzzleSolved, buildEmojiShareGridFrom, setShareText, setStars, setDidFail, setShowShare, hintCount, wrongGuessCount, scoreBase, puzzleNamespace, puzzle, isQuick, elapsedMs, elapsedDisplay, soundsEnabled = true) {
+export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, level, showToast, wordRevealed, setWordRevealed, isPuzzleSolved, buildEmojiShareGridFrom, setShareText, setStars, setDidFail, setShowShare, hintCount, wrongGuessCount, scoreBase, puzzleNamespace, puzzle, isQuick, elapsedMs, elapsedDisplay, soundsEnabled = true, lifelinesUsed, lifelineLevel, letterRevealedUsed, onPuzzleComplete) {
   const [showWordRevealConfirm, setShowWordRevealConfirm] = useState(false);
 
   // Reveal word function
@@ -93,16 +70,45 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
             completedPuzzles.push(puzzle.id);
             localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
           }
-          // Dispatch event to notify App.jsx of completion
-          try {
-            document.dispatchEvent(new CustomEvent('stepwords-puzzle-completed'));
-          } catch {}
+        } catch {}
+        
+        // Save completion time
+        try {
+          const tkey = `${puzzleNamespace}-times`;
+          const tmap = JSON.parse(localStorage.getItem(tkey) || '{}');
+          tmap[puzzle.id] = elapsedMs;
+          localStorage.setItem(tkey, JSON.stringify(tmap));
         } catch {}
         
         setShowShare(true);
         
         // Update streak (only if this is today's puzzle)
         const streakData = updateStreak(puzzle.date, isQuick);
+        
+        // Check badges and notify (only on puzzle complete)
+        try {
+          const stats = {
+            hintCount,
+            wrongGuessCount,
+            elapsedMs,
+            finalScore,
+            lifelinesUsed: lifelinesUsed || {},
+            lifelineLevel: lifelineLevel || 0,
+            wordRevealed: true,
+            letterRevealedUsed: letterRevealedUsed || false,
+            isPerfect: false,
+          };
+          const milestones = checkMilestones(puzzle.id, isQuick, stats, puzzleNamespace);
+          if (typeof onPuzzleComplete === 'function' && milestones.length > 0) {
+            onPuzzleComplete(milestones);
+          }
+        } catch (e) {
+          console.warn('Error checking badges on reveal complete:', e);
+        }
+        
+        try {
+          document.dispatchEvent(new CustomEvent('stepwords-puzzle-completed'));
+        } catch {}
         
         // Track game completion
         try {

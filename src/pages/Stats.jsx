@@ -4,6 +4,7 @@ import { fetchQuickManifest } from "../lib/quickPuzzles.js";
 import { getTodayIsoInET } from "../lib/date.js";
 import { getAllStreaks } from "../lib/streak.js";
 import { getInitialLightMode } from "../lib/theme.js";
+import BadgesDisplay from "../components/BadgesDisplay.jsx";
 
 function formatAvg(ms) {
   if (!Number.isFinite(ms) || ms <= 0) return "—";
@@ -269,6 +270,12 @@ export default function Stats() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Badges */}
+        <div className={`rounded-lg border p-4 ${lightMode ? 'border-slate-300 bg-slate-100' : 'border-slate-700 bg-slate-800/50'}`}>
+          <div className={`text-lg font-semibold mb-3 ${lightMode ? 'text-slate-800' : 'text-slate-200'}`}>Badges</div>
+          <BadgesDisplay lightMode={lightMode} />
         </div>
       </div>
     </div>

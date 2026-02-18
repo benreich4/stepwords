@@ -4,6 +4,7 @@ import { fetchManifest } from "../lib/puzzles.js";
 import { fetchQuickManifest } from "../lib/quickPuzzles.js";
 import { getTodayIsoInET, isPreviewEnabled } from "../lib/date.js";
 import { parseLocalISODate } from "../lib/date.js";
+import BadgesDisplay from "../components/BadgesDisplay.jsx";
 
 export default function Archives() {
   const navigate = useNavigate();
@@ -396,6 +397,13 @@ export default function Archives() {
               <span className="flex items-center gap-1"><span className="text-red-400">❌</span> Failed</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">👟</span> In progress</span>
               <span className="flex items-center gap-1"><span className={`${lightMode ? 'text-gray-500' : 'text-gray-300'}`}>🪜</span> Not started</span>
+            </div>
+            )})()}
+            {/* Badges */}
+            {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
+            <div className={`mt-4 pt-4 border-t rounded-lg p-3 ${lightMode ? 'border-slate-200 bg-slate-100' : 'border-slate-700 bg-slate-800/50'}`}>
+              <div className={`text-sm font-semibold mb-2 ${lightMode ? 'text-slate-800' : 'text-slate-200'}`}>Badges</div>
+              <BadgesDisplay lightMode={lightMode} compact />
             </div>
             )})()}
           </div>

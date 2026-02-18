@@ -89,6 +89,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           firstLastStep: false
         },
         wordRevealed: false,
+        letterRevealedUsed: false,
         elapsedMs: 0,
         timerFinished: false,
       };
@@ -121,6 +122,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             firstLastStep: false
           },
           wordRevealed: parsed.wordRevealed || false,
+          letterRevealedUsed: parsed.letterRevealedUsed || false,
           elapsedMs: Number.isFinite(parsed.elapsedMs) ? parsed.elapsedMs : 0,
           timerFinished: parsed.timerFinished === true,
         };
@@ -154,6 +156,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         firstLastStep: false
       },
       wordRevealed: false,
+      letterRevealedUsed: false,
       elapsedMs: 0,
       timerFinished: false,
     };
@@ -373,6 +376,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   
   // Reveal state
   const [wordRevealed, setWordRevealed] = useState(savedState.wordRevealed || false);
+  const [letterRevealedUsed, setLetterRevealedUsed] = useState(savedState.letterRevealedUsed || false);
   
   // Lifeline functionality
   const { generatePrefixData, showPrefixes, extendPrefixes, canExtend } = useLifelines(
@@ -591,6 +595,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     setLockColors(newLockColors);
     setGuesses(newGuesses);
     setHintCount((n) => n + 2);
+    setLetterRevealedUsed(true);
     showToast("Revealed letter.", 2000, "info");
     try {
       if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
@@ -753,6 +758,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         lifelineLevel,
         lifelinesUsed,
         wordRevealed,
+        letterRevealedUsed,
         elapsedMs,
         timerFinished,
       };
@@ -765,7 +771,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Save state whenever it changes
   useEffect(() => {
     saveGameState();
-  }, [lockColors, level, guesses, cursor, wasWrong, hintCount, guessCount, wrongGuessCount, lifelineLevel, lifelinesUsed, wordRevealed, elapsedMs, timerFinished]);
+  }, [lockColors, level, guesses, cursor, wasWrong, hintCount, guessCount, wrongGuessCount, lifelineLevel, lifelinesUsed, wordRevealed, letterRevealedUsed, elapsedMs, timerFinished]);
 
   // Autosolve mode: automatically solve the puzzle
   const gridScrollRef = useRef(null);
@@ -831,7 +837,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     isQuick,
     elapsedMs,
     formatElapsed(elapsedMs),
-    effectiveSettings.soundsEnabled
+    effectiveSettings.soundsEnabled,
+    lifelinesUsed,
+    lifelineLevel,
+    letterRevealedUsed,
+    (milestones) => {
+      if (milestones.length > 0) {
+        setMilestone(milestones[0]);
+        milestones.slice(1).forEach((m, idx) => {
+          setTimeout(() => setMilestone(m), (idx + 1) * 3500);
+        });
+      }
+    }
   );
   
   const pointsNow = Math.max(0, scoreBase - usedCount);
@@ -1196,6 +1213,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             wrongGuessCount,
             elapsedMs,
             finalScore,
+            lifelinesUsed,
+            lifelineLevel,
+            wordRevealed,
+            letterRevealedUsed,
+            isPerfect: checkPerfectSolve(hintCount, wrongGuessCount),
           };
           const milestones = checkMilestones(puzzle.id, isQuick, stats, puzzleNamespace);
           if (milestones.length > 0) {
