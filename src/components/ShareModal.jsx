@@ -256,11 +256,11 @@ export default function ShareModal({
                   key={n}
                   type="button"
                   onClick={() => handleRate(n)}
-                  className={`p-1 text-2xl leading-none transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-1 rounded ${lightMode ? 'focus:ring-amber-500 text-amber-500 hover:text-amber-600' : 'focus:ring-amber-400 text-amber-400 hover:text-amber-300'}`}
-                  aria-label={`${n} ${n === 1 ? 'star' : 'stars'}`}
+                  className={`p-1 text-2xl leading-none transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-1 rounded ${lightMode ? 'focus:ring-rose-500 text-rose-500 hover:text-rose-600' : 'focus:ring-rose-400 text-rose-400 hover:text-rose-300'}`}
+                  aria-label={`${n} ${n === 1 ? 'heart' : 'hearts'}`}
                   aria-pressed={rating === n}
                 >
-                  {rating !== null && n <= rating ? '★' : '☆'}
+                  {rating !== null && n <= rating ? '❤️' : '🤍'}
                 </button>
               ))}
             </div>

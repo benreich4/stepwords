@@ -15,7 +15,7 @@ export default function RatingIntroPopup({ onClose, lightMode = false }) {
       <div className={`w-full max-w-lg rounded-2xl border p-5 shadow-2xl ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900'}`}>
         <div className="flex items-center justify-between mb-3">
           <div className={`text-xl font-semibold flex items-center gap-2 ${lightMode ? 'text-gray-900' : 'text-white'}`}>
-            <span className="text-2xl">★</span> Star ratings are here!
+            <span className="text-2xl">❤️</span> Heart ratings are here!
           </div>
           <button
             onClick={onClose}
@@ -26,7 +26,7 @@ export default function RatingIntroPopup({ onClose, lightMode = false }) {
           </button>
         </div>
         <p className={`text-sm mb-4 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
-          You can now rate each puzzle 1–5 stars after completing it. Your ratings help us find the best puzzles and improve the experience for everyone.
+          You can now rate each puzzle 1–5 hearts after completing it. Your ratings help us find the best puzzles and improve the experience for everyone.
         </p>
         <p className={`text-sm mb-4 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
           <strong>Already completed some puzzles?</strong>{' '}
