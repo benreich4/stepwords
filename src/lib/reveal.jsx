@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { shouldSendAnalytics } from './autosolveUtils.js';
-import { playApplauseSound } from './solveSound.js';
+import { playCompletionSoundOnce } from './solveSound.js';
 import { updateStreak } from './streak.js';
 import { checkMilestones } from './milestones.js';
 
@@ -45,7 +45,7 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
       // Check if puzzle is now solved
       if (isPuzzleSolved(newLockColors, rows)) {
         setLockColors(newLockColors);
-        if (soundsEnabled) playApplauseSound();
+        if (soundsEnabled) playCompletionSoundOnce(puzzle.id, puzzleNamespace, false, true);
         showToast("🎉 You solved all the Stepwords!", 2800, "success");
         const share = buildEmojiShareGridFrom(rows, newLockColors);
         setShareText(share);

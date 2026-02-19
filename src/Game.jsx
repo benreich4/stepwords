@@ -15,7 +15,7 @@ import { usePuzzleTimer } from "./lib/timer.js";
 import { updateStreak, getStreak } from "./lib/streak.js";
 import { getInitialLightMode, saveLightModePreference } from "./lib/theme.js";
 import { checkMilestones, checkPerfectSolve } from "./lib/milestones.js";
-import { playSolveSound, playApplauseSound } from "./lib/solveSound.js";
+import { playCompletionSoundOnce } from "./lib/solveSound.js";
 import { playStepSound, playIncorrectSound, playIncompleteSound } from "./lib/progressSound.js";
 import { useAutosolve } from "./lib/autosolve.js";
 import { isAutosolveMode, isPartialAutosolveMode, shouldSendAnalytics } from "./lib/autosolveUtils.js";
@@ -1191,7 +1191,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         
         // Trigger confetti celebration!
         setConfettiTrigger(prev => prev + 1);
-        if (!autosolveMode && effectiveSettings.soundsEnabled) stepSoundDone.then(() => (isPerfect ? playSolveSound() : playApplauseSound()));
+        if (!autosolveMode && effectiveSettings.soundsEnabled) stepSoundDone.then(() => playCompletionSoundOnce(puzzle.id, puzzleNamespace, isPerfect, true));
 
         // Update streak (only if this is today's puzzle)
         const newStreak = updateStreak(puzzle.date, isQuick);
@@ -1581,7 +1581,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       setShowShare(true);
       if (!autosolveMode && effectiveSettings.soundsEnabled) {
         const isPerfectAuto = checkPerfectSolve(hintCount, wrongGuessCount);
-        isPerfectAuto ? playSolveSound() : playApplauseSound();
+        playCompletionSoundOnce(puzzle.id, puzzleNamespace, isPerfectAuto, true);
       }
 
       // Update streak (only if this is today's puzzle)
