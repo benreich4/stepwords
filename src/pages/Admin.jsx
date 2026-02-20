@@ -37,6 +37,49 @@ function Admin() {
     checkAuth();
   }, []);
 
+  // Must run before any early return to satisfy Rules of Hooks
+  const byPuzzle = (stats?.ratings?.by_puzzle) || [];
+  const ratingsFilteredSorted = useMemo(() => {
+    let list = [...byPuzzle];
+    const { puzzle, mode, avgMin, avgMax, countMin, countMax } = ratingsFilter;
+    if (puzzle.trim()) {
+      const q = puzzle.trim().toLowerCase();
+      list = list.filter((p) => String(p.puzzle_id || "").toLowerCase().includes(q));
+    }
+    if (mode.trim()) {
+      const m = mode.trim().toLowerCase();
+      list = list.filter((p) => String(p.mode || "").toLowerCase() === m);
+    }
+    if (avgMin !== "") {
+      const v = parseFloat(avgMin);
+      if (!Number.isNaN(v)) list = list.filter((p) => (p.avg ?? 0) >= v);
+    }
+    if (avgMax !== "") {
+      const v = parseFloat(avgMax);
+      if (!Number.isNaN(v)) list = list.filter((p) => (p.avg ?? 0) <= v);
+    }
+    if (countMin !== "") {
+      const v = parseInt(countMin, 10);
+      if (!Number.isNaN(v)) list = list.filter((p) => (p.count ?? 0) >= v);
+    }
+    if (countMax !== "") {
+      const v = parseInt(countMax, 10);
+      if (!Number.isNaN(v)) list = list.filter((p) => (p.count ?? 0) <= v);
+    }
+    const { col, dir } = ratingsSort;
+    list.sort((a, b) => {
+      let va = col === "puzzle_id" ? String(a.puzzle_id || "") : col === "mode" ? String(a.mode || "") : col === "avg" ? (a.avg ?? 0) : (a.count ?? 0);
+      let vb = col === "puzzle_id" ? String(b.puzzle_id || "") : col === "mode" ? String(b.mode || "") : col === "avg" ? (b.avg ?? 0) : (b.count ?? 0);
+      if (col === "puzzle_id" || col === "mode") {
+        const cmp = va.localeCompare(vb);
+        return dir === "asc" ? cmp : -cmp;
+      }
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return dir === "asc" ? cmp : -cmp;
+    });
+    return list;
+  }, [byPuzzle, ratingsFilter, ratingsSort]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError("");
@@ -126,7 +169,6 @@ function Admin() {
 
   const s = stats?.summary || {};
   const ratings = stats?.ratings || {};
-  const byPuzzle = ratings.by_puzzle || [];
   const completionsByDay = stats?.completions_by_day || {};
   const completionsByPuzzle = stats?.completions_by_puzzle || {};
   const completionsByMode = stats?.completions_by_mode || {};
@@ -134,48 +176,6 @@ function Admin() {
 
   const dayEntries = Object.entries(completionsByDay).sort((a, b) => b[0].localeCompare(a[0]));
   const puzzleEntries = Object.entries(completionsByPuzzle).slice(0, 50);
-
-  // Filtered and sorted ratings
-  const ratingsFilteredSorted = useMemo(() => {
-    let list = [...byPuzzle];
-    const { puzzle, mode, avgMin, avgMax, countMin, countMax } = ratingsFilter;
-    if (puzzle.trim()) {
-      const q = puzzle.trim().toLowerCase();
-      list = list.filter((p) => String(p.puzzle_id || "").toLowerCase().includes(q));
-    }
-    if (mode.trim()) {
-      const m = mode.trim().toLowerCase();
-      list = list.filter((p) => String(p.mode || "").toLowerCase() === m);
-    }
-    if (avgMin !== "") {
-      const v = parseFloat(avgMin);
-      if (!Number.isNaN(v)) list = list.filter((p) => (p.avg ?? 0) >= v);
-    }
-    if (avgMax !== "") {
-      const v = parseFloat(avgMax);
-      if (!Number.isNaN(v)) list = list.filter((p) => (p.avg ?? 0) <= v);
-    }
-    if (countMin !== "") {
-      const v = parseInt(countMin, 10);
-      if (!Number.isNaN(v)) list = list.filter((p) => (p.count ?? 0) >= v);
-    }
-    if (countMax !== "") {
-      const v = parseInt(countMax, 10);
-      if (!Number.isNaN(v)) list = list.filter((p) => (p.count ?? 0) <= v);
-    }
-    const { col, dir } = ratingsSort;
-    list.sort((a, b) => {
-      let va = col === "puzzle_id" ? String(a.puzzle_id || "") : col === "mode" ? String(a.mode || "") : col === "avg" ? (a.avg ?? 0) : (a.count ?? 0);
-      let vb = col === "puzzle_id" ? String(b.puzzle_id || "") : col === "mode" ? String(b.mode || "") : col === "avg" ? (b.avg ?? 0) : (b.count ?? 0);
-      if (col === "puzzle_id" || col === "mode") {
-        const cmp = va.localeCompare(vb);
-        return dir === "asc" ? cmp : -cmp;
-      }
-      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
-      return dir === "asc" ? cmp : -cmp;
-    });
-    return list;
-  }, [byPuzzle, ratingsFilter, ratingsSort]);
 
   const toggleSort = (col) => {
     setRatingsSort((prev) => ({
