@@ -172,7 +172,15 @@ function Admin() {
   const completionsByMode = stats?.completions_by_mode || {};
   const submissions = stats?.submissions || {};
 
-  const dayEntries = Object.entries(completionsByDay).sort((a, b) => b[0].localeCompare(a[0]));
+  const dayEntries = Object.entries(completionsByDay || {})
+    .map(([date, byMode]) => ({
+      date,
+      main: byMode?.main ?? 0,
+      quick: byMode?.quick ?? 0,
+      other: byMode?.other ?? 0,
+      total: (byMode?.main ?? 0) + (byMode?.quick ?? 0) + (byMode?.other ?? 0),
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   const toggleSort = (col) => {
     setRatingsSort((prev) => ({
@@ -269,10 +277,10 @@ function Admin() {
                 <thead>
                   <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
                     <th className="text-left py-2">
-                      <SortableHeader col="puzzle_id" label="Puzzle" sort={ratingsSort} onSort={toggleSort} />
+                      <SortableHeader col="date" label="Date" sort={ratingsSort} onSort={toggleSort} />
                     </th>
                     <th className="text-left py-2">
-                      <SortableHeader col="date" label="Date" sort={ratingsSort} onSort={toggleSort} />
+                      <SortableHeader col="puzzle_id" label="Puzzle" sort={ratingsSort} onSort={toggleSort} />
                     </th>
                     <th className="text-left py-2">
                       <SortableHeader col="mode" label="Mode" sort={ratingsSort} onSort={toggleSort} />
@@ -289,6 +297,7 @@ function Admin() {
                     <th className="text-left py-2 pl-6">Distribution</th>
                   </tr>
                   <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
+                    <th className="text-left py-1.5 pr-2" />
                     <th className="text-left py-1.5 pr-2">
                       <input
                         type="text"
@@ -298,7 +307,6 @@ function Admin() {
                         className={`w-full max-w-[120px] px-2 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
                       />
                     </th>
-                    <th className="text-left py-1.5 pr-2" />
                     <th className="text-left py-1.5 pr-2">
                       <select
                         value={ratingsFilter.mode}
@@ -349,8 +357,8 @@ function Admin() {
                 <tbody>
                   {ratingsFilteredSorted.map((p) => (
                     <tr key={`${p.puzzle_id}-${p.mode}`} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
-                      <td className="py-1.5 font-mono">{p.puzzle_id}</td>
                       <td className="py-1.5">{p.date ?? "—"}</td>
+                      <td className="py-1.5 font-mono">{p.puzzle_id}</td>
                       <td className="py-1.5">{p.mode}</td>
                       <td className="text-right py-1.5">{p.avg?.toFixed(2) ?? "—"}</td>
                       <td className="text-right py-1.5">{p.count ?? 0}</td>
@@ -376,14 +384,20 @@ function Admin() {
                 <thead>
                   <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
                     <th className="text-left py-2">Date</th>
-                    <th className="text-right py-2">Count</th>
+                    <th className="text-right py-2">Main</th>
+                    <th className="text-right py-2">Quick</th>
+                    <th className="text-right py-2">Other</th>
+                    <th className="text-right py-2">Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {dayEntries.map(([date, count]) => (
-                    <tr key={date} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
-                      <td className="py-1.5">{date}</td>
-                      <td className="text-right py-1.5 font-mono">{count}</td>
+                  {dayEntries.map((row) => (
+                    <tr key={row.date} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
+                      <td className="py-1.5">{row.date}</td>
+                      <td className="text-right py-1.5 font-mono">{row.main}</td>
+                      <td className="text-right py-1.5 font-mono">{row.quick}</td>
+                      <td className="text-right py-1.5 font-mono">{row.other}</td>
+                      <td className="text-right py-1.5 font-mono font-medium">{row.total}</td>
                     </tr>
                   ))}
                 </tbody>

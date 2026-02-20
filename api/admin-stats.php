@@ -159,7 +159,7 @@ usort($out['ratings']['by_puzzle'], function ($a, $b) {
 });
 
 // --- Completions ---
-$completionsByDay = [];
+$completionsByDay = []; // date => ['main' => n, 'quick' => n, 'other' => n]
 $completionsByPuzzle = [];
 $completionsByPuzzleMode = [];
 $completionsByMode = ['main' => 0, 'quick' => 0, 'other' => 0];
@@ -178,7 +178,11 @@ if (file_exists($completionsFile)) {
         $puzzleId = (string) ($entry['puzzle_id'] ?? 'unknown');
         $dt = (new DateTime('@' . (int) $entry['ts']))->setTimezone($et);
         $date = $dt->format('Y-m-d');
-        $completionsByDay[$date] = ($completionsByDay[$date] ?? 0) + 1;
+        if (!isset($completionsByDay[$date])) {
+            $completionsByDay[$date] = ['main' => 0, 'quick' => 0, 'other' => 0];
+        }
+        $m = in_array($mode, ['main', 'quick', 'other'], true) ? $mode : 'other';
+        $completionsByDay[$date][$m] = ($completionsByDay[$date][$m] ?? 0) + 1;
         $completionsByPuzzle[$puzzleId] = ($completionsByPuzzle[$puzzleId] ?? 0) + 1;
         if (in_array($mode, ['main', 'quick', 'other'], true)) {
             $completionsByMode[$mode]++;
@@ -207,7 +211,7 @@ foreach ($completionsByPuzzle as $pid => $cnt) {
 $out['completions_by_day'] = $completionsByDay;
 $out['completions_by_puzzle'] = $completionsByPuzzleList;
 $out['completions_by_mode'] = $completionsByMode;
-$out['completions_total'] = array_sum($completionsByDay);
+$out['completions_total'] = array_sum(array_map(fn($d) => ($d['main'] ?? 0) + ($d['quick'] ?? 0) + ($d['other'] ?? 0), $completionsByDay));
 
 // --- Submissions ---
 $submissionCount = 0;
