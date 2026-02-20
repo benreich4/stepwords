@@ -35,3 +35,6 @@ youtube-credentials.json
 
 # Todos file
 todos
+
+# Admin config (contains password hash)
+api/admin-config.php

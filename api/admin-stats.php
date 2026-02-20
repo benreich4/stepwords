@@ -104,6 +104,7 @@ $completionsByDay = [];
 $completionsByPuzzle = [];
 $completionsByMode = ['main' => 0, 'quick' => 0, 'other' => 0];
 
+$et = new DateTimeZone('America/New_York');
 if (file_exists($completionsFile)) {
     $lines = file($completionsFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
@@ -111,7 +112,8 @@ if (file_exists($completionsFile)) {
         if (!is_array($entry) || !isset($entry['ts'])) continue;
         $mode = $entry['mode'] ?? 'main';
         $puzzleId = $entry['puzzle_id'] ?? 'unknown';
-        $date = date('Y-m-d', (int) $entry['ts']);
+        $dt = (new DateTime('@' . (int) $entry['ts']))->setTimezone($et);
+        $date = $dt->format('Y-m-d');
         $completionsByDay[$date] = ($completionsByDay[$date] ?? 0) + 1;
         $completionsByPuzzle[$puzzleId] = ($completionsByPuzzle[$puzzleId] ?? 0) + 1;
         if (in_array($mode, ['main', 'quick', 'other'], true)) {
@@ -139,6 +141,7 @@ if (is_dir($submissionsDir)) {
         if ($raw === false) continue;
         $data = json_decode($raw, true);
         $submissionList[] = [
+            'id' => basename($f, '.json'),
             'filename' => basename($f),
             'author' => $data['author'] ?? null,
             'email' => $data['email'] ?? null,

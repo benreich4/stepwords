@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getInitialLightMode } from "../lib/theme.js";
 
@@ -12,6 +12,9 @@ function Admin() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("summary");
   const lightMode = useState(() => getInitialLightMode())[0];
+  // Ratings table sort/filter
+  const [ratingsSort, setRatingsSort] = useState({ col: "avg", dir: "desc" });
+  const [ratingsFilter, setRatingsFilter] = useState({ puzzle: "", mode: "", avgMin: "", avgMax: "", countMin: "", countMax: "" });
 
   const checkAuth = async () => {
     try {
@@ -132,6 +135,55 @@ function Admin() {
   const dayEntries = Object.entries(completionsByDay).sort((a, b) => b[0].localeCompare(a[0]));
   const puzzleEntries = Object.entries(completionsByPuzzle).slice(0, 50);
 
+  // Filtered and sorted ratings
+  const ratingsFilteredSorted = useMemo(() => {
+    let list = [...byPuzzle];
+    const { puzzle, mode, avgMin, avgMax, countMin, countMax } = ratingsFilter;
+    if (puzzle.trim()) {
+      const q = puzzle.trim().toLowerCase();
+      list = list.filter((p) => String(p.puzzle_id || "").toLowerCase().includes(q));
+    }
+    if (mode.trim()) {
+      const m = mode.trim().toLowerCase();
+      list = list.filter((p) => String(p.mode || "").toLowerCase() === m);
+    }
+    if (avgMin !== "") {
+      const v = parseFloat(avgMin);
+      if (!Number.isNaN(v)) list = list.filter((p) => (p.avg ?? 0) >= v);
+    }
+    if (avgMax !== "") {
+      const v = parseFloat(avgMax);
+      if (!Number.isNaN(v)) list = list.filter((p) => (p.avg ?? 0) <= v);
+    }
+    if (countMin !== "") {
+      const v = parseInt(countMin, 10);
+      if (!Number.isNaN(v)) list = list.filter((p) => (p.count ?? 0) >= v);
+    }
+    if (countMax !== "") {
+      const v = parseInt(countMax, 10);
+      if (!Number.isNaN(v)) list = list.filter((p) => (p.count ?? 0) <= v);
+    }
+    const { col, dir } = ratingsSort;
+    list.sort((a, b) => {
+      let va = col === "puzzle_id" ? String(a.puzzle_id || "") : col === "mode" ? String(a.mode || "") : col === "avg" ? (a.avg ?? 0) : (a.count ?? 0);
+      let vb = col === "puzzle_id" ? String(b.puzzle_id || "") : col === "mode" ? String(b.mode || "") : col === "avg" ? (b.avg ?? 0) : (b.count ?? 0);
+      if (col === "puzzle_id" || col === "mode") {
+        const cmp = va.localeCompare(vb);
+        return dir === "asc" ? cmp : -cmp;
+      }
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return dir === "asc" ? cmp : -cmp;
+    });
+    return list;
+  }, [byPuzzle, ratingsFilter, ratingsSort]);
+
+  const toggleSort = (col) => {
+    setRatingsSort((prev) => ({
+      col,
+      dir: prev.col === col ? (prev.dir === "asc" ? "desc" : "asc") : col === "avg" || col === "count" ? "desc" : "asc",
+    }));
+  };
+
   return (
     <div className={`min-h-screen ${lightMode ? "bg-gray-100 text-gray-900" : "bg-gray-950 text-gray-100"}`}>
       <div className="max-w-4xl mx-auto px-4 py-6">
@@ -181,7 +233,6 @@ function Admin() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <StatCard label="Total ratings" value={s.total_ratings} lightMode={lightMode} />
               <StatCard label="Total completions" value={s.total_completions} lightMode={lightMode} />
-              <StatCard label="Unique days (completions)" value={s.unique_days_with_completions} lightMode={lightMode} />
               <StatCard label="Puzzles rated" value={s.unique_puzzles_rated} lightMode={lightMode} />
               <StatCard label="Submissions" value={s.total_submissions} lightMode={lightMode} />
             </div>
@@ -201,34 +252,110 @@ function Admin() {
           <div className={`rounded-lg border p-4 ${lightMode ? "border-gray-300 bg-white" : "border-gray-800 bg-gray-900"}`}>
             <h2 className="text-lg font-semibold mb-2">Ratings by puzzle</h2>
             <p className="text-sm opacity-70 mb-4">
-              Total: {ratings.total_count} ratings ({ratings.raw_count} raw entries before dedup)
+              Showing {ratingsFilteredSorted.length} of {byPuzzle.length} — Total: {ratings.total_count} ratings ({ratings.raw_count} raw entries before dedup)
             </p>
             <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
-                    <th className="text-left py-2">Puzzle</th>
-                    <th className="text-left py-2">Mode</th>
-                    <th className="text-right py-2">Avg</th>
-                    <th className="text-right py-2">Count</th>
-                    <th className="text-left py-2">Distribution</th>
+                    <th className="text-left py-2">
+                      <SortableHeader col="puzzle_id" label="Puzzle" sort={ratingsSort} onSort={toggleSort} />
+                    </th>
+                    <th className="text-left py-2">
+                      <SortableHeader col="mode" label="Mode" sort={ratingsSort} onSort={toggleSort} />
+                    </th>
+                    <th className="text-right py-2">
+                      <SortableHeader col="avg" label="Avg" sort={ratingsSort} onSort={toggleSort} />
+                    </th>
+                    <th className="text-right py-2">
+                      <SortableHeader col="count" label="Count" sort={ratingsSort} onSort={toggleSort} />
+                    </th>
+                    <th className="text-left py-2 pl-6">Distribution</th>
+                  </tr>
+                  <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
+                    <th className="text-left py-1.5 pr-2">
+                      <input
+                        type="text"
+                        placeholder="Filter…"
+                        value={ratingsFilter.puzzle}
+                        onChange={(e) => setRatingsFilter((f) => ({ ...f, puzzle: e.target.value }))}
+                        className={`w-full max-w-[120px] px-2 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
+                      />
+                    </th>
+                    <th className="text-left py-1.5 pr-2">
+                      <select
+                        value={ratingsFilter.mode}
+                        onChange={(e) => setRatingsFilter((f) => ({ ...f, mode: e.target.value }))}
+                        className={`w-full max-w-[100px] px-2 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
+                      >
+                        <option value="">All</option>
+                        <option value="main">main</option>
+                        <option value="quick">quick</option>
+                        <option value="other">other</option>
+                      </select>
+                    </th>
+                    <th className="text-right py-1.5">
+                      <div className="flex gap-1 justify-end">
+                        <input
+                          type="number"
+                          placeholder="Min"
+                          min={0}
+                          max={5}
+                          step={0.1}
+                          value={ratingsFilter.avgMin}
+                          onChange={(e) => setRatingsFilter((f) => ({ ...f, avgMin: e.target.value }))}
+                          className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Max"
+                          min={0}
+                          max={5}
+                          step={0.1}
+                          value={ratingsFilter.avgMax}
+                          onChange={(e) => setRatingsFilter((f) => ({ ...f, avgMax: e.target.value }))}
+                          className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
+                        />
+                      </div>
+                    </th>
+                    <th className="text-right py-1.5">
+                      <div className="flex gap-1 justify-end">
+                        <input
+                          type="number"
+                          placeholder="Min"
+                          min={0}
+                          value={ratingsFilter.countMin}
+                          onChange={(e) => setRatingsFilter((f) => ({ ...f, countMin: e.target.value }))}
+                          className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Max"
+                          min={0}
+                          value={ratingsFilter.countMax}
+                          onChange={(e) => setRatingsFilter((f) => ({ ...f, countMax: e.target.value }))}
+                          className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
+                        />
+                      </div>
+                    </th>
+                    <th className="pl-6" />
                   </tr>
                 </thead>
                 <tbody>
-                  {byPuzzle.map((p) => (
+                  {ratingsFilteredSorted.map((p) => (
                     <tr key={`${p.puzzle_id}-${p.mode}`} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
                       <td className="py-1.5 font-mono">{p.puzzle_id}</td>
                       <td className="py-1.5">{p.mode}</td>
                       <td className="text-right py-1.5">{p.avg?.toFixed(2) ?? "—"}</td>
                       <td className="text-right py-1.5">{p.count ?? 0}</td>
-                      <td className="py-1.5">
+                      <td className="py-1.5 pl-6">
                         <RatingBars byRating={p.by_rating || {}} />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {byPuzzle.length === 0 && <p className="py-4 text-gray-500">No ratings yet.</p>}
+              {ratingsFilteredSorted.length === 0 && <p className="py-4 text-gray-500">No ratings match the filters.</p>}
             </div>
           </div>
         )}
@@ -295,14 +422,22 @@ function Admin() {
                     <th className="text-left py-2">Author</th>
                     <th className="text-left py-2">Email</th>
                     <th className="text-left py-2">Submitted</th>
+                    <th className="text-left py-2"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {(submissions.recent || []).map((sub, i) => (
-                    <tr key={i} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
+                    <tr key={sub.id ?? i} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
                       <td className="py-1.5">{sub.author ?? "—"}</td>
                       <td className="py-1.5">{sub.email ?? "—"}</td>
                       <td className="py-1.5 text-gray-500">{sub.submittedAt ?? "—"}</td>
+                      <td className="py-1.5">
+                        {sub.id && (
+                          <Link to={`/submissions/${encodeURIComponent(sub.id)}`} className="text-sky-400 hover:underline">
+                            Open
+                          </Link>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -313,6 +448,20 @@ function Admin() {
         )}
       </div>
     </div>
+  );
+}
+
+function SortableHeader({ col, label, sort, onSort }) {
+  const isActive = sort.col === col;
+  const arrow = isActive ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(col)}
+      className={`font-medium hover:underline ${isActive ? "" : "opacity-70"}`}
+    >
+      {label}{arrow}
+    </button>
   );
 }
 
