@@ -33,8 +33,8 @@ $submissionsDir = __DIR__ . '/submissions';
 
 // Build completions by (puzzle_id, mode) and avg solve time/hints for ratings enrichment (before we output ratings)
 $completionsByPuzzleMode = [];
-$avgElapsedByPuzzleMode = []; // key => ['sum' => n, 'count' => n]
-$avgHintsByPuzzleMode = [];   // key => ['sum' => n, 'count' => n]
+$elapsedValuesByPuzzleMode = []; // key => [values...] for outlier filtering
+$avgHintsByPuzzleMode = [];      // key => ['sum' => n, 'count' => n]
 if (file_exists($completionsFile)) {
     $lines = file($completionsFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
@@ -45,15 +45,37 @@ if (file_exists($completionsFile)) {
         $key = $puzzleId . '|' . $mode;
         $completionsByPuzzleMode[$key] = ($completionsByPuzzleMode[$key] ?? 0) + 1;
         if (isset($entry['elapsed_ms']) && $entry['elapsed_ms'] >= 0) {
-            if (!isset($avgElapsedByPuzzleMode[$key])) $avgElapsedByPuzzleMode[$key] = ['sum' => 0, 'count' => 0];
-            $avgElapsedByPuzzleMode[$key]['sum'] += (int) $entry['elapsed_ms'];
-            $avgElapsedByPuzzleMode[$key]['count']++;
+            $elapsedValuesByPuzzleMode[$key][] = (int) $entry['elapsed_ms'];
         }
         if (isset($entry['hint_count']) && $entry['hint_count'] >= 0) {
             if (!isset($avgHintsByPuzzleMode[$key])) $avgHintsByPuzzleMode[$key] = ['sum' => 0, 'count' => 0];
             $avgHintsByPuzzleMode[$key]['sum'] += (int) $entry['hint_count'];
             $avgHintsByPuzzleMode[$key]['count']++;
         }
+    }
+}
+
+// Compute avg solve time per puzzle, excluding IQR outliers (only when we have enough data)
+$avgElapsedByPuzzleMode = [];
+foreach ($elapsedValuesByPuzzleMode as $key => $vals) {
+    $n = count($vals);
+    if ($n === 0) continue;
+    $filtered = $vals;
+    if ($n >= 4) {
+        sort($vals);
+        $q1Idx = (int) floor($n * 0.25);
+        $q3Idx = (int) floor($n * 0.75);
+        $q1 = $vals[$q1Idx];
+        $q3 = $vals[$q3Idx];
+        $iqr = $q3 - $q1;
+        if ($iqr > 0) {
+            $lo = $q1 - 1.5 * $iqr;
+            $hi = $q3 + 1.5 * $iqr;
+            $filtered = array_values(array_filter($vals, function ($v) use ($lo, $hi) { return $v >= $lo && $v <= $hi; }));
+        }
+    }
+    if (count($filtered) > 0) {
+        $avgElapsedByPuzzleMode[$key] = (int) round(array_sum($filtered) / count($filtered));
     }
 }
 
@@ -153,8 +175,7 @@ foreach ($aggregates as $k => &$agg) {
     $mode = $agg['mode'] ?? 'main';
     $agg['date'] = $dateLookup[$pid . '|' . $mode] ?? null;
     $agg['completions'] = $completionsByPuzzleMode[$k] ?? 0;
-    $elapsed = $avgElapsedByPuzzleMode[$k] ?? null;
-    $agg['avg_solve_time_ms'] = ($elapsed && $elapsed['count'] > 0) ? (int) round($elapsed['sum'] / $elapsed['count']) : null;
+    $agg['avg_solve_time_ms'] = $avgElapsedByPuzzleMode[$k] ?? null;
     $hints = $avgHintsByPuzzleMode[$k] ?? null;
     $agg['avg_hints_used'] = ($hints && $hints['count'] > 0) ? round($hints['sum'] / $hints['count'], 2) : null;
 }

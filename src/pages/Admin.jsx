@@ -13,8 +13,9 @@ function Admin() {
   const [activeTab, setActiveTab] = useState("summary");
   const lightMode = useState(() => getInitialLightMode())[0];
   // Ratings table sort/filter
-  const [ratingsSort, setRatingsSort] = useState({ col: "avg", dir: "desc" });
+  const [ratingsSort, setRatingsSort] = useState({ col: "date", dir: "desc" });
   const [ratingsFilter, setRatingsFilter] = useState({ puzzle: "", mode: "", avgMin: "", countMin: "", completionsMin: "" });
+  const [openDistribution, setOpenDistribution] = useState(null);
 
   const checkAuth = async () => {
     try {
@@ -268,35 +269,35 @@ function Admin() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
-                    <th className="text-left py-2">
+                    <th className="text-left py-2 pr-4">
                       <SortableHeader col="date" label="Date" sort={ratingsSort} onSort={toggleSort} />
                     </th>
-                    <th className="text-left py-2">
+                    <th className="text-right py-2">
                       <SortableHeader col="puzzle_id" label="Puzzle" sort={ratingsSort} onSort={toggleSort} />
                     </th>
-                    <th className="text-left py-2">
+                    <th className="text-right py-2">
                       <SortableHeader col="mode" label="Mode" sort={ratingsSort} onSort={toggleSort} />
                     </th>
                     <th className="text-right py-2">
-                      <SortableHeader col="avg" label="Avg" sort={ratingsSort} onSort={toggleSort} />
+                      <SortableHeader col="avg" label="Avg" sort={ratingsSort} onSort={toggleSort} title="Avg rating" />
                     </th>
                     <th className="text-right py-2">
-                      <SortableHeader col="count" label="Count" sort={ratingsSort} onSort={toggleSort} />
+                      <SortableHeader col="count" label="N" sort={ratingsSort} onSort={toggleSort} title="Rating count" />
                     </th>
                     <th className="text-right py-2">
-                      <SortableHeader col="completions" label="Completions" sort={ratingsSort} onSort={toggleSort} />
+                      <SortableHeader col="completions" label="Done" sort={ratingsSort} onSort={toggleSort} title="Completions" />
                     </th>
                     <th className="text-right py-2">
-                      <SortableHeader col="avg_solve_time_ms" label="Avg solve" sort={ratingsSort} onSort={toggleSort} />
+                      <SortableHeader col="avg_solve_time_ms" label="Time" sort={ratingsSort} onSort={toggleSort} title="Avg solve time" />
                     </th>
                     <th className="text-right py-2">
-                      <SortableHeader col="avg_hints_used" label="Avg hints" sort={ratingsSort} onSort={toggleSort} />
+                      <SortableHeader col="avg_hints_used" label="Hints" sort={ratingsSort} onSort={toggleSort} title="Avg hints used" />
                     </th>
-                    <th className="text-left py-2 pl-6">Distribution</th>
+                    <th className="text-left py-2 pl-2 whitespace-nowrap" title="Rating distribution (1–5 stars)">Stars</th>
                   </tr>
                   <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
-                    <th className="text-left py-1.5 pr-2" />
-                    <th className="text-left py-1.5 pr-2">
+                    <th className="text-left py-1.5 pr-4" />
+                    <th className="text-right py-1.5 pr-2">
                       <input
                         type="text"
                         placeholder="Filter…"
@@ -305,7 +306,7 @@ function Admin() {
                         className={`w-full max-w-[120px] px-2 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
                       />
                     </th>
-                    <th className="text-left py-1.5 pr-2">
+                    <th className="text-right py-1.5 pr-2">
                       <select
                         value={ratingsFilter.mode}
                         onChange={(e) => setRatingsFilter((f) => ({ ...f, mode: e.target.value }))}
@@ -351,22 +352,25 @@ function Admin() {
                     </th>
                     <th className="text-right py-1.5" />
                     <th className="text-right py-1.5" />
-                    <th className="pl-6" />
+                    <th className="pl-2" />
                   </tr>
                 </thead>
                 <tbody>
                   {ratingsFilteredSorted.map((p) => (
                     <tr key={`${p.puzzle_id}-${p.mode}`} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
-                      <td className="py-1.5">{p.date ?? "—"}</td>
-                      <td className="py-1.5 font-mono">{p.puzzle_id}</td>
-                      <td className="py-1.5">{p.mode}</td>
+                      <td className="py-1.5 pr-4">{p.date ?? "—"}</td>
+                      <td className="text-right py-1.5 font-mono">{p.puzzle_id}</td>
+                      <td className="text-right py-1.5">{p.mode}</td>
                       <td className="text-right py-1.5">{p.avg?.toFixed(2) ?? "—"}</td>
                       <td className="text-right py-1.5">{p.count ?? 0}</td>
                       <td className="text-right py-1.5">{p.completions ?? 0}</td>
                       <td className="text-right py-1.5">{formatSolveTime(p.avg_solve_time_ms)}</td>
                       <td className="text-right py-1.5">{p.avg_hints_used != null ? p.avg_hints_used.toFixed(1) : "—"}</td>
-                      <td className="py-1.5 pl-6">
-                        <RatingBars byRating={p.by_rating || {}} />
+                      <td className="py-1.5 pl-2">
+                        <DistributionTrigger
+                          byRating={p.by_rating || {}}
+                          onOpen={() => setOpenDistribution({ key: `${p.puzzle_id}-${p.mode}`, byRating: p.by_rating || {}, puzzleId: p.puzzle_id, mode: p.mode })}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -374,6 +378,15 @@ function Admin() {
               </table>
               {ratingsFilteredSorted.length === 0 && <p className="py-4 text-gray-500">No ratings match the filters.</p>}
             </div>
+            {openDistribution && (
+              <DistributionModal
+                byRating={openDistribution.byRating}
+                puzzleId={openDistribution.puzzleId}
+                mode={openDistribution.mode}
+                lightMode={lightMode}
+                onClose={() => setOpenDistribution(null)}
+              />
+            )}
           </div>
         )}
 
@@ -464,14 +477,15 @@ function formatSolveTime(ms) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function SortableHeader({ col, label, sort, onSort }) {
+function SortableHeader({ col, label, sort, onSort, title }) {
   const isActive = sort.col === col;
   const arrow = isActive ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
   return (
     <button
       type="button"
       onClick={() => onSort(col)}
-      className={`font-medium hover:underline ${isActive ? "" : "opacity-70"}`}
+      title={title}
+      className={`font-medium hover:underline whitespace-nowrap ${isActive ? "" : "opacity-70"}`}
     >
       {label}{arrow}
     </button>
@@ -487,25 +501,82 @@ function StatCard({ label, value, lightMode }) {
   );
 }
 
-function RatingBars({ byRating }) {
-  const max = Math.max(...[1, 2, 3, 4, 5].map((i) => byRating[i] || 0), 1);
+function DistributionTrigger({ byRating, onOpen }) {
+  const total = [1, 2, 3, 4, 5].reduce((s, i) => s + (byRating[i] || 0), 0);
   return (
-    <div className="flex items-center gap-1" style={{ minWidth: 120 }}>
-      {[1, 2, 3, 4, 5].map((i) => {
-        const n = byRating[i] || 0;
-        const w = max > 0 ? Math.max((n / max) * 40, n > 0 ? 4 : 0) : 0;
-        return (
-          <div key={i} className="flex items-center gap-0.5" title={`${i}★: ${n}`}>
-            <span className="text-[10px] w-3">{i}</span>
-            <div className="h-1.5 bg-gray-700 rounded overflow-hidden" style={{ width: 24 }}>
-              <div
-                className="h-full bg-yellow-500 rounded"
-                style={{ width: `${w}px` }}
-              />
-            </div>
-          </div>
-        );
-      })}
+    <button
+      type="button"
+      onClick={onOpen}
+      title="View rating distribution"
+      className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+        total > 0
+          ? "bg-amber-500/20 text-amber-600 hover:bg-amber-500/30 dark:text-amber-400 dark:hover:bg-amber-500/25"
+          : "bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-default"
+      }`}
+    >
+      {total > 0 ? "★" : "—"}
+    </button>
+  );
+}
+
+function DistributionModal({ byRating, puzzleId, mode, lightMode, onClose }) {
+  const counts = [1, 2, 3, 4, 5].map((i) => byRating[i] || 0);
+  const max = Math.max(...counts, 1);
+  const total = counts.reduce((s, n) => s + n, 0);
+
+  useEffect(() => {
+    const handleKey = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className={`max-w-sm w-full mx-4 rounded-lg border shadow-xl p-4 ${lightMode ? "bg-white border-gray-200" : "bg-gray-900 border-gray-700"}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold">
+            Rating distribution — {puzzleId} ({mode})
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 -m-1"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <div className="flex items-end justify-between gap-2 px-2" style={{ height: 100 }}>
+          {[1, 2, 3, 4, 5].map((i) => {
+            const n = counts[i - 1];
+            const barH = max > 0 ? Math.max((n / max) * 72, n > 0 ? 4 : 0) : 0;
+            return (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div
+                  className={`w-full flex-1 flex flex-col justify-end items-center rounded-t ${
+                    lightMode ? "bg-gray-100" : "bg-gray-800"
+                  }`}
+                >
+                  <div
+                    className="w-3/4 min-w-[14px] bg-amber-500 rounded-t"
+                    style={{ height: barH }}
+                    title={`${i}★: ${n}`}
+                  />
+                </div>
+                <span className="text-xs font-medium">{i}★</span>
+                <span className="text-[10px] text-gray-500">{n}</span>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-xs text-gray-500 mt-2 text-center">{total} ratings</p>
+      </div>
     </div>
   );
 }
