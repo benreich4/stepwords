@@ -238,7 +238,7 @@ export default function App() {
     let cancelled = false;
     const path = location.pathname;
     const segments = path.split('/').filter(Boolean);
-    const onMainPuzzle = !isQuick && segments.length === 1 && segments[0] && !["archives","create","explore","submissions","stats"].includes(segments[0]);
+    const onMainPuzzle = !isQuick && segments.length === 1 && segments[0] && !["admin","archives","create","explore","privacy","stats","style-guide","submissions","terms","words"].includes(segments[0]);
     const onQuickPuzzle = isQuick && segments.length === 2 && segments[0] === 'quick' && segments[1];
 
     const today = getTodayIsoInET();

@@ -18,6 +18,7 @@ import WordDatabase from "./pages/WordDatabase.jsx";
 import StyleGuide from "./pages/StyleGuide.jsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import TermsOfService from "./pages/TermsOfService.jsx";
+import Admin from "./pages/Admin.jsx";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -38,6 +39,7 @@ const router = createBrowserRouter([
       { path: "/style-guide", element: <StyleGuide /> },
       { path: "/privacy", element: <PrivacyPolicy /> },
       { path: "/terms", element: <TermsOfService /> },
+      { path: "/admin", element: <Admin /> },
       { path: "/:puzzleId", element: <PuzzlePage /> },
     ],
   },
