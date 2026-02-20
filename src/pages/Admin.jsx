@@ -293,7 +293,7 @@ function Admin() {
                     <th className="text-right py-2">
                       <SortableHeader col="avg_hints_used" label="Hints" sort={ratingsSort} onSort={toggleSort} title="Avg hints used" />
                     </th>
-                    <th className="text-left py-2 pl-2 whitespace-nowrap" title="Rating distribution (1–5 stars)">Stars</th>
+                    <th className="text-left py-2 pl-2 whitespace-nowrap" title="Rating distribution (1–5 hearts)">Hearts</th>
                   </tr>
                   <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
                     <th className="text-left py-1.5 pr-4" />
@@ -507,14 +507,14 @@ function DistributionTrigger({ byRating, onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      title="View rating distribution"
+      title="View heart distribution"
       className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
         total > 0
           ? "bg-amber-500/20 text-amber-600 hover:bg-amber-500/30 dark:text-amber-400 dark:hover:bg-amber-500/25"
           : "bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-default"
       }`}
     >
-      {total > 0 ? "★" : "—"}
+      {total > 0 ? "♥" : "—"}
     </button>
   );
 }
@@ -541,7 +541,7 @@ function DistributionModal({ byRating, puzzleId, mode, lightMode, onClose }) {
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">
-            Rating distribution — {puzzleId} ({mode})
+            Heart distribution — {puzzleId} ({mode})
           </h3>
           <button
             type="button"
@@ -566,10 +566,10 @@ function DistributionModal({ byRating, puzzleId, mode, lightMode, onClose }) {
                   <div
                     className="w-3/4 min-w-[14px] bg-amber-500 rounded-t"
                     style={{ height: barH }}
-                    title={`${i}★: ${n}`}
+                    title={`${i}♥: ${n}`}
                   />
                 </div>
-                <span className="text-xs font-medium">{i}★</span>
+                <span className="text-xs font-medium">{i}♥</span>
                 <span className="text-[10px] text-gray-500">{n}</span>
               </div>
             );
