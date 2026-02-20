@@ -103,6 +103,10 @@ usort($out['ratings']['by_puzzle'], function ($a, $b) {
 $completionsByDay = [];
 $completionsByPuzzle = [];
 $completionsByMode = ['main' => 0, 'quick' => 0, 'other' => 0];
+$elapsedSum = 0;
+$elapsedCount = 0;
+$hintSum = 0;
+$hintCount = 0;
 
 $et = new DateTimeZone('America/New_York');
 if (file_exists($completionsFile)) {
@@ -118,6 +122,14 @@ if (file_exists($completionsFile)) {
         $completionsByPuzzle[$puzzleId] = ($completionsByPuzzle[$puzzleId] ?? 0) + 1;
         if (in_array($mode, ['main', 'quick', 'other'], true)) {
             $completionsByMode[$mode]++;
+        }
+        if (isset($entry['elapsed_ms']) && $entry['elapsed_ms'] >= 0) {
+            $elapsedSum += (int) $entry['elapsed_ms'];
+            $elapsedCount++;
+        }
+        if (isset($entry['hint_count']) && $entry['hint_count'] >= 0) {
+            $hintSum += (int) $entry['hint_count'];
+            $hintCount++;
         }
     }
 }
@@ -157,12 +169,18 @@ $out['submissions'] = [
 ];
 
 // --- Summary ---
+$avgElapsedMs = $elapsedCount > 0 ? round($elapsedSum / $elapsedCount) : null;
+$avgHintsUsed = $hintCount > 0 ? round($hintSum / $hintCount, 2) : null;
+
 $out['summary'] = [
     'total_ratings' => $out['ratings']['total_count'],
     'total_completions' => $out['completions_total'],
     'total_submissions' => $submissionCount,
-    'unique_days_with_completions' => count($completionsByDay),
     'unique_puzzles_rated' => count($aggregates),
+    'avg_solve_time_ms' => $avgElapsedMs,
+    'avg_hints_used' => $avgHintsUsed,
+    'completions_with_solve_time' => $elapsedCount,
+    'completions_with_hints' => $hintCount,
 ];
 
 echo json_encode($out);

@@ -235,13 +235,18 @@ function Admin() {
               <StatCard label="Total completions" value={s.total_completions} lightMode={lightMode} />
               <StatCard label="Puzzles rated" value={s.unique_puzzles_rated} lightMode={lightMode} />
               <StatCard label="Submissions" value={s.total_submissions} lightMode={lightMode} />
+              <StatCard label="Avg solve time" value={formatSolveTime(s.avg_solve_time_ms)} lightMode={lightMode} />
+              <StatCard label="Avg hints used" value={s.avg_hints_used != null ? s.avg_hints_used.toFixed(1) : "—"} lightMode={lightMode} />
             </div>
             <div className="mt-4 pt-4 border-t border-gray-700">
               <h3 className="text-sm font-medium mb-2">Completions by mode</h3>
-              <div className="flex gap-4">
+              <div className="flex gap-4 flex-wrap">
                 <span>Main: {completionsByMode.main ?? 0}</span>
                 <span>Quick: {completionsByMode.quick ?? 0}</span>
                 <span>Other: {completionsByMode.other ?? 0}</span>
+                {s.completions_with_solve_time != null && (
+                  <span className="text-gray-500">({s.completions_with_solve_time} with solve time)</span>
+                )}
               </div>
             </div>
           </div>
@@ -451,6 +456,19 @@ function Admin() {
   );
 }
 
+function formatSolveTime(ms) {
+  if (ms == null || !Number.isFinite(ms)) return "—";
+  const totalSec = Math.round(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return `${h}:${String(rm).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 function SortableHeader({ col, label, sort, onSort }) {
   const isActive = sort.col === col;
   const arrow = isActive ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
@@ -469,7 +487,7 @@ function StatCard({ label, value, lightMode }) {
   return (
     <div className={`rounded border p-3 ${lightMode ? "border-gray-200 bg-gray-50" : "border-gray-800 bg-gray-800/50"}`}>
       <div className="text-xs opacity-70 uppercase tracking-wide">{label}</div>
-      <div className="text-2xl font-bold mt-1">{value ?? 0}</div>
+      <div className="text-2xl font-bold mt-1">{value ?? "—"}</div>
     </div>
   );
 }

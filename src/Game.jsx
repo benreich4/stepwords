@@ -1289,6 +1289,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               puzzle_id: puzzle.id || 'unknown',
               mode: derivedMode,
               ts: Math.floor(Date.now() / 1000),
+              elapsed_ms: elapsedMs,
+              hint_count: hintCount,
             }),
           }).catch(() => {});
         } catch (_err) { void 0; }

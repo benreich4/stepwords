@@ -18,15 +18,19 @@ $input = json_decode(file_get_contents('php://input'), true) ?: [];
 $puzzleId = isset($input['puzzle_id']) ? (string) $input['puzzle_id'] : 'unknown';
 $mode = isset($input['mode']) ? (string) $input['mode'] : 'main';
 $ts = isset($input['ts']) ? (int) $input['ts'] : time();
+$elapsedMs = isset($input['elapsed_ms']) ? (int) $input['elapsed_ms'] : null;
+$hintCount = isset($input['hint_count']) ? (int) $input['hint_count'] : null;
 
 // Use temp dir (usually writable); fall back to api dir
 $logFile = sys_get_temp_dir() . '/stepwords-puzzle-completions.log';
 
-$entry = json_encode([
+$entry = json_encode(array_filter([
     'ts' => $ts,
     'puzzle_id' => $puzzleId,
     'mode' => $mode,
-]) . "\n";
+    'elapsed_ms' => $elapsedMs,
+    'hint_count' => $hintCount,
+], fn($v) => $v !== null)) . "\n";
 
 @file_put_contents($logFile, $entry, LOCK_EX | FILE_APPEND);
 
