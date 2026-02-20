@@ -31,8 +31,10 @@ $ratingsFile = sys_get_temp_dir() . '/stepwords-ratings.json';
 $completionsFile = sys_get_temp_dir() . '/stepwords-puzzle-completions.log';
 $submissionsDir = __DIR__ . '/submissions';
 
-// Build completions by (puzzle_id, mode) for ratings enrichment (before we output ratings)
+// Build completions by (puzzle_id, mode) and avg solve time/hints for ratings enrichment (before we output ratings)
 $completionsByPuzzleMode = [];
+$avgElapsedByPuzzleMode = []; // key => ['sum' => n, 'count' => n]
+$avgHintsByPuzzleMode = [];   // key => ['sum' => n, 'count' => n]
 if (file_exists($completionsFile)) {
     $lines = file($completionsFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
@@ -42,6 +44,16 @@ if (file_exists($completionsFile)) {
         $puzzleId = (string) ($entry['puzzle_id'] ?? 'unknown');
         $key = $puzzleId . '|' . $mode;
         $completionsByPuzzleMode[$key] = ($completionsByPuzzleMode[$key] ?? 0) + 1;
+        if (isset($entry['elapsed_ms']) && $entry['elapsed_ms'] >= 0) {
+            if (!isset($avgElapsedByPuzzleMode[$key])) $avgElapsedByPuzzleMode[$key] = ['sum' => 0, 'count' => 0];
+            $avgElapsedByPuzzleMode[$key]['sum'] += (int) $entry['elapsed_ms'];
+            $avgElapsedByPuzzleMode[$key]['count']++;
+        }
+        if (isset($entry['hint_count']) && $entry['hint_count'] >= 0) {
+            if (!isset($avgHintsByPuzzleMode[$key])) $avgHintsByPuzzleMode[$key] = ['sum' => 0, 'count' => 0];
+            $avgHintsByPuzzleMode[$key]['sum'] += (int) $entry['hint_count'];
+            $avgHintsByPuzzleMode[$key]['count']++;
+        }
     }
 }
 
@@ -141,6 +153,10 @@ foreach ($aggregates as $k => &$agg) {
     $mode = $agg['mode'] ?? 'main';
     $agg['date'] = $dateLookup[$pid . '|' . $mode] ?? null;
     $agg['completions'] = $completionsByPuzzleMode[$k] ?? 0;
+    $elapsed = $avgElapsedByPuzzleMode[$k] ?? null;
+    $agg['avg_solve_time_ms'] = ($elapsed && $elapsed['count'] > 0) ? (int) round($elapsed['sum'] / $elapsed['count']) : null;
+    $hints = $avgHintsByPuzzleMode[$k] ?? null;
+    $agg['avg_hints_used'] = ($hints && $hints['count'] > 0) ? round($hints['sum'] / $hints['count'], 2) : null;
 }
 unset($agg);
 

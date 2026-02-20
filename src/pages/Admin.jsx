@@ -64,13 +64,13 @@ function Admin() {
     }
     const { col, dir } = ratingsSort;
     list.sort((a, b) => {
-      let va = col === "puzzle_id" ? String(a.puzzle_id || "") : col === "mode" ? String(a.mode || "") : col === "date" ? String(a.date || "") : col === "avg" ? (a.avg ?? 0) : col === "completions" ? (a.completions ?? 0) : (a.count ?? 0);
-      let vb = col === "puzzle_id" ? String(b.puzzle_id || "") : col === "mode" ? String(b.mode || "") : col === "date" ? String(b.date || "") : col === "avg" ? (b.avg ?? 0) : col === "completions" ? (b.completions ?? 0) : (b.count ?? 0);
+      let va = col === "puzzle_id" ? String(a.puzzle_id || "") : col === "mode" ? String(a.mode || "") : col === "date" ? String(a.date || "") : col === "avg" ? (a.avg ?? 0) : col === "completions" ? (a.completions ?? 0) : col === "avg_solve_time_ms" ? (a.avg_solve_time_ms ?? 0) : col === "avg_hints_used" ? (a.avg_hints_used ?? 0) : (a.count ?? 0);
+      let vb = col === "puzzle_id" ? String(b.puzzle_id || "") : col === "mode" ? String(b.mode || "") : col === "date" ? String(b.date || "") : col === "avg" ? (b.avg ?? 0) : col === "completions" ? (b.completions ?? 0) : col === "avg_solve_time_ms" ? (b.avg_solve_time_ms ?? 0) : col === "avg_hints_used" ? (b.avg_hints_used ?? 0) : (b.count ?? 0);
       if (col === "puzzle_id" || col === "mode" || col === "date") {
         const cmp = va.localeCompare(vb);
         return dir === "asc" ? cmp : -cmp;
       }
-      if (col === "avg" || col === "count" || col === "completions") {
+      if (col === "avg" || col === "count" || col === "completions" || col === "avg_solve_time_ms" || col === "avg_hints_used") {
         const cmp = va < vb ? -1 : va > vb ? 1 : 0;
         return dir === "asc" ? cmp : -cmp;
       }
@@ -185,7 +185,7 @@ function Admin() {
   const toggleSort = (col) => {
     setRatingsSort((prev) => ({
       col,
-      dir: prev.col === col ? (prev.dir === "asc" ? "desc" : "asc") : col === "avg" || col === "count" || col === "completions" || col === "date" ? "desc" : "asc",
+      dir: prev.col === col ? (prev.dir === "asc" ? "desc" : "asc") : col === "avg" || col === "count" || col === "completions" || col === "avg_solve_time_ms" || col === "avg_hints_used" || col === "date" ? "desc" : "asc",
     }));
   };
 
@@ -261,17 +261,9 @@ function Admin() {
         {activeTab === "ratings" && (
           <div className={`rounded-lg border p-4 ${lightMode ? "border-gray-300 bg-white" : "border-gray-800 bg-gray-900"}`}>
             <h2 className="text-lg font-semibold mb-2">Ratings by puzzle</h2>
-            <div className="flex flex-wrap items-center gap-4 mb-4">
-              <span className="text-sm opacity-70">
-                Showing {ratingsFilteredSorted.length} of {byPuzzle.length} — Total: {ratings.total_count} ratings ({ratings.raw_count} raw entries before dedup)
-              </span>
-              <span className="text-sm">
-                Avg solve time: <strong>{formatSolveTime(s.avg_solve_time_ms)}</strong>
-              </span>
-              <span className="text-sm">
-                Avg hints used: <strong>{s.avg_hints_used != null ? s.avg_hints_used.toFixed(1) : "—"}</strong>
-              </span>
-            </div>
+            <p className="text-sm opacity-70 mb-4">
+              Showing {ratingsFilteredSorted.length} of {byPuzzle.length} — Total: {ratings.total_count} ratings ({ratings.raw_count} raw entries before dedup)
+            </p>
             <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -293,6 +285,12 @@ function Admin() {
                     </th>
                     <th className="text-right py-2">
                       <SortableHeader col="completions" label="Completions" sort={ratingsSort} onSort={toggleSort} />
+                    </th>
+                    <th className="text-right py-2">
+                      <SortableHeader col="avg_solve_time_ms" label="Avg solve" sort={ratingsSort} onSort={toggleSort} />
+                    </th>
+                    <th className="text-right py-2">
+                      <SortableHeader col="avg_hints_used" label="Avg hints" sort={ratingsSort} onSort={toggleSort} />
                     </th>
                     <th className="text-left py-2 pl-6">Distribution</th>
                   </tr>
@@ -351,6 +349,8 @@ function Admin() {
                         className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
                       />
                     </th>
+                    <th className="text-right py-1.5" />
+                    <th className="text-right py-1.5" />
                     <th className="pl-6" />
                   </tr>
                 </thead>
@@ -363,6 +363,8 @@ function Admin() {
                       <td className="text-right py-1.5">{p.avg?.toFixed(2) ?? "—"}</td>
                       <td className="text-right py-1.5">{p.count ?? 0}</td>
                       <td className="text-right py-1.5">{p.completions ?? 0}</td>
+                      <td className="text-right py-1.5">{formatSolveTime(p.avg_solve_time_ms)}</td>
+                      <td className="text-right py-1.5">{p.avg_hints_used != null ? p.avg_hints_used.toFixed(1) : "—"}</td>
                       <td className="py-1.5 pl-6">
                         <RatingBars byRating={p.by_rating || {}} />
                       </td>
