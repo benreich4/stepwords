@@ -14,7 +14,7 @@ function Admin() {
   const lightMode = useState(() => getInitialLightMode())[0];
   // Ratings table sort/filter
   const [ratingsSort, setRatingsSort] = useState({ col: "avg", dir: "desc" });
-  const [ratingsFilter, setRatingsFilter] = useState({ puzzle: "", mode: "", avgMin: "", countMin: "" });
+  const [ratingsFilter, setRatingsFilter] = useState({ puzzle: "", mode: "", avgMin: "", countMin: "", completionsMin: "" });
 
   const checkAuth = async () => {
     try {
@@ -41,7 +41,7 @@ function Admin() {
   const byPuzzle = (stats?.ratings?.by_puzzle) || [];
   const ratingsFilteredSorted = useMemo(() => {
     let list = [...byPuzzle];
-    const { puzzle, mode, avgMin, countMin } = ratingsFilter;
+    const { puzzle, mode, avgMin, countMin, completionsMin } = ratingsFilter;
     if (puzzle.trim()) {
       const q = puzzle.trim().toLowerCase();
       list = list.filter((p) => String(p.puzzle_id || "").toLowerCase().includes(q));
@@ -58,16 +58,23 @@ function Admin() {
       const v = parseInt(countMin, 10);
       if (!Number.isNaN(v)) list = list.filter((p) => (p.count ?? 0) >= v);
     }
+    if (completionsMin !== "") {
+      const v = parseInt(completionsMin, 10);
+      if (!Number.isNaN(v)) list = list.filter((p) => (p.completions ?? 0) >= v);
+    }
     const { col, dir } = ratingsSort;
     list.sort((a, b) => {
-      let va = col === "puzzle_id" ? String(a.puzzle_id || "") : col === "mode" ? String(a.mode || "") : col === "date" ? String(a.date || "") : col === "avg" ? (a.avg ?? 0) : (a.count ?? 0);
-      let vb = col === "puzzle_id" ? String(b.puzzle_id || "") : col === "mode" ? String(b.mode || "") : col === "date" ? String(b.date || "") : col === "avg" ? (b.avg ?? 0) : (b.count ?? 0);
+      let va = col === "puzzle_id" ? String(a.puzzle_id || "") : col === "mode" ? String(a.mode || "") : col === "date" ? String(a.date || "") : col === "avg" ? (a.avg ?? 0) : col === "completions" ? (a.completions ?? 0) : (a.count ?? 0);
+      let vb = col === "puzzle_id" ? String(b.puzzle_id || "") : col === "mode" ? String(b.mode || "") : col === "date" ? String(b.date || "") : col === "avg" ? (b.avg ?? 0) : col === "completions" ? (b.completions ?? 0) : (b.count ?? 0);
       if (col === "puzzle_id" || col === "mode" || col === "date") {
         const cmp = va.localeCompare(vb);
         return dir === "asc" ? cmp : -cmp;
       }
-      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
-      return dir === "asc" ? cmp : -cmp;
+      if (col === "avg" || col === "count" || col === "completions") {
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+        return dir === "asc" ? cmp : -cmp;
+      }
+      return 0;
     });
     return list;
   }, [byPuzzle, ratingsFilter, ratingsSort]);
@@ -162,19 +169,15 @@ function Admin() {
   const s = stats?.summary || {};
   const ratings = stats?.ratings || {};
   const completionsByDay = stats?.completions_by_day || {};
-  const completionsByPuzzle = stats?.completions_by_puzzle || {};
   const completionsByMode = stats?.completions_by_mode || {};
   const submissions = stats?.submissions || {};
 
   const dayEntries = Object.entries(completionsByDay).sort((a, b) => b[0].localeCompare(a[0]));
-  const puzzleEntries = Array.isArray(completionsByPuzzle)
-  ? completionsByPuzzle.slice(0, 50)
-  : Object.entries(completionsByPuzzle || {}).map(([puzzle_id, count]) => ({ puzzle_id, count })).slice(0, 50);
 
   const toggleSort = (col) => {
     setRatingsSort((prev) => ({
       col,
-      dir: prev.col === col ? (prev.dir === "asc" ? "desc" : "asc") : col === "avg" || col === "count" || col === "date" ? "desc" : "asc",
+      dir: prev.col === col ? (prev.dir === "asc" ? "desc" : "asc") : col === "avg" || col === "count" || col === "completions" || col === "date" ? "desc" : "asc",
     }));
   };
 
@@ -205,17 +208,22 @@ function Admin() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-4 border-b border-gray-700 pb-2">
-          {["summary", "ratings", "completions", "submissions"].map((tab) => (
+          {[
+            { id: "summary", label: "Summary" },
+            { id: "ratings", label: "Puzzle Stats" },
+            { id: "completions", label: "Date stats" },
+            { id: "submissions", label: "Submissions" },
+          ].map(({ id, label }) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-t text-sm font-medium capitalize ${
-                activeTab === tab
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`px-4 py-2 rounded-t text-sm font-medium ${
+                activeTab === id
                   ? lightMode ? "bg-white border border-b-0 border-gray-300 -mb-0.5" : "bg-gray-800 border border-b-0 border-gray-700 -mb-0.5"
                   : "opacity-70 hover:opacity-100"
               }`}
             >
-              {tab}
+              {label}
             </button>
           ))}
         </div>
@@ -229,8 +237,6 @@ function Admin() {
               <StatCard label="Total completions" value={s.total_completions} lightMode={lightMode} />
               <StatCard label="Puzzles rated" value={s.unique_puzzles_rated} lightMode={lightMode} />
               <StatCard label="Submissions" value={s.total_submissions} lightMode={lightMode} />
-              <StatCard label="Avg solve time" value={formatSolveTime(s.avg_solve_time_ms)} lightMode={lightMode} />
-              <StatCard label="Avg hints used" value={s.avg_hints_used != null ? s.avg_hints_used.toFixed(1) : "—"} lightMode={lightMode} />
             </div>
             <div className="mt-4 pt-4 border-t border-gray-700">
               <h3 className="text-sm font-medium mb-2">Completions by mode</h3>
@@ -238,9 +244,6 @@ function Admin() {
                 <span>Main: {completionsByMode.main ?? 0}</span>
                 <span>Quick: {completionsByMode.quick ?? 0}</span>
                 <span>Other: {completionsByMode.other ?? 0}</span>
-                {s.completions_with_solve_time != null && (
-                  <span className="text-gray-500">({s.completions_with_solve_time} with solve time)</span>
-                )}
               </div>
             </div>
           </div>
@@ -250,9 +253,17 @@ function Admin() {
         {activeTab === "ratings" && (
           <div className={`rounded-lg border p-4 ${lightMode ? "border-gray-300 bg-white" : "border-gray-800 bg-gray-900"}`}>
             <h2 className="text-lg font-semibold mb-2">Ratings by puzzle</h2>
-            <p className="text-sm opacity-70 mb-4">
-              Showing {ratingsFilteredSorted.length} of {byPuzzle.length} — Total: {ratings.total_count} ratings ({ratings.raw_count} raw entries before dedup)
-            </p>
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              <span className="text-sm opacity-70">
+                Showing {ratingsFilteredSorted.length} of {byPuzzle.length} — Total: {ratings.total_count} ratings ({ratings.raw_count} raw entries before dedup)
+              </span>
+              <span className="text-sm">
+                Avg solve time: <strong>{formatSolveTime(s.avg_solve_time_ms)}</strong>
+              </span>
+              <span className="text-sm">
+                Avg hints used: <strong>{s.avg_hints_used != null ? s.avg_hints_used.toFixed(1) : "—"}</strong>
+              </span>
+            </div>
             <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -271,6 +282,9 @@ function Admin() {
                     </th>
                     <th className="text-right py-2">
                       <SortableHeader col="count" label="Count" sort={ratingsSort} onSort={toggleSort} />
+                    </th>
+                    <th className="text-right py-2">
+                      <SortableHeader col="completions" label="Completions" sort={ratingsSort} onSort={toggleSort} />
                     </th>
                     <th className="text-left py-2 pl-6">Distribution</th>
                   </tr>
@@ -319,6 +333,16 @@ function Admin() {
                         className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
                       />
                     </th>
+                    <th className="text-right py-1.5">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        min={0}
+                        value={ratingsFilter.completionsMin}
+                        onChange={(e) => setRatingsFilter((f) => ({ ...f, completionsMin: e.target.value }))}
+                        className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
+                      />
+                    </th>
                     <th className="pl-6" />
                   </tr>
                 </thead>
@@ -330,6 +354,7 @@ function Admin() {
                       <td className="py-1.5">{p.mode}</td>
                       <td className="text-right py-1.5">{p.avg?.toFixed(2) ?? "—"}</td>
                       <td className="text-right py-1.5">{p.count ?? 0}</td>
+                      <td className="text-right py-1.5">{p.completions ?? 0}</td>
                       <td className="py-1.5 pl-6">
                         <RatingBars byRating={p.by_rating || {}} />
                       </td>
@@ -342,55 +367,28 @@ function Admin() {
           </div>
         )}
 
-        {/* Completions */}
+        {/* Date stats */}
         {activeTab === "completions" && (
-          <div className="space-y-4">
-            <div className={`rounded-lg border p-4 ${lightMode ? "border-gray-300 bg-white" : "border-gray-800 bg-gray-900"}`}>
-              <h2 className="text-lg font-semibold mb-4">Completions by day</h2>
-              <div className="overflow-x-auto max-h-[50vh] overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
-                      <th className="text-left py-2">Date</th>
-                      <th className="text-right py-2">Count</th>
+          <div className={`rounded-lg border p-4 ${lightMode ? "border-gray-300 bg-white" : "border-gray-800 bg-gray-900"}`}>
+            <h2 className="text-lg font-semibold mb-4">Completions by day</h2>
+            <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
+                    <th className="text-left py-2">Date</th>
+                    <th className="text-right py-2">Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dayEntries.map(([date, count]) => (
+                    <tr key={date} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
+                      <td className="py-1.5">{date}</td>
+                      <td className="text-right py-1.5 font-mono">{count}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {dayEntries.map(([date, count]) => (
-                      <tr key={date} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
-                        <td className="py-1.5">{date}</td>
-                        <td className="text-right py-1.5 font-mono">{count}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {dayEntries.length === 0 && <p className="py-4 text-gray-500">No completion data yet.</p>}
-              </div>
-            </div>
-            <div className={`rounded-lg border p-4 ${lightMode ? "border-gray-300 bg-white" : "border-gray-800 bg-gray-900"}`}>
-              <h2 className="text-lg font-semibold mb-4">Completions by puzzle (top 50)</h2>
-              <div className="overflow-x-auto max-h-[40vh] overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className={`border-b ${lightMode ? "border-gray-200" : "border-gray-700"}`}>
-                      <th className="text-left py-2">Puzzle ID</th>
-                      <th className="text-right py-2">Completions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {puzzleEntries.map((entry) => {
-                    const id = entry.puzzle_id ?? entry[0];
-                    const count = entry.count ?? entry[1];
-                    return (
-                      <tr key={String(id)} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
-                        <td className="py-1.5 font-mono">{id}</td>
-                        <td className="text-right py-1.5 font-mono">{count}</td>
-                      </tr>
-                    );
-                  })}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
+              {dayEntries.length === 0 && <p className="py-4 text-gray-500">No completion data yet.</p>}
             </div>
           </div>
         )}

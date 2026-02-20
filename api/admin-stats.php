@@ -31,6 +31,20 @@ $ratingsFile = sys_get_temp_dir() . '/stepwords-ratings.json';
 $completionsFile = sys_get_temp_dir() . '/stepwords-puzzle-completions.log';
 $submissionsDir = __DIR__ . '/submissions';
 
+// Build completions by (puzzle_id, mode) for ratings enrichment (before we output ratings)
+$completionsByPuzzleMode = [];
+if (file_exists($completionsFile)) {
+    $lines = file($completionsFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $entry = json_decode(trim($line), true);
+        if (!is_array($entry) || !isset($entry['ts'])) continue;
+        $mode = $entry['mode'] ?? 'main';
+        $puzzleId = (string) ($entry['puzzle_id'] ?? 'unknown');
+        $key = $puzzleId . '|' . $mode;
+        $completionsByPuzzleMode[$key] = ($completionsByPuzzleMode[$key] ?? 0) + 1;
+    }
+}
+
 $out = [
     'ratings' => [],
     'completions_by_day' => [],
@@ -85,22 +99,48 @@ foreach ($aggregates as $k => &$agg) {
 }
 unset($agg);
 
-// Enrich with date from manifests
+// Enrich with date from manifests (try multiple paths for different deployment setups)
 $dateLookup = [];
-foreach (['main' => __DIR__ . '/../public/puzzles/index.json', 'quick' => __DIR__ . '/../public/quick/index.json', 'other' => __DIR__ . '/../public/other/index.json'] as $modeKey => $path) {
-    if (file_exists($path)) {
-        $manifest = json_decode(file_get_contents($path), true);
-        if (is_array($manifest)) {
-            foreach ($manifest as $p) {
-                if (isset($p['id'], $p['date'])) {
-                    $dateLookup[$p['id'] . '|' . $modeKey] = $p['date'];
+$manifestConfig = [
+    'main' => [
+        __DIR__ . '/../public/puzzles/index.json',
+        __DIR__ . '/../dist/puzzles/index.json',
+        (!empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/puzzles/index.json' : null),
+        (!empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/dist/puzzles/index.json' : null),
+    ],
+    'quick' => [
+        __DIR__ . '/../public/quick/index.json',
+        __DIR__ . '/../dist/quick/index.json',
+        (!empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/quick/index.json' : null),
+        (!empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/dist/quick/index.json' : null),
+    ],
+    'other' => [
+        __DIR__ . '/../public/other/index.json',
+        __DIR__ . '/../dist/other/index.json',
+        (!empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/other/index.json' : null),
+        (!empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/dist/other/index.json' : null),
+    ],
+];
+foreach ($manifestConfig as $modeKey => $paths) {
+    foreach ($paths as $path) {
+        if ($path && file_exists($path)) {
+            $manifest = @json_decode(file_get_contents($path), true);
+            if (is_array($manifest)) {
+                foreach ($manifest as $p) {
+                    if (isset($p['id'], $p['date'])) {
+                        $dateLookup[(string) $p['id'] . '|' . $modeKey] = $p['date'];
+                    }
                 }
+                break;
             }
         }
     }
 }
 foreach ($aggregates as $k => &$agg) {
-    $agg['date'] = $dateLookup[$agg['puzzle_id'] . '|' . ($agg['mode'] ?? 'main')] ?? null;
+    $pid = (string) ($agg['puzzle_id'] ?? '');
+    $mode = $agg['mode'] ?? 'main';
+    $agg['date'] = $dateLookup[$pid . '|' . $mode] ?? null;
+    $agg['completions'] = $completionsByPuzzleMode[$k] ?? 0;
 }
 unset($agg);
 
@@ -121,6 +161,7 @@ usort($out['ratings']['by_puzzle'], function ($a, $b) {
 // --- Completions ---
 $completionsByDay = [];
 $completionsByPuzzle = [];
+$completionsByPuzzleMode = [];
 $completionsByMode = ['main' => 0, 'quick' => 0, 'other' => 0];
 $elapsedSum = 0;
 $elapsedCount = 0;
@@ -134,7 +175,7 @@ if (file_exists($completionsFile)) {
         $entry = json_decode(trim($line), true);
         if (!is_array($entry) || !isset($entry['ts'])) continue;
         $mode = $entry['mode'] ?? 'main';
-        $puzzleId = $entry['puzzle_id'] ?? 'unknown';
+        $puzzleId = (string) ($entry['puzzle_id'] ?? 'unknown');
         $dt = (new DateTime('@' . (int) $entry['ts']))->setTimezone($et);
         $date = $dt->format('Y-m-d');
         $completionsByDay[$date] = ($completionsByDay[$date] ?? 0) + 1;
