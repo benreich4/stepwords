@@ -14,7 +14,7 @@ function Admin() {
   const lightMode = useState(() => getInitialLightMode())[0];
   // Ratings table sort/filter
   const [ratingsSort, setRatingsSort] = useState({ col: "avg", dir: "desc" });
-  const [ratingsFilter, setRatingsFilter] = useState({ puzzle: "", mode: "", avgMin: "", avgMax: "", countMin: "", countMax: "" });
+  const [ratingsFilter, setRatingsFilter] = useState({ puzzle: "", mode: "", avgMin: "", countMin: "" });
 
   const checkAuth = async () => {
     try {
@@ -41,7 +41,7 @@ function Admin() {
   const byPuzzle = (stats?.ratings?.by_puzzle) || [];
   const ratingsFilteredSorted = useMemo(() => {
     let list = [...byPuzzle];
-    const { puzzle, mode, avgMin, avgMax, countMin, countMax } = ratingsFilter;
+    const { puzzle, mode, avgMin, countMin } = ratingsFilter;
     if (puzzle.trim()) {
       const q = puzzle.trim().toLowerCase();
       list = list.filter((p) => String(p.puzzle_id || "").toLowerCase().includes(q));
@@ -54,23 +54,15 @@ function Admin() {
       const v = parseFloat(avgMin);
       if (!Number.isNaN(v)) list = list.filter((p) => (p.avg ?? 0) >= v);
     }
-    if (avgMax !== "") {
-      const v = parseFloat(avgMax);
-      if (!Number.isNaN(v)) list = list.filter((p) => (p.avg ?? 0) <= v);
-    }
     if (countMin !== "") {
       const v = parseInt(countMin, 10);
       if (!Number.isNaN(v)) list = list.filter((p) => (p.count ?? 0) >= v);
     }
-    if (countMax !== "") {
-      const v = parseInt(countMax, 10);
-      if (!Number.isNaN(v)) list = list.filter((p) => (p.count ?? 0) <= v);
-    }
     const { col, dir } = ratingsSort;
     list.sort((a, b) => {
-      let va = col === "puzzle_id" ? String(a.puzzle_id || "") : col === "mode" ? String(a.mode || "") : col === "avg" ? (a.avg ?? 0) : (a.count ?? 0);
-      let vb = col === "puzzle_id" ? String(b.puzzle_id || "") : col === "mode" ? String(b.mode || "") : col === "avg" ? (b.avg ?? 0) : (b.count ?? 0);
-      if (col === "puzzle_id" || col === "mode") {
+      let va = col === "puzzle_id" ? String(a.puzzle_id || "") : col === "mode" ? String(a.mode || "") : col === "date" ? String(a.date || "") : col === "avg" ? (a.avg ?? 0) : (a.count ?? 0);
+      let vb = col === "puzzle_id" ? String(b.puzzle_id || "") : col === "mode" ? String(b.mode || "") : col === "date" ? String(b.date || "") : col === "avg" ? (b.avg ?? 0) : (b.count ?? 0);
+      if (col === "puzzle_id" || col === "mode" || col === "date") {
         const cmp = va.localeCompare(vb);
         return dir === "asc" ? cmp : -cmp;
       }
@@ -175,12 +167,14 @@ function Admin() {
   const submissions = stats?.submissions || {};
 
   const dayEntries = Object.entries(completionsByDay).sort((a, b) => b[0].localeCompare(a[0]));
-  const puzzleEntries = Object.entries(completionsByPuzzle).slice(0, 50);
+  const puzzleEntries = Array.isArray(completionsByPuzzle)
+  ? completionsByPuzzle.slice(0, 50)
+  : Object.entries(completionsByPuzzle || {}).map(([puzzle_id, count]) => ({ puzzle_id, count })).slice(0, 50);
 
   const toggleSort = (col) => {
     setRatingsSort((prev) => ({
       col,
-      dir: prev.col === col ? (prev.dir === "asc" ? "desc" : "asc") : col === "avg" || col === "count" ? "desc" : "asc",
+      dir: prev.col === col ? (prev.dir === "asc" ? "desc" : "asc") : col === "avg" || col === "count" || col === "date" ? "desc" : "asc",
     }));
   };
 
@@ -267,6 +261,9 @@ function Admin() {
                       <SortableHeader col="puzzle_id" label="Puzzle" sort={ratingsSort} onSort={toggleSort} />
                     </th>
                     <th className="text-left py-2">
+                      <SortableHeader col="date" label="Date" sort={ratingsSort} onSort={toggleSort} />
+                    </th>
+                    <th className="text-left py-2">
                       <SortableHeader col="mode" label="Mode" sort={ratingsSort} onSort={toggleSort} />
                     </th>
                     <th className="text-right py-2">
@@ -287,6 +284,7 @@ function Admin() {
                         className={`w-full max-w-[120px] px-2 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
                       />
                     </th>
+                    <th className="text-left py-1.5 pr-2" />
                     <th className="text-left py-1.5 pr-2">
                       <select
                         value={ratingsFilter.mode}
@@ -300,48 +298,26 @@ function Admin() {
                       </select>
                     </th>
                     <th className="text-right py-1.5">
-                      <div className="flex gap-1 justify-end">
-                        <input
-                          type="number"
-                          placeholder="Min"
-                          min={0}
-                          max={5}
-                          step={0.1}
-                          value={ratingsFilter.avgMin}
-                          onChange={(e) => setRatingsFilter((f) => ({ ...f, avgMin: e.target.value }))}
-                          className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
-                        />
-                        <input
-                          type="number"
-                          placeholder="Max"
-                          min={0}
-                          max={5}
-                          step={0.1}
-                          value={ratingsFilter.avgMax}
-                          onChange={(e) => setRatingsFilter((f) => ({ ...f, avgMax: e.target.value }))}
-                          className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
-                        />
-                      </div>
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        min={0}
+                        max={5}
+                        step={0.1}
+                        value={ratingsFilter.avgMin}
+                        onChange={(e) => setRatingsFilter((f) => ({ ...f, avgMin: e.target.value }))}
+                        className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
+                      />
                     </th>
                     <th className="text-right py-1.5">
-                      <div className="flex gap-1 justify-end">
-                        <input
-                          type="number"
-                          placeholder="Min"
-                          min={0}
-                          value={ratingsFilter.countMin}
-                          onChange={(e) => setRatingsFilter((f) => ({ ...f, countMin: e.target.value }))}
-                          className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
-                        />
-                        <input
-                          type="number"
-                          placeholder="Max"
-                          min={0}
-                          value={ratingsFilter.countMax}
-                          onChange={(e) => setRatingsFilter((f) => ({ ...f, countMax: e.target.value }))}
-                          className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
-                        />
-                      </div>
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        min={0}
+                        value={ratingsFilter.countMin}
+                        onChange={(e) => setRatingsFilter((f) => ({ ...f, countMin: e.target.value }))}
+                        className={`w-14 px-1 py-0.5 text-xs rounded border ${lightMode ? "border-gray-300 bg-white" : "border-gray-600 bg-gray-800"}`}
+                      />
                     </th>
                     <th className="pl-6" />
                   </tr>
@@ -350,6 +326,7 @@ function Admin() {
                   {ratingsFilteredSorted.map((p) => (
                     <tr key={`${p.puzzle_id}-${p.mode}`} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
                       <td className="py-1.5 font-mono">{p.puzzle_id}</td>
+                      <td className="py-1.5">{p.date ?? "—"}</td>
                       <td className="py-1.5">{p.mode}</td>
                       <td className="text-right py-1.5">{p.avg?.toFixed(2) ?? "—"}</td>
                       <td className="text-right py-1.5">{p.count ?? 0}</td>
@@ -401,12 +378,16 @@ function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {puzzleEntries.map(([id, count]) => (
-                      <tr key={id} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
+                    {puzzleEntries.map((entry) => {
+                    const id = entry.puzzle_id ?? entry[0];
+                    const count = entry.count ?? entry[1];
+                    return (
+                      <tr key={String(id)} className={`border-b ${lightMode ? "border-gray-100" : "border-gray-800"}`}>
                         <td className="py-1.5 font-mono">{id}</td>
                         <td className="text-right py-1.5 font-mono">{count}</td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
               </div>

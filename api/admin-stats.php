@@ -85,6 +85,25 @@ foreach ($aggregates as $k => &$agg) {
 }
 unset($agg);
 
+// Enrich with date from manifests
+$dateLookup = [];
+foreach (['main' => __DIR__ . '/../public/puzzles/index.json', 'quick' => __DIR__ . '/../public/quick/index.json', 'other' => __DIR__ . '/../public/other/index.json'] as $modeKey => $path) {
+    if (file_exists($path)) {
+        $manifest = json_decode(file_get_contents($path), true);
+        if (is_array($manifest)) {
+            foreach ($manifest as $p) {
+                if (isset($p['id'], $p['date'])) {
+                    $dateLookup[$p['id'] . '|' . $modeKey] = $p['date'];
+                }
+            }
+        }
+    }
+}
+foreach ($aggregates as $k => &$agg) {
+    $agg['date'] = $dateLookup[$agg['puzzle_id'] . '|' . ($agg['mode'] ?? 'main')] ?? null;
+}
+unset($agg);
+
 $out['ratings'] = [
     'by_puzzle' => array_values($aggregates),
     'total_count' => array_sum(array_column($aggregates, 'count')),
@@ -137,8 +156,15 @@ if (file_exists($completionsFile)) {
 ksort($completionsByDay);
 arsort($completionsByPuzzle);
 
+// Output completions_by_puzzle as explicit array of {puzzle_id, count} to avoid
+// PHP json_encode converting associative array to JSON array (losing keys)
+$completionsByPuzzleList = [];
+foreach ($completionsByPuzzle as $pid => $cnt) {
+    $completionsByPuzzleList[] = ['puzzle_id' => $pid, 'count' => $cnt];
+}
+
 $out['completions_by_day'] = $completionsByDay;
-$out['completions_by_puzzle'] = $completionsByPuzzle;
+$out['completions_by_puzzle'] = $completionsByPuzzleList;
 $out['completions_by_mode'] = $completionsByMode;
 $out['completions_total'] = array_sum($completionsByDay);
 
