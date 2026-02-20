@@ -409,7 +409,7 @@ export default function App() {
               }`}
               title="Create"
             >
-              ✏️
+              <span className="sm:hidden">✏️</span><span className="hidden sm:inline">Create</span>
             </Link>
             <Link 
               to="/stats" 
@@ -420,7 +420,7 @@ export default function App() {
               }`}
               title="Stats"
             >
-              %
+              <span className="sm:hidden">%</span><span className="hidden sm:inline">Stats</span>
             </Link>
             <Link 
               to="/archives" 
@@ -431,7 +431,7 @@ export default function App() {
               }`}
               title="Archives"
             >
-              📁
+              <span className="sm:hidden">📁</span><span className="hidden sm:inline">Archives</span>
             </Link>
           </div>
         </div>
