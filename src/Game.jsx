@@ -51,11 +51,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const puzzleNamespace = storageNamespace || (isQuick ? 'quickstep' : 'stepwords');
   const puzzleKey = `${puzzleNamespace}-${puzzle.id || 'default'}`;
   
-  // Check if user is experienced (3+ main puzzles completed)
+  // Check if user is experienced (3+ puzzles of any type completed)
   const isExperienced = useMemo(() => {
     try {
-      const completed = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
-      return completed.length >= 3;
+      const main = JSON.parse(localStorage.getItem('stepwords-completed') || '[]');
+      const quick = JSON.parse(localStorage.getItem('quickstep-completed') || '[]');
+      const other = JSON.parse(localStorage.getItem('otherstep-completed') || '[]');
+      return (main.length + quick.length + other.length) >= 3;
     } catch {
       return false;
     }
