@@ -219,6 +219,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Track progress (typing, locking, submits) to nudge jumping ahead
   const lastProgressRef = useRef(Date.now());
   const jumpNudgeShownRef = useRef(false);
+  const hasJumpedAheadRef = useRef(false);
+  const hasOpenedHintMenuRef = useRef(false);
   const [kbCollapsed, setKbCollapsed] = useState(() => {
     try { return localStorage.getItem('stepwords-kb-collapsed') === '1'; } catch { return false; }
   });
@@ -900,6 +902,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             type="button"
             className={`inline-flex items-center justify-center w-5 h-5 rounded border text-[9px] leading-none align-middle -translate-y-[1px] ${effectiveSettings.lightMode ? 'bg-yellow-100 border-yellow-400 text-yellow-800 hover:bg-yellow-200' : 'bg-yellow-700/30 border-yellow-400 text-yellow-200 hover:bg-yellow-700/40'}`}
             onClick={printMode ? undefined : () => {
+              if (jumpIndex !== getFirstUnsolvedRow()) hasJumpedAheadRef.current = true;
               setLevel(jumpIndex);
               const firstOpen = nearestUnlockedInRow(jumpIndex, 0);
         setCursor(firstOpen === -1 ? 0 : firstOpen);
@@ -934,6 +937,14 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     return -1;
   }
 
+  function getFirstUnsolvedRow() {
+    for (let r = 0; r < rows.length; r++) {
+      const rowColors = lockColors[r] || [];
+      if (rowColors.some((c) => c == null)) return r;
+    }
+    return rows.length;
+  }
+
   function isCellFilled(rowIndex, colIndex) {
     const len = rowLen(rowIndex);
     const g = (guesses[rowIndex] || "").toUpperCase().padEnd(len, " ").slice(0, len);
@@ -959,16 +970,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   }
 
   function moveLevel(delta) {
+    const next = (level + delta + rows.length) % rows.length;
+    if (next !== getFirstUnsolvedRow()) hasJumpedAheadRef.current = true;
     setLevel((l) => {
-      const next = (l + delta + rows.length) % (rows.length)
-      const len = rowLen(next);
+      const n = (l + delta + rows.length) % rows.length;
+      const len = rowLen(n);
       let target = Math.min(len - 1, cursor);
-      if (isBlocked(next, target)) {
-        const n = nearestUnlockedInRow(next, target);
-        target = n === -1 ? 0 : n;
+      if (isBlocked(n, target)) {
+        const nearest = nearestUnlockedInRow(n, target);
+        target = nearest === -1 ? 0 : nearest;
       }
       setCursor(target);
-      return next;
+      return n;
     });
   }
 
@@ -1353,6 +1366,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       e.preventDefault();
       const dir = e.shiftKey ? -1 : 1;
       const nextRow = (level + dir + rows.length) % rows.length;
+      if (nextRow !== getFirstUnsolvedRow()) hasJumpedAheadRef.current = true;
       const firstEditable = (() => {
         const pos = nearestUnlockedInRow(nextRow, 0);
         return pos === -1 ? 0 : pos;
@@ -1390,6 +1404,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     const id = setInterval(() => {
       try {
         if (jumpNudgeShownRef.current) return;
+        if (hasJumpedAheadRef.current) return; // Already jumped ahead
         if (showHowToPlay || showSettings || showQuickIntro || showShare) return;
         if (solvedNow || didFail) return;
         const idleMs = Date.now() - (lastProgressRef.current || 0);
@@ -1481,15 +1496,22 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     } catch {}
   }, [autosolveMode, isExperienced, showHowToPlay]);
 
+  // Track when user opens the hint menu (to disable "Stuck? Try a hint!" coachmark)
+  useEffect(() => {
+    if (showLifelineMenu) hasOpenedHintMenuRef.current = true;
+  }, [showLifelineMenu]);
+
   // One-time coachmark to highlight the Hints button after 60s (for new players)
   useEffect(() => {
     if (isExperienced) return; // Skip coachmarks for experienced users
     try {
       if (localStorage.getItem('stepwords-hints-coach-shown') === '1') return;
+      if (hasOpenedHintMenuRef.current) return; // Already opened hint menu
       const t = setTimeout(() => {
         if (showHowToPlay || showSettings || showQuickIntro || showShare) return;
         if (solvedNow || didFail) return;
         if (hintCount > 0) return; // Already used hints
+        if (hasOpenedHintMenuRef.current) return; // Opened before coachmark fired
         const el = lifelineRef.current;
         if (!el) return;
         const r = el.getBoundingClientRect();
@@ -1513,7 +1535,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       }, 60000);
       return () => clearTimeout(t);
     } catch {}
-  }, [isExperienced, showHowToPlay, showSettings, showQuickIntro, showShare, solvedNow, didFail, hintCount]);
+  }, [isExperienced, showHowToPlay, showSettings, showQuickIntro, showShare, solvedNow, didFail, hintCount, showLifelineMenu]);
 
   // On-screen keyboard handlers (mobile)
   const handleKeyPress = (key) => {
@@ -2113,13 +2135,15 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           onToggleUserStep={printMode ? null : toggleUserStepAt}
           stepEmoji={stepEmoji}
           onTileClick={printMode ? null : (i, col) => {
-                        setLevel(i);
+            if (i !== getFirstUnsolvedRow()) hasJumpedAheadRef.current = true;
+            setLevel(i);
                         setCursor(col);
             if (!isMobile) {
                         inputRef.current?.focus();
                       }
                     }}
           onJumpToRow={printMode ? null : (i)=>{
+            if (i !== getFirstUnsolvedRow()) hasJumpedAheadRef.current = true;
             setLevel(i);
             const firstOpen = nearestUnlockedInRow(i, 0);
             setCursor(firstOpen === -1 ? 0 : firstOpen);
