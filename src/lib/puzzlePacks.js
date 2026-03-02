@@ -1,5 +1,5 @@
 export async function fetchPacks() {
-  const res = await fetch("/packs/index.json");
+  const res = await fetch("/packs.json");
   if (!res.ok) throw new Error("Failed to load puzzle packs");
   return res.json();
 }
