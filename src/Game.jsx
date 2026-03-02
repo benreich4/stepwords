@@ -780,6 +780,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // Autosolve mode: automatically solve the puzzle
   const gridScrollRef = useRef(null);
   const gameContainerRef = useRef(null);
+  const puzzleGridRef = useRef(null);
+  const [puzzleOverflows, setPuzzleOverflows] = useState(false);
   const [lastRowPosition, setLastRowPosition] = useState(null);
   const [introPopupPosition, setIntroPopupPosition] = useState(null);
   const [finalPopupPosition, setFinalPopupPosition] = useState(null);
@@ -1496,6 +1498,23 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     } catch {}
   }, [autosolveMode, isExperienced, showHowToPlay]);
 
+  // Detect when puzzle overflows viewport: left-align with padding instead of centering
+  useEffect(() => {
+    const scrollEl = gridScrollRef.current;
+    const gridEl = puzzleGridRef.current;
+    if (!scrollEl || !gridEl) return;
+    const check = () => {
+      const scrollW = scrollEl.clientWidth;
+      const gridW = gridEl.scrollWidth;
+      setPuzzleOverflows(gridW > scrollW);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(scrollEl);
+    ro.observe(gridEl);
+    return () => ro.disconnect();
+  }, [rows]);
+
   // Track when user opens the hint menu (to disable "Stuck? Try a hint!" coachmark)
   useEffect(() => {
     if (showLifelineMenu) hasOpenedHintMenuRef.current = true;
@@ -2094,7 +2113,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         <div 
           ref={gridScrollRef}
           id="grid-scroll"
-          className={`flex-1 overflow-y-auto pt-5 sm:pt-4 md:pt-3 pb-8 z-0 ${printMode ? 'w-full max-w-4xl mx-auto' : ''}`}
+          className={`flex-1 min-w-0 overflow-auto pt-5 sm:pt-4 md:pt-3 pb-8 z-0 w-full max-w-4xl mx-auto`}
         onClick={() => {
           if ((useOsKeyboard || !isMobile) && inputRef.current) {
             inputRef.current.focus();
@@ -2122,6 +2141,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         aria-hidden
       />
 
+        <div className={`w-full flex ${puzzleOverflows ? 'justify-start pl-2' : 'justify-center px-6'}`}>
+        <div ref={puzzleGridRef} className="w-fit">
         <LetterGrid
           rows={rows}
           guesses={guesses}
@@ -2156,6 +2177,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           renderClueText={renderClueText}
           rowCompletionAnimation={rowCompletionAnimation}
                   />
+        </div>
+        </div>
 
         {!printMode && <div className={`text-xs px-3 mt-1 mb-2 ${effectiveSettings.lightMode ? 'text-gray-600' : 'text-gray-300'}`}>{message}</div>}
         {/* Spacer equal to keyboard height (updated dynamically) */}

@@ -39,7 +39,7 @@ export default function LetterGrid({
   const isHoldingOnly = longPressActiveRef.current && longPressStartRowRef.current != null && (typeof diffToRow !== 'number' || diffToRow == null);
   return (
     <div
-      className="w-full flex flex-col items-start gap-1 select-none pl-2 pr-0 pb-0"
+      className="w-fit flex flex-col items-start gap-1 select-none pb-0"
       onPointerDown={(e) => {
         const target = e.target;
         if (!target || !target.closest) return;
