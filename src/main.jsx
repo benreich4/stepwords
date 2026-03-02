@@ -10,6 +10,8 @@ import Explore from "./pages/Explore.jsx";
 import QuickToday from "./pages/QuickToday.jsx";
 import QuickPage from "./pages/QuickPage.jsx";
 import OtherPage from "./pages/OtherPage.jsx";
+import PacksPage from "./pages/PacksPage.jsx";
+import PackPage from "./pages/PackPage.jsx";
 import Promo from "./pages/Promo.jsx";
 import Submissions from "./pages/Submissions.jsx";
 import SubmissionPlay from "./pages/SubmissionPlay.jsx";
@@ -31,6 +33,8 @@ const router = createBrowserRouter([
       { path: "/quick", element: <QuickToday /> },
       { path: "/quick/:puzzleId", element: <QuickPage /> },
       { path: "/other/:puzzleId", element: <OtherPage /> },
+      { path: "/packs", element: <PacksPage /> },
+      { path: "/packs/:packId", element: <PackPage /> },
       { path: "/promo", element: <Promo /> },
       { path: "/submissions", element: <Submissions /> },
       { path: "/submissions/:sid", element: <SubmissionPlay /> },
