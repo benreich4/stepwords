@@ -2094,7 +2094,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         <div 
           ref={gridScrollRef}
           id="grid-scroll"
-          className={`flex-1 overflow-y-auto pt-5 sm:pt-4 md:pt-3 pb-8 ${printMode ? 'w-full max-w-4xl mx-auto' : ''}`}
+          className={`flex-1 overflow-y-auto pt-5 sm:pt-4 md:pt-3 pb-8 z-0 ${printMode ? 'w-full max-w-4xl mx-auto' : ''}`}
         onClick={() => {
           if ((useOsKeyboard || !isMobile) && inputRef.current) {
             inputRef.current.focus();

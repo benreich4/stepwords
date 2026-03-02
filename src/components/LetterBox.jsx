@@ -104,7 +104,7 @@ export default function LetterBox({
         width: tileSize,
         fontSize: textSize,
         transitionDelay: `${delayMs}ms`,
-        zIndex: hasParticles ? 10 : 'auto', // Raise z-index when particles are active
+        zIndex: hasParticles ? 1 : 'auto', // Slightly raise when particles are active (keep below clue bar z-10)
       }}
     >
       {/* Particle burst effect */}
