@@ -1826,7 +1826,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       )}
       
       {!printMode && (
-        <div className={`px-3 text-center transition-all duration-300 ease-out ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0 opacity-0' : 'pt-1 opacity-100'} ${isQuick 
+        <div className={`${isMobile ? 'px-1' : 'px-3'} text-center transition-all duration-300 ease-out ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0 opacity-0' : 'pt-1 opacity-100'} ${isQuick 
           ? (effectiveSettings.lightMode ? 'bg-orange-50 border-t border-b border-orange-300' : 'bg-orange-900/40 border-t border-b border-orange-800')
           : (effectiveSettings.lightMode ? 'bg-blue-50 border-t border-b border-blue-300' : 'bg-blue-900/40 border-t border-b border-blue-800')
         }`}>
@@ -1860,7 +1860,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
       {!printMode && (
         <div className="sticky top-0 z-20">
-        <div className={`relative z-30 w-full px-2 sm:px-3 xl:px-4 2xl:px-6 h-8 md:h-10 xl:h-10 2xl:h-12 flex items-center justify-between backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}>
+        <div className={`relative z-30 w-full ${isMobile ? 'px-1' : 'px-2 sm:px-3 xl:px-4 2xl:px-6'} h-8 md:h-10 xl:h-10 2xl:h-12 flex items-center justify-between backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}>
           <div className={`flex items-center gap-1 sm:gap-2 text-xs xl:text-sm 2xl:text-base ${effectiveSettings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
           <div
             ref={starsRef}
@@ -2140,7 +2140,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         </div>
         </div>
       {!printMode && (!effectiveSettings.showAllClues || isMobile) && (
-        <div ref={clueBarRef} className={`relative z-10 w-full px-3 py-2 backdrop-blur border-b ${effectiveSettings.lightMode ? 'bg-gray-200 border-gray-300' : 'bg-gray-800 border-sky-900/60'}`}>
+        <div ref={clueBarRef} className={`relative z-10 w-full ${isMobile ? 'px-1' : 'px-3'} py-2 backdrop-blur border-b ${effectiveSettings.lightMode ? 'bg-gray-200 border-gray-300' : 'bg-gray-800 border-sky-900/60'}`}>
           <div className="flex items-center justify-between">
             <button
               onClick={() => moveLevel(-1)}
@@ -2199,10 +2199,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         aria-hidden
       />
 
-        <div className={`w-full flex ${puzzleOverflows ? 'justify-start pl-2' : 'justify-center px-6'}`}>
+        <div className={`w-full flex ${puzzleOverflows ? `justify-start ${isMobile ? 'pl-1' : 'pl-2'}` : `justify-center ${isMobile ? 'px-1' : 'px-4 sm:px-6'}`}`}>
         <div ref={puzzleGridRef} className="w-fit">
         <LetterGrid
-          availableWidth={Math.max(0, gridScrollDimensions.width - 48)}
+          availableWidth={Math.max(0, gridScrollDimensions.width - (isMobile ? 8 : 48))}
           availableHeight={gridScrollDimensions.height}
           rows={rows}
           guesses={guesses}
@@ -2240,7 +2240,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         </div>
         </div>
 
-        {!printMode && <div ref={messageRef} className={`text-xs md:text-sm px-3 mt-1 mb-2 ${effectiveSettings.lightMode ? 'text-gray-600' : 'text-gray-300'}`}>{message}</div>}
+        {!printMode && <div ref={messageRef} className={`text-xs md:text-sm ${isMobile ? 'px-1' : 'px-3'} mt-1 mb-2 ${effectiveSettings.lightMode ? 'text-gray-600' : 'text-gray-300'}`}>{message}</div>}
         {/* Spacer equal to keyboard height (updated dynamically) */}
         <div id="bottom-scroll-spacer" className="h-0" aria-hidden />
         

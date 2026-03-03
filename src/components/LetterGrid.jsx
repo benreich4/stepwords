@@ -1,7 +1,7 @@
 import LetterBox from "./LetterBox.jsx";
 import { useRef } from "react";
 
-const TILE_MIN_PX = 34; // Slightly bigger than answer number tiles (w-8 = 32px)
+const TILE_MIN_PX = 32; // Minimum letter tile size
 const TILE_MAX_PX = 64;
 const ROW_GAP_PX = 4;
 const LETTER_GAP_PX = 4;
@@ -46,20 +46,35 @@ export default function LetterGrid({
   const maxWordLength = Math.max(...rows.map(row => row.answer.length));
   const isHoldingOnly = longPressActiveRef.current && longPressStartRowRef.current != null && (typeof diffToRow !== 'number' || diffToRow == null);
 
-  // Compute tile size from available viewport (clue bar bottom to keyboard top)
-  const tileSizePx = (() => {
-    if (availableWidth <= 0 || availableHeight <= 0 || rows.length === 0) return 36;
-    const w = availableWidth - ROW_NUM_WIDTH_PX - LETTER_GAP_PX - (maxWordLength - 1) * LETTER_GAP_PX;
-    const tileFromWidth = w > 0 ? w / maxWordLength : TILE_MAX_PX;
-    const h = availableHeight - (rows.length - 1) * ROW_GAP_PX;
-    const tileFromHeight = h > 0 ? h / rows.length : TILE_MAX_PX;
-    const raw = Math.min(tileFromWidth, tileFromHeight);
-    return Math.max(TILE_MIN_PX, Math.min(TILE_MAX_PX, raw));
+  // Compute tile size and gaps. Gaps scale with tile size so they don't look oversized when tiles are small.
+  const { tileSizePx, letterGapPx, rowGapPx } = (() => {
+    if (availableWidth <= 0 || availableHeight <= 0 || rows.length === 0) {
+      return { tileSizePx: 36, letterGapPx: 4, rowGapPx: 4 };
+    }
+    // First pass: compute tile size with base gaps
+    let letterGap = LETTER_GAP_PX;
+    let rowGap = ROW_GAP_PX;
+    let w = availableWidth - ROW_NUM_WIDTH_PX - letterGap - (maxWordLength - 1) * letterGap;
+    let tileFromWidth = w > 0 ? w / maxWordLength : TILE_MAX_PX;
+    let h = availableHeight - (rows.length - 1) * rowGap;
+    let tileFromHeight = h > 0 ? h / rows.length : TILE_MAX_PX;
+    let tileSize = Math.max(TILE_MIN_PX, Math.min(TILE_MAX_PX, Math.min(tileFromWidth, tileFromHeight)));
+    // Scale gaps with tile size (~8% of tile, clamped 1–3px) so small tiles don't have oversized gaps
+    letterGap = Math.max(1, Math.min(3, Math.round(tileSize * 0.08)));
+    rowGap = Math.max(1, Math.min(3, Math.round(tileSize * 0.08)));
+    // Second pass: recompute tile size with scaled gaps
+    w = availableWidth - ROW_NUM_WIDTH_PX - letterGap - (maxWordLength - 1) * letterGap;
+    tileFromWidth = w > 0 ? w / maxWordLength : TILE_MAX_PX;
+    h = availableHeight - (rows.length - 1) * rowGap;
+    tileFromHeight = h > 0 ? h / rows.length : TILE_MAX_PX;
+    tileSize = Math.max(TILE_MIN_PX, Math.min(TILE_MAX_PX, Math.min(tileFromWidth, tileFromHeight)));
+    return { tileSizePx: tileSize, letterGapPx: letterGap, rowGapPx: rowGap };
   })();
   const textSizePx = Math.max(11, Math.min(22, tileSizePx * 0.46));
   return (
     <div
-      className="w-fit flex flex-col items-start gap-1 select-none pb-0"
+      className="w-fit flex flex-col items-start select-none pb-0"
+      style={{ gap: `${rowGapPx}px` }}
       onPointerDown={(e) => {
         const target = e.target;
         if (!target || !target.closest) return;
@@ -283,7 +298,7 @@ export default function LetterGrid({
             >
               {i+1}
             </button>
-            <div className="flex gap-0.5 md:gap-1 px-0 mx-0">
+            <div className="flex px-0 mx-0" style={{ gap: `${letterGapPx}px` }}>
               {Array.from({ length: len }).map((_, col) => {
                 const actualStepRevealed = i >= 1 && col === stepPos && (hardMode ? lockColors[i][stepPos] !== null : true);
                 const showUserStep = Boolean(
