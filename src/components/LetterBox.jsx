@@ -17,7 +17,6 @@ export default function LetterBox({
   isDiffFilled = false,  // deemphasize letters already filled in comparison row
   isDiffAll = false,     // deemphasize entire row (initial hold before selecting target)
   lightMode = false,
-  delayMs = 0,
   stepEmoji = '🪜',     // emoji to use for step indicator
 }) {
   const COLOR_CLASSES = {
@@ -109,7 +108,7 @@ export default function LetterBox({
       style={{
         width: tileSize,
         fontSize: textSize,
-        transitionDelay: `${delayMs}ms`,
+        transition: 'width 300ms ease-out, font-size 300ms ease-out',
         zIndex: hasParticles ? 1 : 'auto', // Slightly raise when particles are active (keep below clue bar z-10)
       }}
     >

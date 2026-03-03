@@ -2137,7 +2137,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             >
               ←
             </button>
-            <div className={`text-sm md:text-base xl:text-base 2xl:text-lg mx-2 flex-1 text-center ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
+            <div className={`text-sm md:text-lg xl:text-xl 2xl:text-xl mx-2 flex-1 text-center ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
               <span className="font-semibold">Clue:</span> {renderClueText(clue)}
             </div>
           <button
