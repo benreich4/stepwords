@@ -13,7 +13,7 @@ export default function Toast({ text, variant = "info", lightMode = false }) {
   
   if (!text) return null;
   
-  const classesBase = "rounded-lg text-xs sm:text-sm px-4 py-2.5 shadow-2xl backdrop-blur-md border font-medium transition-all duration-300 ease-out transform ";
+  const classesBase = "rounded-md text-[10px] sm:text-[11px] px-2.5 py-1 shadow-lg backdrop-blur-md border font-medium transition-all duration-300 ease-out transform max-w-[90vw]";
   let tone = "";
   if (variant === "success") {
     tone = lightMode 
@@ -35,10 +35,10 @@ export default function Toast({ text, variant = "info", lightMode = false }) {
     : "-translate-y-4 opacity-0 scale-95";
 
   return (
-    <div className="fixed top-4 left-0 right-0 z-40 flex justify-center px-3 pointer-events-none">
+    <div className="fixed top-1 left-0 right-0 z-40 flex justify-center px-3 pointer-events-none">
       <div className={`${classes} ${animationClass} pointer-events-none will-change-transform`}>
-        {variant === "success" && <span className="mr-1.5">✨</span>}
-        {variant === "warning" && <span className="mr-1.5">⚠️</span>}
+        {variant === "success" && <span className="mr-1">✨</span>}
+        {variant === "warning" && <span className="mr-1">⚠️</span>}
         {text}
       </div>
     </div>

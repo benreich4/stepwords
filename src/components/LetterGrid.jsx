@@ -1,7 +1,7 @@
 import LetterBox from "./LetterBox.jsx";
 import { useRef } from "react";
 
-const TILE_MIN_PX = 28;
+const TILE_MIN_PX = 34; // Slightly bigger than answer number tiles (w-8 = 32px)
 const TILE_MAX_PX = 64;
 const ROW_GAP_PX = 4;
 const LETTER_GAP_PX = 4;
