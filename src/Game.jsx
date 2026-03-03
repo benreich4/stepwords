@@ -781,7 +781,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const gridScrollRef = useRef(null);
   const gameContainerRef = useRef(null);
   const puzzleGridRef = useRef(null);
+  const messageRef = useRef(null);
   const [puzzleOverflows, setPuzzleOverflows] = useState(false);
+  const [gridScrollDimensions, setGridScrollDimensions] = useState({ width: 0, height: 0 });
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [lastRowPosition, setLastRowPosition] = useState(null);
   const [introPopupPosition, setIntroPopupPosition] = useState(null);
   const [finalPopupPosition, setFinalPopupPosition] = useState(null);
@@ -1498,6 +1501,46 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     } catch {}
   }, [autosolveMode, isExperienced, showHowToPlay]);
 
+  // Measure grid-scroll dimensions for dynamic tile sizing (resize, keyboard, header collapse)
+  useEffect(() => {
+    const scrollEl = gridScrollRef.current;
+    if (!scrollEl) return;
+    const update = () => {
+      const msgEl = messageRef.current;
+      const pt = parseFloat(getComputedStyle(scrollEl).paddingTop) || 20;
+      const pb = parseFloat(getComputedStyle(scrollEl).paddingBottom) || 32;
+      const msgH = msgEl?.offsetHeight ?? 24;
+      const w = scrollEl.clientWidth;
+      const baseH = scrollEl.clientHeight - pt - pb - msgH;
+      const rect = scrollEl.getBoundingClientRect();
+      const vv = window.visualViewport;
+      const visibleBottom = vv ? Math.min(rect.bottom, vv.height) : rect.bottom;
+      const visibleTop = vv ? Math.max(rect.top, 0) : rect.top;
+      const visibleH = Math.max(0, visibleBottom - visibleTop - pt - pb - msgH);
+      const h = Math.min(visibleH, baseH) - keyboardHeight;
+      setGridScrollDimensions({ width: w, height: Math.max(0, h) });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(scrollEl);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", update);
+      vv.addEventListener("scroll", update);
+    }
+    const t = setTimeout(update, 150);
+    const t2 = setTimeout(update, 350);
+    return () => {
+      clearTimeout(t);
+      clearTimeout(t2);
+      ro.disconnect();
+      if (vv) {
+        vv.removeEventListener("resize", update);
+        vv.removeEventListener("scroll", update);
+      }
+    };
+  }, [rows, printMode, headerCollapsed, kbCollapsed, keyboardHeight, useOsKeyboard]);
+
   // Detect when puzzle overflows viewport: left-align with padding instead of centering
   useEffect(() => {
     const scrollEl = gridScrollRef.current;
@@ -1800,11 +1843,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       )}
 
       {!printMode && (
-        <div className={`w-full px-2 sm:px-3 xl:px-4 2xl:px-6 h-8 xl:h-10 2xl:h-12 flex items-center justify-between sticky top-0 backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b z-20 transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}>
+        <div className={`w-full px-2 sm:px-3 xl:px-4 2xl:px-6 h-8 md:h-10 xl:h-10 2xl:h-12 flex items-center justify-between sticky top-0 backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b z-20 transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}>
           <div className={`flex items-center gap-1 sm:gap-2 text-xs xl:text-sm 2xl:text-base ${effectiveSettings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
           <div
             ref={starsRef}
-            className={`px-2 py-0.5 rounded border flex items-center gap-0.5 cursor-pointer transition-all duration-300 ${settings.lightMode ? 'border-gray-300 bg-gray-50 shadow-sm' : 'border-gray-700 bg-gray-800 shadow-sm'}`}
+            className={`px-2 py-0.5 md:px-3 md:py-1 rounded border flex items-center gap-0.5 text-sm md:text-base cursor-pointer transition-all duration-300 ${settings.lightMode ? 'border-gray-300 bg-gray-50 shadow-sm' : 'border-gray-700 bg-gray-800 shadow-sm'}`}
             title="Current stars"
             role="button"
             tabIndex={0}
@@ -1818,7 +1861,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         
         {/* Streak Display */}
         <div 
-          className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded border text-[9px] sm:text-[10px] cursor-pointer transition-opacity hover:opacity-80 ${isQuick 
+          className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 md:px-3 py-0.5 md:py-1 rounded border text-[9px] sm:text-[10px] md:text-sm cursor-pointer transition-opacity hover:opacity-80 ${isQuick 
             ? (effectiveSettings.lightMode ? 'border-orange-300 bg-orange-50 text-orange-800 shadow-sm' : 'border-orange-600 bg-orange-900/40 text-orange-300 shadow-lg shadow-orange-500/20')
             : (effectiveSettings.lightMode ? 'border-blue-300 bg-blue-50 text-blue-800 shadow-sm' : 'border-blue-600 bg-blue-900/40 text-blue-300 shadow-lg shadow-blue-500/20')
           }`}
@@ -1842,7 +1885,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         </div>
         
         {!hideZeroTime && (
-          <div className={`hidden sm:block ml-2 px-2 py-0.5 rounded border text-xs xl:text-sm font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-800' : 'border-gray-700 bg-gray-800 text-gray-300'}`} title="Elapsed time">
+          <div className={`hidden sm:block ml-2 px-2 py-0.5 md:px-3 md:py-1 rounded border text-xs md:text-sm xl:text-sm font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-800' : 'border-gray-700 bg-gray-800 text-gray-300'}`} title="Elapsed time">
             {formatElapsed(elapsedMs)}
           </div>
         )}
@@ -1858,7 +1901,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <div ref={lifelineRef} className="relative">
             <button
               onClick={() => setShowLifelineMenu((v) => !v)}
-              className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+              className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] w-8 md:w-10 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
               aria-label="Hints"
             >
               <span className="relative inline-flex items-center justify-center" aria-hidden>
@@ -1911,7 +1954,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           </div>
           <button
             onClick={() => setShowHowToPlay(true)}
-            className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+            className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] w-8 md:w-10 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
             title="How to Play"
           >
             ?
@@ -1919,7 +1962,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           {isPuzzleCompleted && !showShare && !didFail && (
             <button
               onClick={() => setShowShare(true)}
-              className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] gap-0.5 ${settings.lightMode ? 'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100' : 'border-rose-600 bg-rose-900/40 text-rose-300 hover:bg-rose-800/60'}`}
+              className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] gap-0.5 ${settings.lightMode ? 'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100' : 'border-rose-600 bg-rose-900/40 text-rose-300 hover:bg-rose-800/60'}`}
               title="Rate this puzzle"
             >
               <span>❤️</span>
@@ -1930,7 +1973,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <div ref={settingsRef} className="relative">
             <button
               onClick={() => setShowSettings((v) => !v)}
-              className={`px-2 py-0.5 rounded-md text-xs border flex items-center justify-center min-h-[20px] w-8 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+              className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] w-8 md:w-10 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
               aria-label="Settings"
             >
               ⚙️
@@ -2094,7 +2137,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             >
               ←
             </button>
-            <div className={`text-sm xl:text-base 2xl:text-lg mx-2 flex-1 text-center ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
+            <div className={`text-sm md:text-base xl:text-base 2xl:text-lg mx-2 flex-1 text-center ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
               <span className="font-semibold">Clue:</span> {renderClueText(clue)}
             </div>
           <button
@@ -2144,6 +2187,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         <div className={`w-full flex ${puzzleOverflows ? 'justify-start pl-2' : 'justify-center px-6'}`}>
         <div ref={puzzleGridRef} className="w-fit">
         <LetterGrid
+          availableWidth={Math.max(0, gridScrollDimensions.width - 48)}
+          availableHeight={gridScrollDimensions.height}
           rows={rows}
           guesses={guesses}
           lockColors={lockColors}
@@ -2180,7 +2225,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         </div>
         </div>
 
-        {!printMode && <div className={`text-xs px-3 mt-1 mb-2 ${effectiveSettings.lightMode ? 'text-gray-600' : 'text-gray-300'}`}>{message}</div>}
+        {!printMode && <div ref={messageRef} className={`text-xs md:text-sm px-3 mt-1 mb-2 ${effectiveSettings.lightMode ? 'text-gray-600' : 'text-gray-300'}`}>{message}</div>}
         {/* Spacer equal to keyboard height (updated dynamically) */}
         <div id="bottom-scroll-spacer" className="h-0" aria-hidden />
         
@@ -2224,8 +2269,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             return true;
           })()}
           onResize={(h) => {
+            const height = Math.max(0, Math.floor(h));
+            setKeyboardHeight(height);
             const spacer = document.getElementById('bottom-scroll-spacer');
-            if (spacer) spacer.style.height = Math.max(0, Math.floor(h)) + 'px';
+            if (spacer) spacer.style.height = height + 'px';
           }}
           submitButtonRef={submitBtnRef}
           collapsed={kbCollapsed || useOsKeyboard}

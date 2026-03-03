@@ -88,7 +88,7 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
     <div ref={rootRef} className={`fixed bottom-0 left-0 right-0 w-full border-t z-20 transition-[height,background-color] duration-300 ease-out ${lightMode ? 'bg-white/90 border-gray-200' : 'bg-gray-900 border-gray-700'}`} style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', userSelect: 'none' }}>
       {/* Collapse handle (larger tap target; wrapper handles events) */}
       <div
-        className="w-full flex items-center justify-center py-0.5"
+        className="w-full flex items-center justify-center py-0.5 md:py-1"
         role="button"
         tabIndex={0}
         onPointerUp={()=> onToggleCollapse(!collapsed)}
@@ -96,7 +96,7 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
       >
         <button
           ref={toggleRef}
-          className={`px-2 py-0.5 text-xs rounded border pointer-events-none ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
+          className={`px-2 py-0.5 md:px-3 md:py-1 text-xs md:text-sm rounded border pointer-events-none ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
           aria-label={collapsed ? 'Expand keyboard' : 'Collapse keyboard'}
         >
           {collapsed ? '▲' : '▼'}

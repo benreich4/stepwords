@@ -1,7 +1,15 @@
 import LetterBox from "./LetterBox.jsx";
 import { useRef } from "react";
 
+const TILE_MIN_PX = 28;
+const TILE_MAX_PX = 64;
+const ROW_GAP_PX = 4;
+const LETTER_GAP_PX = 4;
+const ROW_NUM_WIDTH_PX = 32; // md:w-8; row number + gap
+
 export default function LetterGrid({
+  availableWidth = 0,
+  availableHeight = 0,
   rows,
   guesses,
   lockColors,
@@ -37,6 +45,18 @@ export default function LetterGrid({
   // Find the longest word length in the puzzle
   const maxWordLength = Math.max(...rows.map(row => row.answer.length));
   const isHoldingOnly = longPressActiveRef.current && longPressStartRowRef.current != null && (typeof diffToRow !== 'number' || diffToRow == null);
+
+  // Compute tile size from available viewport (clue bar bottom to keyboard top)
+  const tileSizePx = (() => {
+    if (availableWidth <= 0 || availableHeight <= 0 || rows.length === 0) return 36;
+    const w = availableWidth - ROW_NUM_WIDTH_PX - LETTER_GAP_PX - (maxWordLength - 1) * LETTER_GAP_PX;
+    const tileFromWidth = w > 0 ? w / maxWordLength : TILE_MAX_PX;
+    const h = availableHeight - (rows.length - 1) * ROW_GAP_PX;
+    const tileFromHeight = h > 0 ? h / rows.length : TILE_MAX_PX;
+    const raw = Math.min(tileFromWidth, tileFromHeight);
+    return Math.max(TILE_MIN_PX, Math.min(TILE_MAX_PX, raw));
+  })();
+  const textSizePx = Math.max(11, Math.min(22, tileSizePx * 0.46));
   return (
     <div
       className="w-fit flex flex-col items-start gap-1 select-none pb-0"
@@ -252,7 +272,7 @@ export default function LetterGrid({
             <button
               type="button"
               onClick={() => onJumpToRow && onJumpToRow(i)}
-              className={`shrink-0 w-6 h-6 rounded text-[10px] flex items-center justify-center border ${
+              className={`shrink-0 w-6 h-6 md:w-8 md:h-8 rounded text-[10px] md:text-sm flex items-center justify-center border ${
                 i===level
                   ? (lightMode ? 'bg-sky-100 border-sky-300 text-sky-900' : 'bg-sky-700 border-sky-500 text-white')
                   : referencedRows?.has(i)
@@ -263,7 +283,7 @@ export default function LetterGrid({
             >
               {i+1}
             </button>
-            <div className="flex gap-0.5 px-0 mx-0">
+            <div className="flex gap-0.5 md:gap-1 px-0 mx-0">
               {Array.from({ length: len }).map((_, col) => {
                 const actualStepRevealed = i >= 1 && col === stepPos && (hardMode ? lockColors[i][stepPos] !== null : true);
                 const showUserStep = Boolean(
@@ -283,6 +303,8 @@ export default function LetterGrid({
                     isCursor={i === level && col === cursor}
                     showStep={actualStepRevealed}
                     showUserStep={showUserStep}
+                    tileSizePx={tileSizePx}
+                    textSizePx={textSizePx}
                     onContextMenu={(e) => {
                       if (!hardMode || typeof onToggleUserStep !== 'function') return;
                       if (i < 1) return; // First row has no step
@@ -305,7 +327,7 @@ export default function LetterGrid({
               })}
             </div>
             {showAllClues && clue && (
-              <div className={`ml-2 text-xs sm:text-sm flex-1 min-w-0 text-left ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
+              <div className={`ml-2 text-xs sm:text-sm md:text-base flex-1 min-w-0 text-left ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
                 <span className="break-words">{renderClueText ? renderClueText(clue) : clue}</span>
               </div>
             )}

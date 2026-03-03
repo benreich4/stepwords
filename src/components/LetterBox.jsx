@@ -9,7 +9,9 @@ export default function LetterBox({
   showStep = false,      // show actual step ladder emoji
   showUserStep = false,  // show user-placed temporary step ladder emoji
   onContextMenu = null,  // right-click handler for temporary step ladder
-  maxWordLength = 7,     // <-- NEW: longest word in puzzle
+  maxWordLength = 7,     // longest word in puzzle (fallback when tileSizePx not provided)
+  tileSizePx = null,     // when provided, use this instead of computing from viewport
+  textSizePx = null,     // when provided with tileSizePx, use for font size
   isDiffExtra = false,   // highlight as the extra/step letter vs comparison row
   isDiffMissing = false, // highlight as a missing/unfilled letter in comparison row
   isDiffFilled = false,  // deemphasize letters already filled in comparison row
@@ -31,29 +33,33 @@ export default function LetterBox({
     : "bg-gray-800 border-gray-700 text-gray-200 transition-colors duration-200";
   const stateClass = state ? (COLOR_CLASSES[state] || EMPTY_CLASSES) : EMPTY_CLASSES;
 
-  // Calculate dynamic tile size based on viewport and word length, with sane min/max caps
-  // - Slightly reduce available width to account for borders/padding so no overflow on mobile
-  // - Account for gap-0.5 (0.125rem) between letters: (maxWordLength - 1) gaps
-  // - Mobile: ensure tiles aren't too small (min ~30px)
-  // - Desktop: cap tiles so they don't get huge (max ~40px)
-  // - For short puzzles (maxWordLength <= 8), allow tiles to be bigger
-  const isWide = (typeof window !== 'undefined') && window.matchMedia && window.matchMedia('(min-width: 1536px)').matches;
-  const isShortPuzzle = maxWordLength <= 8;
-  
-  // Use less padding for short puzzles to allow bigger tiles
-  const padding = isShortPuzzle ? '2rem' : '3rem';
-  const gapWidth = maxWordLength > 1 ? `(${maxWordLength - 1} * 0.125rem)` : '0';
-  const rawSize = `(100vw - ${padding} - ${gapWidth}) / ${maxWordLength}`;
-  
-  // Allow larger tiles for short puzzles (but not too big)
-  const tileMaxPx = isShortPuzzle 
-    ? (isWide ? 60 : 44)
-    : (isWide ? 56 : 40);
-  const tileMinPx = isWide ? 34 : 30;
-  const textMaxPx = isWide ? 20 : 16;
-  const textScale = isWide ? 0.45 : 0.42;
-  const tileSize = `clamp(${tileMinPx}px, calc(${rawSize}), ${tileMaxPx}px)`;
-  const textSize = `clamp(11px, calc(${rawSize} * ${textScale}), ${textMaxPx}px)`;
+  // Tile size: use tileSizePx when provided (from parent's viewport measurement), else fallback
+  const tileSize = tileSizePx != null
+    ? `${tileSizePx}px`
+    : (() => {
+        const isWide = (typeof window !== 'undefined') && window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
+        const isShortPuzzle = maxWordLength <= 8;
+        const padding = isShortPuzzle ? '2rem' : '3rem';
+        const gapWidth = maxWordLength > 1 ? `(${maxWordLength - 1} * 0.125rem)` : '0';
+        const rawSize = `(100vw - ${padding} - ${gapWidth}) / ${maxWordLength}`;
+        const tileMaxPx = isShortPuzzle ? (isWide ? 64 : 44) : (isWide ? 58 : 40);
+        const tileMinPx = isWide ? 36 : 30;
+        return `clamp(${tileMinPx}px, calc(${rawSize}), ${tileMaxPx}px)`;
+      })();
+  const textSize = textSizePx != null
+    ? `${textSizePx}px`
+    : tileSizePx != null
+      ? `${Math.max(11, Math.min(22, tileSizePx * 0.46))}px`
+      : (() => {
+          const isWide = (typeof window !== 'undefined') && window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
+          const isShortPuzzle = maxWordLength <= 8;
+          const padding = isShortPuzzle ? '2rem' : '3rem';
+          const gapWidth = maxWordLength > 1 ? `(${maxWordLength - 1} * 0.125rem)` : '0';
+          const rawSize = `(100vw - ${padding} - ${gapWidth}) / ${maxWordLength}`;
+          const textMaxPx = isWide ? 22 : 16;
+          const textScale = isWide ? 0.46 : 0.42;
+          return `clamp(11px, calc(${rawSize} * ${textScale}), ${textMaxPx}px)`;
+        })();
   
   const base =
     "relative inline-flex items-center justify-center border rounded-[6px] box-border " +
@@ -122,7 +128,7 @@ export default function LetterBox({
       {showStep && (
         <span
           className="pointer-events-none absolute bottom-[1px] right-[1px] select-none
-                     text-[8px] sm:text-[10px] md:text-[11px] leading-none"
+                     text-[8px] sm:text-[10px] md:text-xs leading-none"
           aria-hidden
         >
           {stepEmoji}
@@ -133,7 +139,7 @@ export default function LetterBox({
       {showUserStep && (
         <span
           className="pointer-events-none absolute bottom-[1px] right-[1px] select-none
-                     text-[8px] sm:text-[10px] md:text-[11px] leading-none"
+                     text-[8px] sm:text-[10px] md:text-xs leading-none"
           aria-hidden
         >
           {stepEmoji}

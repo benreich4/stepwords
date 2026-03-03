@@ -345,7 +345,7 @@ export default function App() {
     <div className={`min-h-screen w-screen ${lightMode ? 'bg-white text-gray-900' : 'bg-black text-gray-100'}`}>
       {!printMode && !isPromo && (
         <header
-          className={`app-header w-full px-2 py-1 border-b ${lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}
+          className={`app-header w-full px-2 py-1 md:px-3 md:py-2 border-b ${lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}
         onClick={(e) => {
           // Toggle collapse when clicking the header bar background, but ignore clicks on interactive elements
           const tgt = e.target;
@@ -363,7 +363,7 @@ export default function App() {
             <div className="flex items-center gap-1">
               <Link 
                 to={mainTarget} 
-                className={`px-2 py-0.5 rounded text-[10px] border transition-colors flex items-center gap-1 ${
+                className={`px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-sm border transition-colors flex items-center gap-1 ${
                   (!isQuick && !isArchives && !isStats && !isOther)
                     ? 'bg-blue-500 border-blue-500 text-white shadow-sm' 
                     : (lightMode ? 'bg-gray-50 border-gray-300 text-gray-800 hover:bg-gray-100' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700')
@@ -373,7 +373,7 @@ export default function App() {
               </Link>
               <Link 
                 to={quickTarget} 
-                className={`px-2 py-0.5 rounded text-[10px] border transition-colors flex items-center gap-1 ${
+                className={`px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-sm border transition-colors flex items-center gap-1 ${
                   (isQuick && !isArchives)
                     ? 'bg-blue-500 border-blue-500 text-white shadow-sm' 
                     : (lightMode ? 'bg-gray-50 border-gray-300 text-gray-800 hover:bg-gray-100' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700')
@@ -394,7 +394,7 @@ export default function App() {
                   } catch {}
                   try { document.dispatchEvent(new CustomEvent('stepwords-header-toggle')); } catch {}
                 }}
-                className={`text-[10px] px-2 py-0.5 rounded border ${lightMode ? 'text-gray-600 border-gray-300 hover:bg-gray-200' : 'text-gray-400 border-gray-800 hover:bg-gray-900'}`}
+                className={`text-[10px] md:text-sm px-2 py-0.5 md:px-3 md:py-1 rounded border ${lightMode ? 'text-gray-600 border-gray-300 hover:bg-gray-200' : 'text-gray-400 border-gray-800 hover:bg-gray-900'}`}
                 aria-label={headerCollapsed ? 'Expand header' : 'Collapse header'}
               >
                 {headerCollapsed ? '▼' : '▲'}
@@ -404,7 +404,7 @@ export default function App() {
           <div className="justify-self-end min-w-0">
             <Link 
               to="/create" 
-              className={`px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
+              className={`px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-sm border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
                 (lightMode ? 'border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700')
               }`}
               title="Create"
@@ -413,7 +413,7 @@ export default function App() {
             </Link>
             <Link 
               to="/stats" 
-              className={`ml-2 px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
+              className={`ml-2 px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-sm border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
                 isStats
                   ? 'bg-blue-500 border-blue-500 text-white shadow-sm'
                   : (lightMode ? 'border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700')
@@ -424,7 +424,7 @@ export default function App() {
             </Link>
             <Link 
               to="/archives" 
-              className={`ml-2 px-2 py-0.5 rounded text-[10px] border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
+              className={`ml-2 px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-sm border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
                 isArchives
                   ? 'bg-blue-500 border-blue-500 text-white shadow-sm'
                   : (lightMode ? 'border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700')
