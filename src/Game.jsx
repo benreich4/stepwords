@@ -1437,6 +1437,22 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     }
   }, [showSettings]);
 
+  // Close settings, hints, or How To modal on Escape
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key !== 'Escape') return;
+      if (showHowToPlay) {
+        handleCloseHowToPlay();
+      } else if (showSettings) {
+        setShowSettings(false);
+      } else if (showLifelineMenu) {
+        setShowLifelineMenu(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showHowToPlay, showSettings, showLifelineMenu, handleCloseHowToPlay]);
+
   // Minimal: close Settings when clicking/tapping outside
   useEffect(() => {
     const handler = (e) => {
