@@ -1,13 +1,12 @@
 {
   "id": "14",
   "rows": [
-    {"answer": "tan", "clue": "Colour of Tights (3)"},
-    {"answer": "ants", "clue": "Colony Members (4)"},
-    {"answer": "satin", "clue": "Wedding Material (5)"},
-    {"answer": "seitan", "clue": "Vegetarian Protein (6)"},
-    {"answer": "slainte", "clue": "Scottish Toast (7)"},
-    {"answer": "taglines", "clue": "Fishing Gear Slogans (3,5)"},
-    {"answer": "triangles", "clue": "Meeting Place of Three (9)"},
-    {"answer": "stranglers", "clue": "Murderous Punk Rockers (10)"}
+    {"answer": "tan", "clue": "Colour of tights (3)"},
+    {"answer": "ants", "clue": "Colony members (4)"},
+    {"answer": "satin", "clue": "Wedding material (5)"},
+    {"answer": "seitan", "clue": "Vegetarian protein (6)"},
+    {"answer": "slainte", "clue": "Scottish toast (7)"},
+    {"answer": "taglines", "clue": "Fishing gear slogans (3,5)"},
+    {"answer": "triangles", "clue": "Meeting place of three (9)"}
   ]
 }
