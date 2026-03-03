@@ -1844,7 +1844,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
       {!printMode && (
         <div className="sticky top-0 z-20">
-        <div className={`w-full px-2 sm:px-3 xl:px-4 2xl:px-6 h-8 md:h-10 xl:h-10 2xl:h-12 flex items-center justify-between backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}>
+        <div className={`relative z-30 w-full px-2 sm:px-3 xl:px-4 2xl:px-6 h-8 md:h-10 xl:h-10 2xl:h-12 flex items-center justify-between backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}>
           <div className={`flex items-center gap-1 sm:gap-2 text-xs xl:text-sm 2xl:text-base ${effectiveSettings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
           <div
             ref={starsRef}
@@ -1980,7 +1980,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               ⚙️
             </button>
             {showSettings && (
-              <div className={`absolute right-0 top-full mt-1 w-60 rounded-lg border backdrop-blur-sm shadow-xl p-2 text-xs menu-pop-in ${settings.lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5' : 'border-gray-700 bg-gray-900 ring-1 ring-white/10'}`}>
+              <div className={`absolute right-0 top-full mt-1 w-60 rounded-lg border backdrop-blur-sm shadow-xl p-2 text-xs menu-pop-in z-30 ${settings.lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5' : 'border-gray-700 bg-gray-900 ring-1 ring-white/10'}`}>
                 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hard mode</span>
@@ -2124,7 +2124,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         </div>
         </div>
       {!printMode && (!effectiveSettings.showAllClues || isMobile) && (
-        <div ref={clueBarRef} className={`w-full px-3 py-2 backdrop-blur border-b ${effectiveSettings.lightMode ? 'bg-gray-200 border-gray-300' : 'bg-gray-800 border-sky-900/60'}`}>
+        <div ref={clueBarRef} className={`relative z-10 w-full px-3 py-2 backdrop-blur border-b ${effectiveSettings.lightMode ? 'bg-gray-200 border-gray-300' : 'bg-gray-800 border-sky-900/60'}`}>
           <div className="flex items-center justify-between">
             <button
               onClick={() => moveLevel(-1)}

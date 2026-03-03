@@ -140,7 +140,7 @@ export function LifelineMenu({
   const goRoot = () => setView('root');
 
   return (
-    <div data-lifeline-menu className={`absolute right-0 top-full mt-1 min-w-[220px] rounded-lg border backdrop-blur-sm p-3 text-sm shadow-xl menu-pop-in ${lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5 text-gray-800' : 'border-gray-700 bg-gray-900/95 ring-1 ring-white/10 text-gray-300'}`}>
+    <div data-lifeline-menu className={`absolute right-0 top-full mt-1 min-w-[220px] rounded-lg border backdrop-blur-sm p-3 text-sm shadow-xl menu-pop-in z-30 ${lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5 text-gray-800' : 'border-gray-700 bg-gray-900/95 ring-1 ring-white/10 text-gray-300'}`}>
       {view === 'root' && (
         <div className="space-y-2 menu-pop-in">
           <button onClick={() => setView('starts')} className={`w-full text-left px-3 py-2 rounded-md border ${lightMode ? 'border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-900' : 'border-gray-700 bg-gray-900/60 hover:bg-gray-800'}`}>Word starts</button>
