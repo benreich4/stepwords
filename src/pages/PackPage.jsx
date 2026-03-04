@@ -102,7 +102,7 @@ export default function PackPage() {
                   </span>
                   {author && (
                     <span className={`ml-2 text-xs ${lightMode ? "text-gray-500" : "text-gray-400"}`}>
-                      by {author}
+                      by <Link to={`/author/${encodeURIComponent(author)}`} onClick={(e) => e.stopPropagation()} className={`underline hover:no-underline ${lightMode ? "text-gray-600 hover:text-gray-800" : "text-gray-400 hover:text-gray-200"}`}>{author}</Link>
                     </span>
                   )}
                 </div>

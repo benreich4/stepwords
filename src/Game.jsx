@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import LetterGrid from "./components/LetterGrid.jsx";
 import ShareModal from "./components/ShareModal.jsx";
 import HowToPlayModal from "./components/HowToPlayModal.jsx";
@@ -1847,7 +1848,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           )}
           {puzzle.author && (
             <div className={`text-xs sm:text-sm mb-1 ${effectiveSettings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
-              By {puzzle.author}
+              By <Link to={`/author/${encodeURIComponent(puzzle.author)}`} className={`underline hover:no-underline ${effectiveSettings.lightMode ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300 hover:text-gray-100'}`}>{puzzle.author}</Link>
             </div>
           )}
           <div className={`text-xs sm:text-base italic mb-1 ${effectiveSettings.lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
