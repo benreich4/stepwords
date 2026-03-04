@@ -186,70 +186,33 @@ export default function ShareModal({
     {showRatingIntro && (
       <RatingIntroPopup onClose={dismissRatingIntro} lightMode={lightMode} />
     )}
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-6 animate-in fade-in duration-300">
-      <div className={`relative w-full max-w-lg rounded-2xl border p-5 shadow-2xl max-h-[85vh] overflow-y-auto transform transition-all duration-500 will-change-transform ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900'}`}>
-        <div className="flex items-center justify-between mb-2">
-          <div className={`text-2xl font-bold ${lightMode ? 'text-gray-900' : 'text-white'}`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-2 sm:px-4 overflow-y-auto py-2 sm:py-4 animate-in fade-in duration-300">
+      <div className={`relative w-full max-w-lg rounded-xl border px-3 pt-2 pb-4 shadow-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-500 will-change-transform ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900'}`}>
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <div className={`text-lg sm:text-xl font-bold ${lightMode ? 'text-gray-900' : 'text-white'}`}>
             {didFail ? 'Too many missteps' : '🎊 You solved it! 🎊'}
           </div>
           {isPerfect && (
             <span
-              className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border font-bold ${lightMode ? 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-md shadow-emerald-300/30' : 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/30'} ${perfectPulse ? 'perfect-wow-animate' : ''}`}
+              className={`inline-flex items-center gap-1 text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border font-bold shrink-0 ${lightMode ? 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-md shadow-emerald-300/30' : 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/30'} ${perfectPulse ? 'perfect-wow-animate' : ''}`}
             >
               ✨ Perfect! ✨
             </span>
           )}
-        </div>
-
-        {/* Primary CTA – move user to today's other puzzle (prominent) */}
-        <div className="mb-3">
-          <Link
-            to={ctaHref}
-            className="block w-full text-center px-4 py-2 rounded-md bg-emerald-500 text-white font-semibold hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all duration-200"
-            onClick={() => {
-              try {
-                if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
-                  const target = ctaHref.startsWith('/quick') ? 'quick' : (ctaHref === '/archives' ? 'archives' : 'main');
-                  window.gtag('event', 'cta_navigate', { target, source: 'completion_modal_top', mode: isQuick ? 'quick' : 'main' });
-                }
-              } catch {}
-              try { onClose?.(); } catch {}
-            }}
+          </div>
+          <button
+            onClick={onClose}
+            className={`p-1 rounded-md shrink-0 ${lightMode ? 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+            aria-label="Close"
           >
-            {ctaText}
-          </Link>
+            ✕
+          </button>
         </div>
-
-        <div className={`mb-3 grid gap-2 text-sm ${hasTime ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
-            <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Guesses</div>
-            <div className={`text-lg font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{guessCount}/{rowsLength}</div>
-          </div>
-          <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
-            <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Hints used</div>
-            <div className={`text-lg font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{hintCount}</div>
-          </div>
-          {hasTime && (
-            <div className={`rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
-              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Time</div>
-              <div className={`text-lg font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{elapsedTime}</div>
-            </div>
-          )}
-          {Number.isFinite(stars) && !didFail && (
-            <div className={`${hasTime ? 'col-span-3' : 'col-span-2'} rounded-lg border p-3 flex items-center justify-between ${lightMode ? 'border-gray-300 bg-yellow-50/50' : 'border-gray-700 bg-yellow-900/30'}`}>
-              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Stars</div>
-              <div className="text-xl font-semibold text-yellow-400">{'★'.repeat(Math.max(0,Math.min(3,stars||0)))}{'☆'.repeat(Math.max(0,3-(stars||0)))}</div>
-            </div>
-          )}
-        </div>
-
-        <pre className={`whitespace-pre-wrap text-2xl leading-snug mb-4 p-3 rounded-lg border ${lightMode ? 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-900' : 'border-gray-700 bg-gradient-to-br from-gray-900/70 to-gray-800/70 text-gray-100'}`}>
-          {shareText}
-        </pre>
 
         {puzzleId && !didFail && (
-          <div className={`mb-4 rounded-lg border p-3 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
-            <p className={`text-sm mb-2 ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Rate this puzzle</p>
+          <div className={`mb-2 rounded-lg border p-2 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
+            <p className={`text-sm mb-1 ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Rate this puzzle</p>
             <div className="flex gap-1 items-center">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
@@ -267,82 +230,113 @@ export default function ShareModal({
           </div>
         )}
 
-        <div className="mb-3 text-center">
-          <p className={`text-sm mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Would love to hear your thoughts and ideas!</p>
+        {/* Primary CTA – move user to today's other puzzle (prominent) */}
+        <div className="mb-2">
+          <Link
+            to={ctaHref}
+            className="block w-full text-center px-3 py-1.5 rounded-md bg-emerald-500 text-white font-semibold hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all duration-200 text-sm"
+            onClick={() => {
+              try {
+                if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
+                  const target = ctaHref.startsWith('/quick') ? 'quick' : (ctaHref === '/archives' ? 'archives' : 'main');
+                  window.gtag('event', 'cta_navigate', { target, source: 'completion_modal_top', mode: isQuick ? 'quick' : 'main' });
+                }
+              } catch {}
+              try { onClose?.(); } catch {}
+            }}
+          >
+            {ctaText}
+          </Link>
+        </div>
+
+        <div className={`mb-2 grid gap-1.5 text-sm ${hasTime ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <div className={`rounded-lg border p-2 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
+            <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Guesses</div>
+            <div className={`text-base font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{guessCount}/{rowsLength}</div>
+          </div>
+          <div className={`rounded-lg border p-2 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
+            <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Hints used</div>
+            <div className={`text-base font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{hintCount}</div>
+          </div>
+          {hasTime && (
+            <div className={`rounded-lg border p-2 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
+              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Time</div>
+              <div className={`text-base font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{elapsedTime}</div>
+            </div>
+          )}
+          {Number.isFinite(stars) && !didFail && (
+            <div className={`${hasTime ? 'col-span-3' : 'col-span-2'} rounded-lg border p-2 flex items-center justify-between ${lightMode ? 'border-gray-300 bg-yellow-50/50' : 'border-gray-700 bg-yellow-900/30'}`}>
+              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Stars</div>
+              <div className="text-lg font-semibold text-yellow-400">{'★'.repeat(Math.max(0,Math.min(3,stars||0)))}{'☆'.repeat(Math.max(0,3-(stars||0)))}</div>
+            </div>
+          )}
+        </div>
+
+        <pre className={`whitespace-pre-wrap text-base sm:text-lg leading-snug mb-2 p-2 rounded-lg border ${lightMode ? 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-900' : 'border-gray-700 bg-gradient-to-br from-gray-900/70 to-gray-800/70 text-gray-100'}`}>
+          {shareText}
+        </pre>
+
+        <div className="mb-2 text-center">
+          <p className={`text-sm mb-1 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Would love to hear your thoughts and ideas!</p>
           <a 
             href="mailto:hello@stepwords.xyz"
             className={`text-sm hover:underline ${lightMode ? 'text-sky-600' : 'text-sky-400'}`}
           >
             hello@stepwords.xyz
           </a>
-          <div className="mt-3">
-            <Link
-              to="/archives"
-              className={`inline-block text-sm hover:underline ${lightMode ? 'text-emerald-700' : 'text-emerald-400'}`}
-              onClick={() => {
-                try { onClose?.(); } catch {}
-              }}
-            >
-              Try another puzzle from the archives!
-            </Link>
-          </div>
-          
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <a
-            href="https://stepwords.xyz"
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm text-sky-400 hover:underline"
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+          <button
+            onClick={async () => {
+              try {
+                onShare && onShare();
+              } catch {}
+              try {
+                const header = didFail
+                  ? (isQuick
+                      ? (isTodayET
+                          ? "I tried today's Quick Stepword Puzzle."
+                          : (puzzleDateText ? `I tried the Quick Stepword Puzzle for ${puzzleDateText}.` : "I tried the Quick Stepword Puzzle."))
+                      : (isTodayET
+                          ? "I tried today's Stepword Puzzle."
+                          : (puzzleDateText ? `I tried the Stepword Puzzle for ${puzzleDateText}.` : "I tried the Stepword Puzzle.")))
+                  : (isQuick
+                      ? (isTodayET
+                          ? "I solved today's Quick Stepword Puzzle!"
+                          : (puzzleDateText ? `I solved the Quick Stepword Puzzle for ${puzzleDateText}!` : "I solved the Quick Stepword Puzzle!"))
+                      : (isTodayET
+                          ? "I solved today's Stepword Puzzle!"
+                          : (puzzleDateText ? `I solved the Quick Stepword Puzzle for ${puzzleDateText}!` : "I solved the Quick Stepword Puzzle!")));
+                const starLine = (!didFail && Number.isFinite(stars)) ? `\nStars: ${'★'.repeat(Math.max(0,Math.min(3,stars||0)))}${'☆'.repeat(Math.max(0,3-(stars||0)))}` : '';
+                const timeLine = (elapsedTime && !didFail) ? `\nTime: ${elapsedTime}` : '';
+                const composed = `${header}${starLine}${timeLine}\n\n${shareText}\n\nhttps://stepwords.xyz${isQuick ? '/quick' : ''}`;
+                await navigator.clipboard.writeText(composed);
+                setNotice("Message copied to clipboard");
+              } catch {
+                setNotice("Copy failed");
+              }
+            }}
+            className="px-2.5 py-1 rounded-md bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700"
           >
-            stepwords.xyz
-          </a>
-          <div className="flex gap-2 items-center">
-            <button
-              onClick={async () => {
-                try {
-                  onShare && onShare();
-                } catch {}
-                try {
-                  const header = didFail
-                    ? (isQuick
-                        ? (isTodayET
-                            ? "I tried today's Quick Stepword Puzzle."
-                            : (puzzleDateText ? `I tried the Quick Stepword Puzzle for ${puzzleDateText}.` : "I tried the Quick Stepword Puzzle."))
-                        : (isTodayET
-                            ? "I tried today's Stepword Puzzle."
-                            : (puzzleDateText ? `I tried the Stepword Puzzle for ${puzzleDateText}.` : "I tried the Stepword Puzzle.")))
-                    : (isQuick
-                        ? (isTodayET
-                            ? "I solved today's Quick Stepword Puzzle!"
-                            : (puzzleDateText ? `I solved the Quick Stepword Puzzle for ${puzzleDateText}!` : "I solved the Quick Stepword Puzzle!"))
-                        : (isTodayET
-                            ? "I solved today's Stepword Puzzle!"
-                            : (puzzleDateText ? `I solved the Stepword Puzzle for ${puzzleDateText}!` : "I solved the Stepword Puzzle!")));
-                  const starLine = (!didFail && Number.isFinite(stars)) ? `\nStars: ${'★'.repeat(Math.max(0,Math.min(3,stars||0)))}${'☆'.repeat(Math.max(0,3-(stars||0)))}` : '';
-                  const timeLine = (elapsedTime && !didFail) ? `\nTime: ${elapsedTime}` : '';
-                  const composed = `${header}${starLine}${timeLine}\n\n${shareText}\n\nhttps://stepwords.xyz${isQuick ? '/quick' : ''}`;
-                  await navigator.clipboard.writeText(composed);
-                  setNotice("Message copied to clipboard");
-                } catch {
-                  setNotice("Copy failed");
-                }
-              }}
-              className="px-3 py-1.5 rounded-md bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700"
-            >
-              Share
-            </button>
-            <button
-              onClick={onClose}
-              className={`px-3 py-1.5 rounded-md border text-sm ${lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-200 hover:bg-gray-800'}`}
-            >
-              Close
-            </button>
-            {notice && (
-              <span className={`text-xs ${lightMode ? 'text-emerald-700' : 'text-emerald-400'}`}>{notice}</span>
-            )}
-          </div>
+            Share
+          </button>
+          <Link
+            to="/archives"
+            onClick={() => { try { onClose?.(); } catch {} }}
+            className={`px-2.5 py-1 rounded-md border text-sm font-semibold ${lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-200 hover:bg-gray-800'}`}
+          >
+            Archives
+          </Link>
+          <button
+            onClick={onClose}
+            className={`px-2.5 py-1 rounded-md border text-sm ${lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-200 hover:bg-gray-800'}`}
+          >
+            Close
+          </button>
+          {notice && (
+            <span className={`text-xs ${lightMode ? 'text-emerald-700' : 'text-emerald-400'}`}>{notice}</span>
+          )}
         </div>
       </div>
     </div>
