@@ -1795,11 +1795,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     <>
     <div 
       ref={gameContainerRef}
-      className={`w-screen h-[105vh] flex flex-col ${printMode ? 'items-center justify-center' : ''} ${effectiveSettings.lightMode ? 'bg-white text-black' : 'bg-black text-white'}`}
+      className={`w-screen h-[105vh] flex flex-col ${printMode ? 'print-puzzle-fit items-center' : ''} ${effectiveSettings.lightMode ? 'bg-white text-black' : 'bg-black text-white'}`}
     >
-      {/* Print Mode Header */}
+      {/* Print Mode Header - outside scaled area so it spans full page */}
       {printMode && (
-        <div className="bg-white border-b-2 border-black px-6 py-4 print-header w-full max-w-4xl mx-auto">
+        <div className="bg-white border-b-2 border-black px-6 py-4 print-header w-full">
           <div className="text-center mb-4">
             <h1 className="text-4xl font-bold text-black mb-2">Stepword Puzzle</h1>
             <div className="text-lg text-gray-700">https://stepwords.xyz</div>
@@ -2172,7 +2172,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         <div 
           ref={gridScrollRef}
           id="grid-scroll"
-          className={`flex-1 min-w-0 overflow-auto pt-5 sm:pt-4 md:pt-3 pb-8 z-0 w-full max-w-4xl mx-auto`}
+          className={`flex-1 min-w-0 overflow-auto pt-5 sm:pt-4 md:pt-3 pb-8 z-0 w-full max-w-4xl mx-auto ${printMode ? 'print-scaled-content' : ''}`}
         onClick={() => {
           if ((useOsKeyboard || !isMobile) && inputRef.current) {
             inputRef.current.focus();
@@ -2203,17 +2203,17 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         <div className={`w-full flex ${puzzleOverflows ? `justify-start ${isMobile ? 'pl-1' : 'pl-2'}` : `justify-center ${isMobile ? 'px-1' : 'px-4 sm:px-6'}`}`}>
         <div ref={puzzleGridRef} className="w-fit">
         <LetterGrid
-          availableWidth={Math.max(0, gridScrollDimensions.width - (isMobile ? 8 : 48))}
-          availableHeight={gridScrollDimensions.height}
+          availableWidth={printMode ? Math.max(0, (gridScrollDimensions.width - (isMobile ? 8 : 48)) * 0.9) : Math.max(0, gridScrollDimensions.width - (isMobile ? 8 : 48))}
+          availableHeight={printMode ? gridScrollDimensions.height * 0.9 : gridScrollDimensions.height}
           rows={rows}
-          guesses={guesses}
-          lockColors={lockColors}
+          guesses={printMode ? rows.map(() => "") : guesses}
+          lockColors={printMode ? rows.map(r => Array(r.answer.length).fill(null)) : lockColors}
           stepIdx={stepIdx}
           hardMode={effectiveSettings.hardMode}
           lightMode={effectiveSettings.lightMode}
           level={printMode ? -1 : level}
           cursor={printMode ? -1 : cursor}
-          userStepGuesses={userStepGuesses}
+          userStepGuesses={printMode ? null : userStepGuesses}
           onToggleUserStep={printMode ? null : toggleUserStepAt}
           stepEmoji={stepEmoji}
           onTileClick={printMode ? null : (i, col) => {
@@ -2235,6 +2235,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           diffFromRow={dragStartRow}
           diffToRow={dragOverRow}
           showAllClues={effectiveSettings.showAllClues && !isMobile}
+          printMode={printMode}
           renderClueText={renderClueText}
           rowCompletionAnimation={rowCompletionAnimation}
                   />
@@ -2254,7 +2255,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
             return url.toString();
           })();
           return (
-          <div className="mt-8 mb-4 flex flex-col items-center">
+          <div className="mt-8 mb-4 flex flex-col items-center print-qr-section">
             <p className="text-lg font-semibold text-black mb-4 text-center">
               Need a hint? Want to see more puzzles?
             </p>

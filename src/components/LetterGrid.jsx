@@ -6,6 +6,7 @@ const TILE_MAX_PX = 64;
 const ROW_GAP_PX = 4;
 const LETTER_GAP_PX = 4;
 const ROW_NUM_WIDTH_PX = 32; // md:w-8; row number + gap
+const CLUE_MIN_WIDTH_PX = 220; // Reserve space for clues when showAllClues (print mode, etc.)
 
 export default function LetterGrid({
   availableWidth = 0,
@@ -27,6 +28,7 @@ export default function LetterGrid({
   onToggleUserStep = null, // function(row, col) to toggle user step guess
   stepEmoji = '🪜', // emoji to use for step indicator
   showAllClues = false, // whether to show all clues next to each row
+  printMode = false, // when true, reserve space for clues so they don't wrap (print only)
   renderClueText = null, // function to render clue text with references
   rowCompletionAnimation = null, // row index that just completed (for animation)
 }) {
@@ -47,6 +49,8 @@ export default function LetterGrid({
   const isHoldingOnly = longPressActiveRef.current && longPressStartRowRef.current != null && (typeof diffToRow !== 'number' || diffToRow == null);
 
   // Compute tile size and gaps. Gaps scale with tile size so they don't look oversized when tiles are small.
+  // In print mode only, reserve space for the clue so it doesn't wrap (don't affect normal play)
+  const widthForTiles = (showAllClues && printMode) ? Math.max(0, availableWidth - CLUE_MIN_WIDTH_PX) : availableWidth;
   const { tileSizePx, letterGapPx, rowGapPx } = (() => {
     if (availableWidth <= 0 || availableHeight <= 0 || rows.length === 0) {
       return { tileSizePx: 36, letterGapPx: 4, rowGapPx: 4 };
@@ -54,7 +58,7 @@ export default function LetterGrid({
     // First pass: compute tile size with base gaps
     let letterGap = LETTER_GAP_PX;
     let rowGap = ROW_GAP_PX;
-    let w = availableWidth - ROW_NUM_WIDTH_PX - letterGap - (maxWordLength - 1) * letterGap;
+    let w = widthForTiles - ROW_NUM_WIDTH_PX - letterGap - (maxWordLength - 1) * letterGap;
     let tileFromWidth = w > 0 ? w / maxWordLength : TILE_MAX_PX;
     let h = availableHeight - (rows.length - 1) * rowGap;
     let tileFromHeight = h > 0 ? h / rows.length : TILE_MAX_PX;
@@ -63,7 +67,7 @@ export default function LetterGrid({
     letterGap = Math.max(1, Math.min(3, Math.round(tileSize * 0.08)));
     rowGap = Math.max(1, Math.min(3, Math.round(tileSize * 0.08)));
     // Second pass: recompute tile size with scaled gaps
-    w = availableWidth - ROW_NUM_WIDTH_PX - letterGap - (maxWordLength - 1) * letterGap;
+    w = widthForTiles - ROW_NUM_WIDTH_PX - letterGap - (maxWordLength - 1) * letterGap;
     tileFromWidth = w > 0 ? w / maxWordLength : TILE_MAX_PX;
     h = availableHeight - (rows.length - 1) * rowGap;
     tileFromHeight = h > 0 ? h / rows.length : TILE_MAX_PX;
@@ -286,8 +290,8 @@ export default function LetterGrid({
           >
             <button
               type="button"
-              onClick={() => onJumpToRow && onJumpToRow(i)}
-              className={`shrink-0 w-6 h-6 md:w-8 md:h-8 rounded text-[10px] md:text-sm flex items-center justify-center border ${
+              onClick={onJumpToRow ? () => onJumpToRow(i) : undefined}
+              className={`print-row-number shrink-0 w-6 h-6 md:w-8 md:h-8 rounded text-[10px] md:text-sm flex items-center justify-center border ${
                 i===level
                   ? (lightMode ? 'bg-sky-100 border-sky-300 text-sky-900' : 'bg-sky-700 border-sky-500 text-white')
                   : referencedRows?.has(i)
@@ -341,7 +345,7 @@ export default function LetterGrid({
               })}
             </div>
             {showAllClues && clue && (
-              <div className={`ml-2 text-xs sm:text-sm md:text-base flex-1 min-w-0 text-left ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
+              <div className={`ml-2 text-xs sm:text-sm md:text-base flex-1 text-left ${printMode ? 'shrink-0' : 'min-w-0'} ${lightMode ? 'text-gray-700' : 'text-gray-300'}`} style={printMode ? { minWidth: CLUE_MIN_WIDTH_PX } : undefined}>
                 <span className="break-words">{renderClueText ? renderClueText(clue) : clue}</span>
               </div>
             )}

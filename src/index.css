@@ -97,7 +97,7 @@
 /* Print mode styles */
 @media print {
   @page {
-    margin: 0.5in;
+    margin: 0.75in;
     size: letter;
   }
   
@@ -107,6 +107,23 @@
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: visible !important;
+  }
+  
+  /* Print puzzle container - full width, no scale (header needs full width) */
+  .print-puzzle-fit {
+    width: 7in !important;
+    max-width: 7in !important;
+    padding: 0.3in !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+    justify-content: flex-start !important; /* Top-align to prevent overlap */
+  }
+
+  /* Scale only the puzzle grid + QR, not the How to Play header */
+  .print-scaled-content {
+    transform: scale(0.82) !important;
+    transform-origin: top center !important;
   }
   
   /* Ensure root container doesn't interfere with centering */
@@ -115,6 +132,7 @@
     margin: 0 auto !important;
     padding: 0 !important;
     width: 100% !important;
+    overflow: visible !important;
   }
   
   /* Hide header and footer */
@@ -125,14 +143,38 @@
     display: none !important;
   }
   
+  /* Print header: extend into container padding for maximum width */
   .print-header {
     page-break-after: avoid;
     text-align: left !important;
+    padding: 0.2in 0.1in !important;
+    width: calc(100% + 0.6in) !important;
+    max-width: none !important;
+    margin-left: -0.3in !important;
+    margin-right: -0.3in !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    margin-bottom: 0.15in !important;
   }
 
-  /* Slightly smaller font so long bullets (e.g. third) fit on one line in narrow print area */
+  /* How to Play: full width of printable area */
   .print-how-to-play {
-    font-size: 0.75rem !important; /* 12px vs default 14px */
+    font-size: 0.7rem !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding-right: 0 !important;
+  }
+  .print-how-to-play ul {
+    margin-left: 0 !important;
+    padding-left: 1.2em !important;
+  }
+
+  /* Smaller title and URL for print */
+  .print-header h1 {
+    font-size: 1.5rem !important;
+  }
+  .print-header .text-lg {
+    font-size: 0.8rem !important;
   }
   
   /* Center print content - reset all containers */
@@ -141,13 +183,17 @@
     margin: 0 auto !important;
     padding: 0 !important;
     display: block !important;
+    overflow: visible !important;
   }
   
-  /* Ensure print content is centered */
+  /* Ensure print content is centered and fits on page */
   #grid-scroll {
-    max-width: 42rem !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0.25in 0 !important;
+    overflow: visible !important;
   }
   
   /* Center Explore page and other page content when printing */
@@ -179,12 +225,22 @@
     margin-right: auto !important;
   }
   
-  /* Hide interactive elements, but keep letter boxes visible */
-  button:not(.letter-box),
+  /* Hide interactive elements, but keep letter boxes and row numbers visible */
+  button:not(.letter-box):not(.print-row-number),
   a[href],
   input:not([type="hidden"]),
   .no-print {
     display: none !important;
+  }
+
+  /* Row numbers: ensure visible in print (black text, light background) */
+  .print-row-number {
+    display: flex !important;
+    color: black !important;
+    background: #f3f4f6 !important;
+    border: 1px solid #374151 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   
   /* Letter boxes should be visible and print properly */
@@ -193,11 +249,12 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
+    box-shadow: none !important;
   }
   
-  /* Ensure letter boxes have visible borders and backgrounds */
+  /* Ensure letter boxes have visible borders (1px to avoid bleed) */
   .letter-box {
-    border-width: 2px !important;
+    border-width: 1px !important;
     border-style: solid !important;
   }
   
@@ -214,5 +271,20 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
+  }
+
+  /* Smaller QR code and CTA for print - add padding so edges aren't cut off */
+  .print-qr-section {
+    margin-top: 0.2in !important;
+    margin-bottom: 0.2in !important;
+    padding: 0.15in !important;
+  }
+  .print-puzzle-fit img[alt="QR Code"] {
+    width: 100px !important;
+    height: 100px !important;
+    border: 1px solid black !important;
+  }
+  .print-puzzle-fit .print-qr-section .text-lg {
+    font-size: 0.85rem !important;
   }
 }
