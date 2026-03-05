@@ -3,7 +3,7 @@
  * Admin stats API. Requires authentication via session (set by admin-auth.php).
  * Returns ratings, completions by day, submissions count, and other stats.
  */
-session_start();
+require __DIR__ . '/admin-session.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: ' . (isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*'));

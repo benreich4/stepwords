@@ -2,8 +2,9 @@
 /**
  * Admin authentication. POST with { "password": "..." } to login.
  * Uses PHP sessions; cookie is httpOnly for security.
+ * Session persists 30 days (see admin-session.php).
  */
-session_start();
+require __DIR__ . '/admin-session.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: ' . (isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*'));
