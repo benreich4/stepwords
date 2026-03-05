@@ -214,35 +214,35 @@ export default function Archives() {
         {/* Top row with Random button above date selector */}
         {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
         <div className="mb-2 flex items-center justify-end gap-2">
-          <span className={`text-xs ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Play random:</span>
-          <button onClick={goRandomMain} className={`px-2 py-1 text-xs rounded border ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>Main</button>
-          <button onClick={goRandomQuick} className={`px-2 py-1 text-xs rounded border ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>Quick</button>
+          <span className={`text-sm md:text-base ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Play random:</span>
+          <button onClick={goRandomMain} className={`px-2 py-1 text-sm md:text-base rounded border ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>Main</button>
+          <button onClick={goRandomQuick} className={`px-2 py-1 text-sm md:text-base rounded border ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>Quick</button>
         </div>
         )})()}
         <div className="mb-2 flex items-center justify-between gap-2">
           {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
           <>
-          <button onClick={goPrev} disabled={!canPrev} className={`px-2 py-1 text-xs rounded border disabled:opacity-40 ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>◀</button>
+          <button onClick={goPrev} disabled={!canPrev} className={`px-2 py-1 text-sm md:text-base rounded border disabled:opacity-40 ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>◀</button>
           <div className="flex items-center gap-2">
-            <select value={current.year} onChange={onYearChange} className={`rounded px-2 py-1 text-xs border ${lightMode ? 'bg-white border-gray-300 text-gray-800' : 'bg-black border-gray-800'}`}>
+            <select value={current.year} onChange={onYearChange} className={`rounded px-2 py-1 text-sm md:text-base border ${lightMode ? 'bg-white border-gray-300 text-gray-800' : 'bg-black border-gray-800'}`}>
               {years.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
-            <select value={current.month} onChange={onMonthChange} className={`rounded px-2 py-1 text-xs border ${lightMode ? 'bg-white border-gray-300 text-gray-800' : 'bg-black border-gray-800'}`}>
+            <select value={current.month} onChange={onMonthChange} className={`rounded px-2 py-1 text-sm md:text-base border ${lightMode ? 'bg-white border-gray-300 text-gray-800' : 'bg-black border-gray-800'}`}>
               {allowedMonthsForYear(current.year).map((m) => (
                 <option key={m} value={m}>{new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(current.year, m, 1))}</option>
               ))}
             </select>
           </div>
-          <button onClick={goNext} disabled={!canNext} className={`px-2 py-1 text-xs rounded border disabled:opacity-40 ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>▶</button>
+          <button onClick={goNext} disabled={!canNext} className={`px-2 py-1 text-sm md:text-base rounded border disabled:opacity-40 ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>▶</button>
           </>
           )})()}
         </div>
-      {err && <div className="text-red-400 mb-2">{err}</div>}
+      {err && <div className="text-sm md:text-base text-red-400 mb-2">{err}</div>}
 
       {!months.length && !err && (
-        <div className="text-gray-400 mt-4">No puzzles found.</div>
+        <div className="text-sm md:text-base text-gray-400 mt-4">No puzzles found.</div>
       )}
 
         {currentMonthData && (
@@ -250,8 +250,8 @@ export default function Archives() {
             {/* Main Stepwords Calendar */}
             {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
             <div className={`rounded-lg border-2 p-3 mb-6 ${lightMode ? 'border-blue-300 bg-blue-50/30' : 'border-blue-800 bg-blue-900/20'}`}>
-              <div className={`text-sm font-semibold mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Main Stepword Puzzles</div>
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-500 mb-1">
+              <div className={`text-sm md:text-base font-semibold mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Main Stepword Puzzles</div>
+              <div className="grid grid-cols-7 gap-1 text-center text-xs md:text-sm text-gray-500 mb-1">
                 {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
                   <div key={d}>{d}</div>
                 ))}
@@ -307,8 +307,8 @@ export default function Archives() {
                 const borderColor = lightMode ? (solved ? 'border-green-300 hover:border-green-400' : 'border-gray-300 hover:border-gray-400') : (solved ? 'border-green-800 hover:border-green-600' : 'border-gray-800 hover:border-gray-600');
                 return (
                   <Link key={idx} to={`/${puzzle.id}`} className={`h-8 rounded border ${borderColor} ${bg} flex items-center justify-center gap-1`}>
-                    <span className={`text-[10px] ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
-                    <span className={`${color} text-xs leading-none`}>{icon}</span>
+                    <span className={`text-xs md:text-sm ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
+                    <span className={`${color} text-sm md:text-base leading-none`}>{icon}</span>
                   </Link>
                 );
               })}
@@ -319,8 +319,8 @@ export default function Archives() {
             {/* Quick Stepword calendar */}
             {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
             <div className={`rounded-lg border-2 p-3 ${lightMode ? 'border-orange-300 bg-orange-50/30' : 'border-orange-800 bg-orange-900/20'}`}>
-              <div className={`text-sm font-semibold mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Quick Stepword Puzzles</div>
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-500 mb-1">
+              <div className={`text-sm md:text-base font-semibold mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Quick Stepword Puzzles</div>
+              <div className="grid grid-cols-7 gap-1 text-center text-xs md:text-sm text-gray-500 mb-1">
                 {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
                   <div key={d}>{d}</div>
                 ))}
@@ -378,8 +378,8 @@ export default function Archives() {
                   const qBorderColor = lightMode ? (qSolved ? 'border-green-300 hover:border-green-400' : 'border-gray-300 hover:border-gray-400') : (qSolved ? 'border-green-800 hover:border-green-600' : 'border-gray-800 hover:border-gray-600');
                   return (
                     <Link key={idx} to={`/quick/${puzzle.id}`} className={`h-8 rounded border ${qBorderColor} ${qBg} flex items-center justify-center gap-1`}>
-                      <span className={`text-[10px] ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
-                      <span className={`${qColor} text-xs leading-none`}>{qIcon}</span>
+                      <span className={`text-xs md:text-sm ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
+                      <span className={`${qColor} text-sm md:text-base leading-none`}>{qIcon}</span>
                     </Link>
                   );
                 })}
@@ -388,7 +388,7 @@ export default function Archives() {
             )})()}
             {/* Legend */}
             {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
-            <div className={`mt-3 flex flex-wrap items-center justify-center gap-4 text-[10px] ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
+            <div className={`mt-3 flex flex-wrap items-center justify-center gap-4 text-xs md:text-sm ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
               <span className="flex items-center gap-1"><span className="text-yellow-400">🤩</span> Perfect</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">🌟</span> 3 stars</span>
               <span className="flex items-center gap-1"><span className="text-yellow-300">⭐️</span> 2 stars</span>
@@ -402,7 +402,7 @@ export default function Archives() {
             {/* Badges */}
             {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
             <div className={`mt-4 pt-4 border-t rounded-lg p-3 ${lightMode ? 'border-slate-200 bg-slate-100' : 'border-slate-700 bg-slate-800/50'}`}>
-              <div className={`text-sm font-semibold mb-2 ${lightMode ? 'text-slate-800' : 'text-slate-200'}`}>Badges</div>
+              <div className={`text-sm md:text-base font-semibold mb-2 ${lightMode ? 'text-slate-800' : 'text-slate-200'}`}>Badges</div>
               <BadgesDisplay lightMode={lightMode} compact />
             </div>
             )})()}

@@ -1997,7 +1997,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               ⚙️
             </button>
             {showSettings && (
-              <div className={`absolute right-0 top-full mt-1 w-60 rounded-lg border backdrop-blur-sm shadow-xl p-2 text-xs menu-pop-in z-30 ${settings.lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5' : 'border-gray-700 bg-gray-900 ring-1 ring-white/10'}`}>
+              <div className={`absolute right-0 top-full mt-1 w-60 rounded-lg border backdrop-blur-sm shadow-xl p-2 text-sm md:text-base menu-pop-in z-30 ${settings.lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5' : 'border-gray-700 bg-gray-900 ring-1 ring-white/10'}`}>
                 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hard mode</span>
@@ -2021,7 +2021,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.hardMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
                   Hides step locations ({stepEmoji}) until revealed. Saved as your default.
                 </div>
 
@@ -2047,7 +2047,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.easyMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Filters keyboard to letters in this puzzle. Saved as your default.</div>
+                <div className={`text-xs md:text-sm ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Filters keyboard to letters in this puzzle. Saved as your default.</div>
                 <div className={`my-2 border-t ${settings.lightMode ? 'border-gray-200' : 'border-gray-800'}`}></div>
 
                 {/* Moved Light mode below divider */}
@@ -2074,7 +2074,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.lightMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Invert colors for a light appearance.</div>
+                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Invert colors for a light appearance.</div>
 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Sounds</span>
@@ -2088,7 +2088,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.soundsEnabled ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Step, correct, and celebration sounds. Saved as your default.</div>
+                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Step, correct, and celebration sounds. Saved as your default.</div>
 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Use OS keyboard</span>
@@ -2111,7 +2111,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useOsKeyboard ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-[10px] ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Shows your device keyboard instead of the on‑screen keys. Not saved.</div>
+                <div className={`text-xs md:text-sm ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Shows your device keyboard instead of the on‑screen keys. Not saved.</div>
                 
                 {!isMobile && (
                   <>
@@ -2132,7 +2132,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.showAllClues ? 'translate-x-4' : 'translate-x-1'}`}></span>
                       </button>
                     </label>
-                    <div className={`text-[10px] mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Display all clues next to their answer spaces instead of showing one at a time.</div>
+                    <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Display all clues next to their answer spaces instead of showing one at a time.</div>
                   </>
                 )}
               </div>

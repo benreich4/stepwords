@@ -20,7 +20,7 @@ export default function BadgesDisplay({ lightMode = false, compact = false }) {
           <div
             key={key}
             className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border-2 ${
-              compact ? 'text-xs' : 'text-sm'
+              compact ? 'text-xs md:text-sm' : 'text-sm md:text-base'
             } ${
               isAchieved
                 ? (lightMode ? 'bg-emerald-100 border-emerald-500' : 'bg-emerald-900/40 border-emerald-500')
