@@ -1387,6 +1387,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       handleBackspace();
       return;
     }
+    if (e.key === " " || e.code === "Space") {
+      e.preventDefault();
+      shuffleUnlockedLettersInCurrentRow();
+      return;
+    }
 
     if (e.key === "ArrowLeft") { e.preventDefault(); stepCursorInRow(-1); return; }
     if (e.key === "ArrowRight") { e.preventDefault(); stepCursorInRow(1); return; }
@@ -1789,7 +1794,34 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     return isLocked(rowIndex, colIndex);
   }
 
-
+  function shuffleUnlockedLettersInCurrentRow() {
+    if (printMode || autosolveMode || showShare || didFail) return;
+    const i = level;
+    const len = rowLen(i);
+    const cur = (guesses[i] || "").toUpperCase().padEnd(len, " ").slice(0, len);
+    const letters = [];
+    for (let c = 0; c < len; c++) {
+      if (!isBlocked(i, c) && cur[c] !== " ") letters.push(cur[c]);
+    }
+    if (letters.length < 2) return;
+    for (let k = letters.length - 1; k > 0; k--) {
+      const j = Math.floor(Math.random() * (k + 1));
+      [letters[k], letters[j]] = [letters[j], letters[k]];
+    }
+    let li = 0;
+    let out = "";
+    for (let c = 0; c < len; c++) {
+      if (isBlocked(i, c)) {
+        out += cur[c];
+      } else if (cur[c] === " ") {
+        out += " ";
+      } else {
+        out += letters[li++];
+      }
+    }
+    setGuessAt(i, out.trimEnd());
+    setMessage("");
+  }
 
   return (
     <>
