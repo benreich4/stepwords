@@ -1903,7 +1903,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         </div>
         
         {!hideZeroTime && (
-          <div className={`hidden sm:block ml-2 px-2 py-0.5 md:px-3 md:py-1 rounded border text-xs md:text-sm xl:text-sm font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-800' : 'border-gray-700 bg-gray-800 text-gray-300'}`} title="Elapsed time">
+          <div className={`shrink-0 ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 md:px-3 md:py-1 rounded border text-[10px] sm:text-xs md:text-sm xl:text-sm font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-800' : 'border-gray-700 bg-gray-800 text-gray-300'}`} title="Elapsed time">
             {formatElapsed(elapsedMs)}
           </div>
         )}
