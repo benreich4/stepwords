@@ -128,10 +128,31 @@ foreach ($byKey as $r) {
 }
 
 foreach ($aggregates as $k => &$agg) {
-    $agg['avg'] = $agg['count'] > 0 ? round($agg['sum'] / $agg['count'], 2) : 0;
+    $agg['avg'] = $agg['count'] > 0 ? round($agg['sum'] / $agg['count'], 2) : null;
     unset($agg['sum']);
 }
 unset($agg);
+
+// Rows for puzzles that have completions but no ratings yet (still show in Puzzle Stats)
+foreach ($completionsByPuzzleMode as $key => $completionCount) {
+    if (($completionCount ?? 0) < 1) {
+        continue;
+    }
+    if (isset($aggregates[$key])) {
+        continue;
+    }
+    $parts = explode('|', (string) $key, 2);
+    $pid = $parts[0] ?? 'unknown';
+    $modeRaw = $parts[1] ?? 'main';
+    $mode = in_array($modeRaw, ['main', 'quick', 'other'], true) ? $modeRaw : 'main';
+    $aggregates[$key] = [
+        'puzzle_id' => $pid,
+        'mode' => $mode,
+        'count' => 0,
+        'by_rating' => [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0],
+        'avg' => null,
+    ];
+}
 
 // Enrich with date from manifests (try multiple paths for different deployment setups)
 $dateLookup = [];
@@ -284,7 +305,9 @@ $out['summary'] = [
     'total_ratings' => $out['ratings']['total_count'],
     'total_completions' => $out['completions_total'],
     'total_submissions' => $submissionCount,
-    'unique_puzzles_rated' => count($aggregates),
+    'unique_puzzles_rated' => count(array_filter($aggregates, function ($a) {
+        return ($a['count'] ?? 0) > 0;
+    })),
     'avg_solve_time_ms' => $avgElapsedMs,
     'avg_hints_used' => $avgHintsUsed,
     'completions_with_solve_time' => $elapsedCount,

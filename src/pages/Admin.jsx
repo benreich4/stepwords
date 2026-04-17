@@ -361,7 +361,7 @@ function Admin() {
                       <td className="py-1.5 pr-4">{p.date ?? "—"}</td>
                       <td className="text-right py-1.5 font-mono">{p.puzzle_id}</td>
                       <td className="text-right py-1.5">{p.mode}</td>
-                      <td className="text-right py-1.5">{p.avg?.toFixed(2) ?? "—"}</td>
+                      <td className="text-right py-1.5">{(p.count ?? 0) > 0 && p.avg != null ? p.avg.toFixed(2) : "—"}</td>
                       <td className="text-right py-1.5">{p.count ?? 0}</td>
                       <td className="text-right py-1.5">{p.completions ?? 0}</td>
                       <td className="text-right py-1.5">{formatSolveTime(p.avg_solve_time_ms)}</td>
