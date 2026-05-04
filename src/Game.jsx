@@ -286,9 +286,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [settings, setSettings] = useState(() => {
     try {
       const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}');
-      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true, lightMode: s.lightMode === true, showAllClues: s.showAllClues === true, soundsEnabled: s.soundsEnabled !== false };
+      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true, lightMode: s.lightMode === true, showAllClues: s.showAllClues === true, soundsEnabled: s.soundsEnabled !== false, hideTimerWhileSolving: s.hideTimerWhileSolving === true };
     } catch {
-      return { hardMode: false, easyMode: false, lightMode: false, showAllClues: false, soundsEnabled: true };
+      return { hardMode: false, easyMode: false, lightMode: false, showAllClues: false, soundsEnabled: true, hideTimerWhileSolving: false };
     }
   });
   // In print mode or partial autosolve mode, force light mode and show all clues
@@ -304,7 +304,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   
   useEffect(() => {
     if (!printMode) {
-      try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode, showAllClues: settings.showAllClues, soundsEnabled: settings.soundsEnabled })); } catch {}
+      try { localStorage.setItem('stepwords-settings', JSON.stringify({ hardMode: settings.hardMode, easyMode: settings.easyMode, lightMode: settings.lightMode, showAllClues: settings.showAllClues, soundsEnabled: settings.soundsEnabled, hideTimerWhileSolving: settings.hideTimerWhileSolving })); } catch {}
     }
   }, [settings, printMode]);
   const [showSettings, setShowSettings] = useState(false);
@@ -870,6 +870,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   })();
 
   const hideZeroTime = timerFinished && elapsedMs < 1000;
+  const showHeaderElapsed = !hideZeroTime && (!settings.hideTimerWhileSolving || timerFinished);
 
   // Consider puzzle solved if all rows are fully colored
   const solvedNow = useMemo(() => isPuzzleSolved(lockColors, rows), [lockColors, rows]);
@@ -1934,7 +1935,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <span className="font-semibold">{streak.current}</span>
         </div>
         
-        {!hideZeroTime && (
+        {showHeaderElapsed && (
           <div className={`shrink-0 ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 md:px-3 md:py-1 rounded border text-[10px] sm:text-xs md:text-sm xl:text-sm font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-800' : 'border-gray-700 bg-gray-800 text-gray-300'}`} title="Elapsed time">
             {formatElapsed(elapsedMs)}
           </div>
@@ -2121,6 +2122,20 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                   </button>
                 </label>
                 <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Step, correct, and celebration sounds. Saved as your default.</div>
+
+                <label className="flex items-center justify-between py-1">
+                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hide timer while solving</span>
+                  <button
+                    role="switch"
+                    aria-checked={settings.hideTimerWhileSolving ? "true" : "false"}
+                    onClick={() => setSettings(s => ({ ...s, hideTimerWhileSolving: !s.hideTimerWhileSolving }))}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.hideTimerWhileSolving ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    aria-label="Toggle hide timer while solving"
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.hideTimerWhileSolving ? 'translate-x-4' : 'translate-x-1'}`}></span>
+                  </button>
+                </label>
+                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Time is still recorded; it appears when you finish and counts toward stats.</div>
 
                 <label className="flex items-center justify-between py-1">
                   <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Use OS keyboard</span>
