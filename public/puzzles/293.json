@@ -1,0 +1,13 @@
+{
+  "id": "293",
+  "rows": [
+    { "answer": "ten", "clue": "A Hamilton (3)" },
+    { "answer": "nets", "clue":  "The ___, crosstown rivals of [7] (4)" },
+    { "answer": "scent",     "clue":  "Fragrance (5)" },
+    { "answer": "insect",       "clue": "Six footer? (6)" },
+    { "answer": "snicket",      "clue": "\"A Series of Unfortunate Events\" author Lemony (7)" },
+    { "answer": "kitchens",       "clue": "They can have islands in them (8)" },
+    { "answer": "theknicks",      "clue": "2026 NBA champions! (3,6)" }
+  ],
+  "emoji": "🏀"
+}
