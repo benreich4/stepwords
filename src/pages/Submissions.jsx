@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import { isPreviewEnabled } from "../lib/date.js";
+import { useLightMode, utilityPageClass, utilityCardClass, utilityMutedClass } from "../hooks/useLightMode.js";
 import { Link } from "react-router-dom";
 
 export default function Submissions() {
+  const light = useLightMode();
+  const page = utilityPageClass(light);
+  const card = utilityCardClass(light);
+  const muted = utilityMutedClass(light);
+  const pill = light
+    ? "rounded-xl border border-parchment-300 bg-parchment-50 text-navyink-700 hover:bg-parchment-100"
+    : "rounded-xl border border-navyink-600 bg-navyink-800 text-parchment-200 hover:bg-navyink-700";
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
   const [copyingId, setCopyingId] = useState(null);
@@ -118,47 +126,36 @@ export default function Submissions() {
 
   if (err) {
     return (
-      <div className="px-4 py-6 text-gray-200">
+      <div className={`${page} px-4 py-6`}>
         <div className="max-w-xl mx-auto">
-          <div className="mb-2 text-lg font-semibold">Submissions</div>
-          <div className="text-red-400">{err}</div>
+          <div className="mb-2 font-serif text-lg font-semibold">Submissions</div>
+          <div className="text-red-500">{err}</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-6 text-gray-200">
+    <div className={`${page} px-4 py-6`}>
       <div className="max-w-xl mx-auto">
-        <div className="mb-2 text-lg font-semibold">Submissions</div>
+        <div className="mb-2 font-serif text-lg font-semibold">Submissions</div>
         <div className="mb-3">
-          <button
-            onClick={() => setShowLastWords((v) => !v)}
-            className="px-3 py-1.5 text-xs rounded border border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700"
-          >
+          <button onClick={() => setShowLastWords((v) => !v)} className={`px-3 py-1.5 text-xs ${pill}`}>
             {showLastWords ? 'Hide last words' : 'Show last words'}
           </button>
         </div>
-        {!items.length && (
-          <div className="text-gray-400">No submissions found.</div>
-        )}
-        <ul className="divide-y divide-gray-800 border border-gray-800 rounded">
+        {!items.length && <div className={muted}>No submissions found.</div>}
+        <ul className={`divide-y rounded-2xl border ${light ? 'divide-parchment-200 border-parchment-200' : 'divide-navyink-700 border-navyink-700'}`}>
           {items.map((it) => (
-            <li key={it.id} className="p-3 flex items-center justify-between">
+            <li key={it.id} className={`p-3 flex items-center justify-between ${light ? 'bg-parchment-50' : 'bg-navyink-800'}`}>
               <div>
-                <div className="text-sm text-gray-100">
+                <div className={`text-sm ${light ? 'text-navyink-900' : 'text-parchment-100'}`}>
                   {it.author || "(Unknown author)"}
-                  {it.lastWord && (
-                    <span className="ml-2 text-xs text-gray-400">({it.lastWord.replace(/\s+/g, '').length})</span>
-                  )}
-                  {showLastWords && it.lastWord && (
-                    <span className="ml-2 text-xs text-gray-400">• {it.lastWord}</span>
-                  )}
+                  {it.lastWord && <span className={`ml-2 text-xs ${muted}`}>({it.lastWord.replace(/\s+/g, '').length})</span>}
+                  {showLastWords && it.lastWord && <span className={`ml-2 text-xs ${muted}`}>• {it.lastWord}</span>}
                 </div>
-                <div className="text-[11px] text-gray-400">
-                  {it.email && (
-                    <span className="mr-2">{it.email}</span>
-                  )}
+                <div className={`text-[11px] ${muted}`}>
+                  {it.email && <span className="mr-2">{it.email}</span>}
                   {it.submittedAt || it.filename}
                 </div>
               </div>
@@ -166,49 +163,31 @@ export default function Submissions() {
                 <button
                   onClick={() => copyJson(it.id)}
                   disabled={copyingId === it.id}
-                  className="text-purple-400 text-sm hover:underline disabled:text-gray-500 disabled:cursor-not-allowed"
+                  className={`text-sm hover:underline disabled:opacity-50 ${light ? 'text-brand-700' : 'text-brand-300'}`}
                 >
                   {copyingId === it.id ? 'Copied!' : 'Copy Command'}
                 </button>
-                <Link className="text-sky-400 text-sm hover:underline" to={`/submissions/${encodeURIComponent(it.id)}`}>Open</Link>
-                <button
-                  onClick={() => handleDeleteClick(it.id, it.author)}
-                  className="text-red-400 text-sm hover:underline"
-                >
-                  Delete
-                </button>
+                <Link className={`text-sm hover:underline ${light ? 'text-brand-700' : 'text-brand-300'}`} to={`/submissions/${encodeURIComponent(it.id)}`}>Open</Link>
+                <button onClick={() => handleDeleteClick(it.id, it.author)} className="text-sm text-red-500 hover:underline">Delete</button>
               </div>
             </li>
           ))}
         </ul>
       </div>
-      
-      {/* Delete Confirmation Modal */}
+
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
-          <div className={`rounded-lg p-6 max-w-md mx-4 border ${lightMode ? 'bg-white border-gray-300' : 'bg-gray-800 border-gray-600'}`}>
-            <h3 className={`text-lg font-semibold mb-4 ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>Delete Submission</h3>
-            <p className={`${lightMode ? 'text-gray-700' : 'text-gray-300'} mb-6`}>
-              Are you sure you want to delete the submission by <strong>{deleteConfirm.author || "Unknown author"}</strong>? 
+        <div className="fixed inset-0 bg-navyink-900/60 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className={`${card} p-6 max-w-md mx-4`}>
+            <h3 className={`text-lg font-semibold mb-4 ${light ? 'text-navyink-900' : 'text-parchment-50'}`}>Delete Submission</h3>
+            <p className={`${muted} mb-6`}>
+              Are you sure you want to delete the submission by <strong>{deleteConfirm.author || "Unknown author"}</strong>?
               This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className={`px-4 py-2 rounded border ${lightMode ? 'text-gray-800 border-gray-300 hover:bg-gray-100' : 'text-gray-300 hover:text-gray-100 border-gray-600 hover:bg-gray-700'}`}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => deleteSubmission(deleteConfirm.id)}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Delete
-              </button>
+              <button onClick={() => setDeleteConfirm(null)} className={`px-4 py-2 ${pill}`}>Cancel</button>
+              <button onClick={() => deleteSubmission(deleteConfirm.id)} className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white">Delete</button>
             </div>
           </div>
-          )})()}
         </div>
       )}
     </div>

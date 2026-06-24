@@ -1,5 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchManifest, loadPuzzleById } from '../lib/puzzles.js';
+import { fetchQuickManifest, loadQuickById } from '../lib/quickPuzzles.js';
+import { useLightMode, utilityPageClass, utilityInputClass, utilityMutedClass } from '../hooks/useLightMode.js';
+
+// Small badge showing how many times a word has appeared in published puzzles
+function UsageBadge({ count, light = false }) {
+  if (count == null) return null;
+  return (
+    <span
+      className={`ml-2 shrink-0 text-xs px-1.5 py-0.5 rounded ${
+        count > 0
+          ? light ? 'bg-gold-400/20 text-gold-700' : 'bg-gold-400/20 text-gold-300'
+          : light ? 'bg-parchment-200 text-navyink-700/45' : 'bg-navyink-700/60 text-parchment-200/40'
+      }`}
+      title={count > 0 ? `Used ${count} time${count === 1 ? '' : 's'} in past puzzles` : 'Not used in any puzzle yet'}
+    >
+      {count}×
+    </span>
+  );
+}
 
 const Explore = () => {
   const [currentWord, setCurrentWord] = useState('');
@@ -15,8 +35,56 @@ const Explore = () => {
   const [chainMinLength, setChainMinLength] = useState(5);
   const [scoreCutoff, setScoreCutoff] = useState(30);
   const [reloading, setReloading] = useState(false);
+  const [usage, setUsage] = useState(null); // Map: word (no spaces) -> times used in puzzles
 
   const navigate = useNavigate();
+  const light = useLightMode();
+  const page = utilityPageClass(light);
+  const input = utilityInputClass(light);
+  const muted = utilityMutedClass(light);
+  const link = light ? 'text-brand-700 hover:text-brand-800 underline' : 'text-brand-300 hover:text-brand-200 underline';
+  const btn = 'px-4 py-2 rounded-xl text-sm font-medium transition-colors bg-brand-600 hover:bg-brand-500 text-white disabled:opacity-50';
+  const listBtn = light
+    ? 'w-full flex items-center justify-between px-3 py-2 rounded-xl border border-parchment-200 bg-parchment-50 hover:bg-parchment-100 transition-colors'
+    : 'w-full flex items-center justify-between px-3 py-2 rounded-xl border border-navyink-600 bg-navyink-850 hover:bg-navyink-700 transition-colors';
+
+  const usageCount = (word) => {
+    if (!usage) return null;
+    return usage.get((word || '').toLowerCase().replace(/\s+/g, '')) || 0;
+  };
+
+  // Tally how often each answer has been used across all main + quick puzzles
+  useEffect(() => {
+    let cancelled = false;
+    const tally = (counts, puzzle) => {
+      if (!puzzle || !Array.isArray(puzzle.rows)) return;
+      puzzle.rows.forEach((row) => {
+        const w = (row.answer || '').toLowerCase().trim().replace(/\s+/g, '');
+        if (w) counts.set(w, (counts.get(w) || 0) + 1);
+      });
+    };
+    (async () => {
+      try {
+        const [mainManifest, quickManifest] = await Promise.all([fetchManifest(), fetchQuickManifest()]);
+        const counts = new Map();
+        const batchSize = 12;
+        for (let i = 0; i < mainManifest.length; i += batchSize) {
+          if (cancelled) return;
+          const res = await Promise.allSettled(mainManifest.slice(i, i + batchSize).map((m) => loadPuzzleById(m.id)));
+          res.forEach((r) => { if (r.status === 'fulfilled') tally(counts, r.value); });
+        }
+        for (let i = 0; i < quickManifest.length; i += batchSize) {
+          if (cancelled) return;
+          const res = await Promise.allSettled(quickManifest.slice(i, i + batchSize).map((m) => loadQuickById(m.id)));
+          res.forEach((r) => { if (r.status === 'fulfilled') tally(counts, r.value); });
+        }
+        if (!cancelled) setUsage(counts);
+      } catch {
+        // Usage info is optional; ignore failures
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Load word list and build dictionary
   useEffect(() => {
@@ -206,8 +274,6 @@ const Explore = () => {
       // Only accept words that can form chains of at least the requested length
       if (chainLength >= chainMinLength) {
         bestWord = word;
-        // capture for potential UI in future; currently unused
-        console.log(`Found good word: "${word}" with chain length ${chainLength}`);
         break; // Use the first word we find meeting the requested chain length
       }
     }
@@ -267,49 +333,39 @@ const Explore = () => {
       // Limit search depth to prevent excessive computation
       if (maxLength >= 15) break;
     }
-    
-    // Debug: log details for words with good chains
-    if (maxLength >= 3) {
-      console.log(`  "${startWord}" (${startWord.length} letters) -> max chain: ${maxLength}`);
-    }
-    
+
     return maxLength;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className={`${page} flex items-center justify-center`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading word list...</p>
+          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 ${light ? 'border-brand-600' : 'border-parchment-200'}`} />
+          <p className={muted}>Loading word list...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4">
+    <div className={`${page} p-4`}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Explore Word Chains</h1>
-          <p className="text-gray-400">Find word chains for your Stepwords puzzles</p>
+          <h1 className="font-serif text-3xl font-bold mb-2">Explore Word Chains</h1>
+          <p className={muted}>Find word chains for your Stepwords puzzles</p>
           <div className="mt-4">
-            <a 
-              href="/create" 
-              className="text-blue-400 hover:text-blue-300 underline"
-            >
-              ← Submit a Puzzle
-            </a>
+            <a href="/create" className={link}>← Submit a Puzzle</a>
           </div>
           {/* Word list score cutoff + reload */}
           <div className="mt-3 flex items-end gap-1">
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Word list score cutoff</label>
+              <label className={`block text-xs mb-1 ${muted}`}>Word list score cutoff</label>
               <select
                 value={String(scoreCutoff)}
                 onChange={(e) => setScoreCutoff(parseInt(e.target.value) || 0)}
-                className="w-24 h-10 px-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                className={`w-24 h-10 px-2 rounded-xl border ${input}`}
               >
                 <option value="0">0</option>
                 <option value="30">30</option>
@@ -319,12 +375,12 @@ const Explore = () => {
             </div>
             <button
               onClick={() => reloadWithCutoff(scoreCutoff)}
-              className="ml-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium h-10"
+              className={`ml-1 ${btn} h-10`}
               disabled={reloading}
             >
               {reloading ? 'Reloading…' : 'Reload'}
             </button>
-            <div className="pb-2 text-sm text-gray-300">{wordList.length.toLocaleString()} words</div>
+            <div className={`pb-2 text-sm ${muted}`}>{wordList.length.toLocaleString()} words</div>
           </div>
         </div>
 
@@ -342,7 +398,7 @@ const Explore = () => {
                   onChange={(e) => setMinLength(parseInt(e.target.value) || 10)}
                   min="3"
                   max="20"
-                  className="w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none text-center"
+                  className={`w-20 px-2 py-2 rounded-xl border text-center ${input}`}
                 />
               </div>
               <div>
@@ -353,7 +409,7 @@ const Explore = () => {
                   onChange={(e) => { const v = parseInt(e.target.value, 10); setChainMinLength(Number.isFinite(v) ? v : 5); }}
                   min="0"
                   max="20"
-                  className="w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none text-center"
+                  className={`w-20 px-2 py-2 rounded-xl border text-center ${input}`}
                 />
               </div>
               <div>
@@ -361,7 +417,7 @@ const Explore = () => {
                 <button
                   onClick={suggestStartingPoint}
                   disabled={suggesting || wordList.length === 0}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium h-10"
+                  className={`${btn} h-10`}
                 >
                   {suggesting ? 'Finding...' : '🎯 Suggest'}
                 </button>
@@ -376,12 +432,20 @@ const Explore = () => {
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 placeholder="Type a word..."
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                className={`w-full px-4 py-2 rounded-xl border ${input}`}
               />
             </div>
             {currentWord && (
-              <div className="mt-2 text-sm text-gray-300">
-                Length: <span className="font-semibold">{currentWord.length}</span>
+              <div className="mt-2 flex items-center gap-3 text-sm text-gray-300">
+                <span>Length: <span className="font-semibold">{currentWord.length}</span></span>
+                {usageCount(currentWord) != null && (
+                  <span>
+                    Used previously:{' '}
+                    <span className={`font-semibold ${usageCount(currentWord) > 0 ? 'text-amber-300' : 'text-gray-400'}`}>
+                      {usageCount(currentWord)}×
+                    </span>
+                  </span>
+                )}
               </div>
             )}
             <p className="text-xs text-gray-400 mt-2">
@@ -431,10 +495,10 @@ const Explore = () => {
                     <button
                       key={index}
                       onClick={() => handleWordSelect(word)}
-                      className="w-full text-left px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 hover:border-red-400 transition-colors"
+                      className={`${listBtn} hover:border-red-400`}
                     >
-                      <span className="text-red-400 mr-2">↓</span>
-                      {word}
+                      <span className="text-left"><span className="text-red-400 mr-2">↓</span>{word}</span>
+                      <UsageBadge count={usageCount(word)} light={light} />
                     </button>
                   ))
                 ) : (
@@ -455,10 +519,10 @@ const Explore = () => {
                     <button
                       key={index}
                       onClick={() => handleWordSelect(word)}
-                      className="w-full text-left px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 hover:border-yellow-400 transition-colors"
+                      className={`${listBtn} hover:border-gold-400`}
                     >
-                      <span className="text-yellow-400 mr-2">↔</span>
-                      {word}
+                      <span className="text-left"><span className="text-yellow-400 mr-2">↔</span>{word}</span>
+                      <UsageBadge count={usageCount(word)} light={light} />
                     </button>
                   ))
                 ) : (
@@ -479,10 +543,10 @@ const Explore = () => {
                     <button
                       key={index}
                       onClick={() => handleWordSelect(word)}
-                      className="w-full text-left px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 hover:border-blue-400 transition-colors"
+                      className={`${listBtn} hover:border-brand-400`}
                     >
-                      <span className="text-blue-400 mr-2">↑</span>
-                      {word}
+                      <span className="text-left"><span className="text-blue-400 mr-2">↑</span>{word}</span>
+                      <UsageBadge count={usageCount(word)} light={light} />
                     </button>
                   ))
                 ) : (
@@ -494,11 +558,11 @@ const Explore = () => {
         )}
 
         {/* Action Buttons */}
-        <div className="mt-8 pt-6 border-t border-gray-700">
+        <div className={`mt-8 pt-6 border-t ${light ? 'border-parchment-200' : 'border-navyink-700'}`}>
           <div className="flex gap-4">
             <button
               onClick={() => navigate('/')}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              className={btn}
             >
               ← Back to Game
             </button>
@@ -515,7 +579,7 @@ const Explore = () => {
                   
                   navigate('/create');
                 }}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                className={btn}
               >
                 📝 Create Puzzle from Path
               </button>

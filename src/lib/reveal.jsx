@@ -155,21 +155,21 @@ export function RevealConfirmModal({
   if (!showWordRevealConfirm) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-      <div className={`w-full max-w-sm rounded-lg border p-4 ${lightMode ? 'border-gray-300 bg-white text-gray-900' : 'border-gray-700 bg-gray-900 text-gray-200'}`}>
-        <div className="text-lg font-semibold mb-2">Reveal Word</div>
-        <div className={`text-sm mb-4 ${lightMode ? 'text-gray-700' : ''}`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navyink-900/60 px-4 backdrop-blur-sm">
+      <div className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl animate-fade-in-up ${lightMode ? 'border-parchment-200 bg-parchment-50 text-navyink-900' : 'border-navyink-700 bg-navyink-850 text-parchment-50'}`}>
+        <div className="font-serif text-lg font-bold mb-2">Reveal Word</div>
+        <div className={`text-sm mb-5 ${lightMode ? 'text-navyink-700/75' : 'text-parchment-200/65'}`}>
           Revealing the current word will limit your maximum score to 0 stars.
         </div>
         <div className="flex justify-end gap-2 text-sm">
           <button
-            className={`px-3 py-1.5 rounded-md border ${lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
+            className={`px-4 py-2 rounded-full border ${lightMode ? 'border-parchment-300 text-navyink-700 hover:bg-parchment-100' : 'border-navyink-600 text-parchment-200 hover:bg-navyink-700'}`}
             onClick={() => setShowWordRevealConfirm(false)}
           >
             Cancel
           </button>
           <button
-            className="px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700"
+            className="px-4 py-2 rounded-full font-semibold bg-red-600 text-white hover:bg-red-700 shadow-sm transition-colors"
             onClick={() => {
               revealCurrentWord();
               setShowWordRevealConfirm(false);

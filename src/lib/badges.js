@@ -9,6 +9,7 @@ export const BADGE_CATEGORIES = {
   streak: { emoji: '🔥', label: 'Streak' },
   speed: { emoji: '⏱️', label: 'Speed' },
   perfects: { emoji: '✨', label: 'Perfect solves' },
+  week: { emoji: '📅', label: 'Perfect week' },
   hints: { emoji: '💡', label: 'Hint types used' },
 };
 
@@ -43,6 +44,7 @@ export const ALL_BADGES = [
   { key: '25-perfects', category: 'perfects', tier: 1, threshold: 25, description: '25 perfect solves' },
   { key: '50-perfects', category: 'perfects', tier: 2, threshold: 50, description: '50 perfect solves' },
   { key: '100-perfects', category: 'perfects', tier: 3, threshold: 100, description: '100 perfect solves' },
+  { key: 'perfect-week', category: 'week', tier: 2, description: 'Perfect week (7 days, 3★ each)' },
   // Hint types (each used at least once) - cycle through 4 colors
   { key: 'hint-word-starts', category: 'hints', tier: 0, description: 'Used word starts' },
   { key: 'hint-first3', category: 'hints', tier: 1, description: 'Used first letters lifeline' },

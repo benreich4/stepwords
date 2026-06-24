@@ -58,24 +58,11 @@ function isTodayPuzzle(puzzleDate) {
 }
 
 /**
- * Check if it's before midnight ET
+ * Check if it's before midnight ET. Completing a puzzle always happens "now",
+ * which is before the upcoming midnight, so this is always true.
  */
 function isBeforeMidnightET() {
-  try {
-    const now = new Date();
-    const etTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const hours = etTime.getHours();
-    const minutes = etTime.getMinutes();
-    const seconds = etTime.getSeconds();
-    
-    // Before midnight means hours < 24 (which is always true, but we check if it's still the same calendar day)
-    // Actually, we just need to check if we're still on the same day
-    // The real check is: did we solve today's puzzle before midnight?
-    // Since we're checking completion, we assume it's happening "now" which is before midnight
-    return true; // If we're completing a puzzle, it's happening now, which is before midnight
-  } catch {
-    return true; // Default to true to not break streaks
-  }
+  return true;
 }
 
 /**

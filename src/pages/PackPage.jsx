@@ -3,14 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { getPackById } from "../lib/puzzlePacks.js";
 import { fetchOtherManifest } from "../lib/otherPuzzles.js";
 
-function getLightMode() {
-  try {
-    const s = JSON.parse(localStorage.getItem("stepwords-settings") || "{}");
-    return s.lightMode === true;
-  } catch {
-    return false;
-  }
-}
+import { getInitialLightMode } from "../lib/theme.js";
 
 export default function PackPage() {
   const { packId } = useParams();
@@ -41,7 +34,7 @@ export default function PackPage() {
       .catch(() => {});
   }, [pack]);
 
-  const lightMode = getLightMode();
+  const lightMode = getInitialLightMode();
   const completedIds = useMemo(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem("otherstep-completed") || "[]"));

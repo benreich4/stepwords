@@ -7,14 +7,7 @@ import { fetchOtherManifest } from "../lib/otherPuzzles.js";
 import { getTodayIsoInET, isPreviewEnabled } from "../lib/date.js";
 import { formatDateWithDayOfWeek } from "../lib/date.js";
 
-function getLightMode() {
-  try {
-    const s = JSON.parse(localStorage.getItem("stepwords-settings") || "{}");
-    return s.lightMode === true;
-  } catch {
-    return false;
-  }
-}
+import { getInitialLightMode } from "../lib/theme.js";
 
 export default function AuthorPage() {
   const { authorName } = useParams();
@@ -90,7 +83,7 @@ export default function AuthorPage() {
     };
   }, [author, mainManifest, quickManifest, otherManifest]);
 
-  const lightMode = getLightMode();
+  const lightMode = getInitialLightMode();
   const totalCount = mainPuzzles.length + quickPuzzles.length + otherPuzzles.length;
 
   const puzzleLink = (puzzle, type) => {

@@ -1,9 +1,9 @@
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { fetchManifest } from "./lib/puzzles.js";
 import { fetchQuickManifest } from "./lib/quickPuzzles.js";
 import { getTodayIsoInET } from "./lib/date.js";
-import { getInitialLightMode } from "./lib/theme.js";
+import { getInitialLightMode, readLightMode, readHeaderCollapsed, saveHeaderCollapsed } from "./lib/theme.js";
 import SharePromptModal from "./components/SharePromptModal.jsx";
 import SubmissionPromptModal from "./components/SubmissionPromptModal.jsx";
 // Inline analytics - no separate module needed
@@ -18,30 +18,38 @@ function isPrintMode() {
   }
 }
 
+function isPuzzlePlayPath(pathname) {
+  if (/^\/quick\/[^/]+$/.test(pathname)) return true;
+  if (/^\/other\/[^/]+$/.test(pathname)) return true;
+  if (/^\/packs\/[^/]+$/.test(pathname)) return true;
+  if (/^\/submissions\/[^/]+$/.test(pathname)) return true;
+  if (!/^\/[^/]+$/.test(pathname) || pathname === '/') return false;
+  const reserved = new Set(['/archives', '/quick', '/promo', '/submissions', '/stats', '/words', '/style-guide', '/privacy', '/terms', '/admin', '/packs']);
+  return !reserved.has(pathname);
+}
+
 export default function App() {
   const location = useLocation();
-  const navigate = useNavigate();
   const printMode = isPrintMode();
+  const isHome = location.pathname === '/';
   const isQuick = location.pathname.startsWith('/quick');
   const isArchives = location.pathname.startsWith('/archives');
   const isStats = location.pathname.startsWith('/stats');
   const isOther = location.pathname.startsWith('/other');
   const isPromo = location.pathname.startsWith('/promo');
+  const isPuzzlePlay = isPuzzlePlayPath(location.pathname);
   const [mainTarget, setMainTarget] = useState("/");
   const [quickTarget, setQuickTarget] = useState("/quick");
   const [currentMainId, setCurrentMainId] = useState(null);
   const [currentQuickId, setCurrentQuickId] = useState(null);
   const [mainCompleted, setMainCompleted] = useState(false);
   const [quickCompleted, setQuickCompleted] = useState(false);
-  const [headerCollapsed, setHeaderCollapsed] = useState(() => {
-    try { return localStorage.getItem('stepwords-header-collapsed') === '1'; } catch { return false; }
-  });
+  const [headerCollapsed, setHeaderCollapsed] = useState(readHeaderCollapsed);
   const [lightMode, setLightMode] = useState(() => {
     return getInitialLightMode();
   });
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const [showSubmissionPrompt, setShowSubmissionPrompt] = useState(false);
-  const [hasSolvedFive, setHasSolvedFive] = useState(false);
 
   useEffect(() => {
     const checkCompletion = () => {
@@ -55,10 +63,10 @@ export default function App() {
     
     const onStorage = (e) => {
       if (e.key === 'stepwords-header-collapsed') {
-        try { setHeaderCollapsed(localStorage.getItem('stepwords-header-collapsed') === '1'); } catch {}
+        try { setHeaderCollapsed(readHeaderCollapsed()); } catch {}
       }
       if (e.key === 'stepwords-settings') {
-        try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); setLightMode(s.lightMode === true); } catch {}
+        try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); setLightMode(readLightMode(s)); } catch {}
       }
       if (e.key === 'stepwords-completed' || e.key === 'quickstep-completed') {
         checkCompletion();
@@ -66,7 +74,7 @@ export default function App() {
     };
     window.addEventListener('storage', onStorage);
     const onCustom = () => {
-      try { setHeaderCollapsed(localStorage.getItem('stepwords-header-collapsed') === '1'); } catch {}
+      try { setHeaderCollapsed(readHeaderCollapsed()); } catch {}
     };
     document.addEventListener('stepwords-header-toggle', onCustom);
     const onSettingsUpdated = (e) => {
@@ -74,7 +82,7 @@ export default function App() {
         setLightMode(e.detail.lightMode);
         return;
       }
-      try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); setLightMode(s.lightMode === true); } catch {}
+      try { const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}'); setLightMode(readLightMode(s)); } catch {}
     };
     document.addEventListener('stepwords-settings-updated', onSettingsUpdated);
     
@@ -221,18 +229,6 @@ export default function App() {
     } catch (_e) { void 0; }
   }, [location && location.pathname]);
 
-  // First-visit redirect: only if a brand-new user lands on the root path
-  useEffect(() => {
-    try {
-      if (localStorage.getItem('stepwords-first-visit') === '1') return;
-      // Mark first visit immediately so deep links won't trigger later redirects
-      localStorage.setItem('stepwords-first-visit', '1');
-      if (location.pathname === '/') {
-        navigate('/quick', { replace: true });
-      }
-    } catch {}
-  }, []);
-
   // Keep date when switching between Main and Quick
   useEffect(() => {
     let cancelled = false;
@@ -313,8 +309,7 @@ export default function App() {
       const quickCompleted = JSON.parse(localStorage.getItem('quickstep-completed') || '[]');
       const solved = new Set([...(Array.isArray(mainCompleted) ? mainCompleted : []), ...(Array.isArray(quickCompleted) ? quickCompleted : [])]);
       const hasFive = solved.size >= 5;
-      setHasSolvedFive(hasFive);
-      
+
       if (hasFive) {
         // Show submission prompt first if they haven't seen it
         const submissionShown = localStorage.getItem('stepwords-submission-prompt-shown') === '1';
@@ -341,11 +336,21 @@ export default function App() {
     }
   }, [location.search]);
 
+  useEffect(() => {
+    const cls = 'puzzle-play';
+    if (isPuzzlePlay && !printMode) {
+      document.documentElement.classList.add(cls);
+    } else {
+      document.documentElement.classList.remove(cls);
+    }
+    return () => document.documentElement.classList.remove(cls);
+  }, [isPuzzlePlay, printMode]);
+
   return (
-    <div className={`min-h-screen w-screen ${lightMode ? 'bg-white text-gray-900' : 'bg-black text-gray-100'}`}>
-      {!printMode && !isPromo && (
+    <div className={`w-screen ${isPuzzlePlay ? 'flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden' : 'min-h-screen'} ${lightMode ? 'bg-parchment-100 text-navyink-900' : 'bg-navyink-900 text-parchment-50'}`}>
+      {!printMode && !isPromo && !isHome && (
         <header
-          className={`app-header w-full px-2 py-1 md:px-3 md:py-2 border-b ${lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}
+          className={`app-header w-full px-2 py-1.5 md:px-3 md:py-2 border-b ${lightMode ? 'bg-parchment-50 border-parchment-200' : 'bg-navyink-850 border-navyink-700'}`}
         onClick={(e) => {
           // Toggle collapse when clicking the header bar background, but ignore clicks on interactive elements
           const tgt = e.target;
@@ -353,7 +358,7 @@ export default function App() {
           const next = !headerCollapsed;
           setHeaderCollapsed(next);
           try {
-            if (next) localStorage.setItem('stepwords-header-collapsed','1'); else localStorage.removeItem('stepwords-header-collapsed');
+            saveHeaderCollapsed(next);
           } catch {}
           try { document.dispatchEvent(new CustomEvent('stepwords-header-toggle')); } catch {}
         }}
@@ -361,22 +366,30 @@ export default function App() {
         <div className="grid grid-cols-3 items-center">
           <div className="justify-self-start min-w-0">
             <div className="flex items-center gap-1">
+              <Link
+                to="/"
+                aria-label="Home"
+                className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-sm md:text-base border transition-colors flex items-center justify-center ${lightMode ? 'bg-parchment-50 border-parchment-200 text-navyink-700 hover:bg-parchment-100' : 'bg-navyink-800 border-navyink-700 text-parchment-200 hover:bg-navyink-700'}`}
+                title="Home"
+              >
+                ←
+              </Link>
               <Link 
                 to={mainTarget} 
-                className={`px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-sm border transition-colors flex items-center gap-1 ${
+                className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-sm border transition-colors flex items-center gap-1 ${
                   (!isQuick && !isArchives && !isStats && !isOther)
-                    ? 'bg-blue-500 border-blue-500 text-white shadow-sm' 
-                    : (lightMode ? 'bg-gray-50 border-gray-300 text-gray-800 hover:bg-gray-100' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700')
+                    ? 'bg-brand-600 border-brand-600 text-white shadow-sm' 
+                    : (lightMode ? 'bg-parchment-50 border-parchment-200 text-navyink-700 hover:bg-parchment-100' : 'bg-navyink-800 border-navyink-700 text-parchment-200 hover:bg-navyink-700')
                 }`}
               >
                 Main{mainCompleted && <span className="text-[8px]">✓</span>}
               </Link>
               <Link 
                 to={quickTarget} 
-                className={`px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-sm border transition-colors flex items-center gap-1 ${
+                className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-sm border transition-colors flex items-center gap-1 ${
                   (isQuick && !isArchives)
-                    ? 'bg-blue-500 border-blue-500 text-white shadow-sm' 
-                    : (lightMode ? 'bg-gray-50 border-gray-300 text-gray-800 hover:bg-gray-100' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700')
+                    ? 'bg-brand-600 border-brand-600 text-white shadow-sm' 
+                    : (lightMode ? 'bg-parchment-50 border-parchment-200 text-navyink-700 hover:bg-parchment-100' : 'bg-navyink-800 border-navyink-700 text-parchment-200 hover:bg-navyink-700')
                 }`}
               >
                 Quick{quickCompleted && <span className="text-[8px]">✓</span>}
@@ -390,11 +403,11 @@ export default function App() {
                   const next = !headerCollapsed;
                   setHeaderCollapsed(next);
                   try {
-                    if (next) localStorage.setItem('stepwords-header-collapsed','1'); else localStorage.removeItem('stepwords-header-collapsed');
+                    saveHeaderCollapsed(next);
                   } catch {}
                   try { document.dispatchEvent(new CustomEvent('stepwords-header-toggle')); } catch {}
                 }}
-                className={`text-[10px] md:text-sm px-2 py-0.5 md:px-3 md:py-1 rounded border ${lightMode ? 'text-gray-600 border-gray-300 hover:bg-gray-200' : 'text-gray-400 border-gray-800 hover:bg-gray-900'}`}
+                className={`text-[10px] md:text-sm px-2 py-0.5 md:px-3 md:py-1 rounded-full border ${lightMode ? 'text-navyink-700/70 border-parchment-200 hover:bg-parchment-100' : 'text-parchment-200/70 border-navyink-700 hover:bg-navyink-800'}`}
                 aria-label={headerCollapsed ? 'Expand header' : 'Collapse header'}
               >
                 {headerCollapsed ? '▼' : '▲'}
@@ -402,43 +415,49 @@ export default function App() {
             )}
           </div>
           <div className="justify-self-end min-w-0">
-            <Link 
-              to="/create" 
-              className={`px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-sm border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
-                (lightMode ? 'border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700')
-              }`}
-              title="Create"
-            >
-              <span className="sm:hidden">✏️</span><span className="hidden sm:inline">Create</span>
-            </Link>
-            <Link 
-              to="/stats" 
-              className={`ml-2 px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-sm border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
-                isStats
-                  ? 'bg-blue-500 border-blue-500 text-white shadow-sm'
-                  : (lightMode ? 'border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700')
-              }`}
-              title="Stats"
-            >
-              <span className="sm:hidden">%</span><span className="hidden sm:inline">Stats</span>
-            </Link>
-            <Link 
-              to="/archives" 
-              className={`ml-2 px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-sm border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
-                isArchives
-                  ? 'bg-blue-500 border-blue-500 text-white shadow-sm'
-                  : (lightMode ? 'border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700')
-              }`}
-              title="Archives"
-            >
-              <span className="sm:hidden">📁</span><span className="hidden sm:inline">Archives</span>
-            </Link>
+            {!isPuzzlePlay && (
+              <>
+                <Link 
+                  to="/create" 
+                  className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-sm border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
+                    (lightMode ? 'border-parchment-200 bg-parchment-50 text-navyink-700 hover:bg-parchment-100' : 'border-navyink-700 bg-navyink-800 text-parchment-200 hover:bg-navyink-700')
+                  }`}
+                  title="Create"
+                >
+                  <span className="sm:hidden">✏️</span><span className="hidden sm:inline">Create</span>
+                </Link>
+                <Link 
+                  to="/stats" 
+                  className={`ml-2 px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-sm border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
+                    isStats
+                      ? 'bg-brand-600 border-brand-600 text-white shadow-sm'
+                      : (lightMode ? 'border-parchment-200 bg-parchment-50 text-navyink-700 hover:bg-parchment-100' : 'border-navyink-700 bg-navyink-800 text-parchment-200 hover:bg-navyink-700')
+                  }`}
+                  title="Stats"
+                >
+                  <span className="sm:hidden">%</span><span className="hidden sm:inline">Stats</span>
+                </Link>
+                <Link 
+                  to="/archives" 
+                  className={`ml-2 px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-sm border transition-colors whitespace-nowrap inline-flex items-center justify-center ${
+                    isArchives
+                      ? 'bg-brand-600 border-brand-600 text-white shadow-sm'
+                      : (lightMode ? 'border-parchment-200 bg-parchment-50 text-navyink-700 hover:bg-parchment-100' : 'border-navyink-700 bg-navyink-800 text-parchment-200 hover:bg-navyink-700')
+                  }`}
+                  title="Archives"
+                >
+                  <span className="sm:hidden">📁</span><span className="hidden sm:inline">Archives</span>
+                </Link>
+              </>
+            )}
           </div>
         </div>
         </header>
       )}
-      <main className="w-full">
-        <Outlet />
+      <main className={`w-full ${isPuzzlePlay ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : ''}`}>
+        <div key={location.pathname} className={`page-route-enter ${isPuzzlePlay ? 'flex h-full min-h-0 flex-1 flex-col overflow-hidden' : ''}`}>
+          <Outlet />
+        </div>
       </main>
 
       {!printMode && showSharePrompt && (
@@ -450,21 +469,21 @@ export default function App() {
       )}
       
       {/* Copyright notice */}
-      {!printMode && !isPromo && (
-        <footer className="app-footer w-full px-3 py-2 text-xs text-gray-500 border-t border-gray-800">
+      {!printMode && !isPromo && !isHome && !isPuzzlePlay && (
+        <footer className={`app-footer w-full px-3 py-2 text-xs border-t ${lightMode ? 'text-navyink-700/60 border-parchment-200' : 'text-parchment-200/45 border-navyink-700'}`}>
         <div className="flex justify-between items-center flex-wrap gap-2">
           <div className="flex items-center gap-3 flex-wrap">
             <span>© 2025 Stepwords™. All rights reserved.</span>
-            <Link to="/privacy" className="text-sky-400 hover:underline">
+            <Link to="/privacy" className={`hover:underline ${lightMode ? 'text-brand-700' : 'text-brand-300'}`}>
               Privacy Policy
             </Link>
-            <Link to="/terms" className="text-sky-400 hover:underline">
+            <Link to="/terms" className={`hover:underline ${lightMode ? 'text-brand-700' : 'text-brand-300'}`}>
               Terms of Service
             </Link>
           </div>
           <a 
             href="mailto:hello@stepwords.xyz"
-            className="text-sky-400 hover:underline"
+            className={`hover:underline ${lightMode ? 'text-brand-700' : 'text-brand-300'}`}
           >
             hello@stepwords.xyz
           </a>

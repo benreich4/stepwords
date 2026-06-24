@@ -1,7 +1,19 @@
+// Cache the manifest request so navigating between pages doesn't re-fetch index.json repeatedly.
+let manifestPromise = null;
+
 export async function fetchManifest() {
-  const res = await fetch("/puzzles/index.json");
-  if (!res.ok) throw new Error("Failed to load puzzle manifest");
-  return res.json();
+  if (!manifestPromise) {
+    manifestPromise = fetch("/puzzles/index.json")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load puzzle manifest");
+        return res.json();
+      })
+      .catch((err) => {
+        manifestPromise = null; // allow retry on failure
+        throw err;
+      });
+  }
+  return manifestPromise;
 }
 
 /**

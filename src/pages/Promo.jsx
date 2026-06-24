@@ -1,6 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { computeStepIndices } from "../lib/gameUtils.js";
-import { getTodayIsoInET } from "../lib/date.js";
+import { useEffect, useRef, useState } from "react";
 
 function SingleArcDemo() {
   // Demo: SOW -> OWES -> SWORE -> POWERS -> POWDERS -> STEPWORD

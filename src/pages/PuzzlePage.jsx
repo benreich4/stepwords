@@ -46,8 +46,8 @@ export default function PuzzlePage({ puzzleId: propId, isQuick = false }) {
           const descText = `Daily anagram ladder puzzle for ${dateStr || 'today'}. Build each word by adding a letter.`;
           const setMeta = (sel, attr, value) => {
             let el = document.querySelector(sel);
-            if (!el) { el = document.createElement('meta'); el.setAttribute(attr==='property'?'property':'name', sel.includes('property=')?sel.match(/property=\"([^\"]+)\"/)[1]:sel.match(/name=\"([^\"]+)\"/)[1]); document.head.appendChild(el); }
-            el.setAttribute(attr, sel.includes('property=')?sel.match(/property=\"([^\"]+)\"/)[1]:sel.match(/name=\"([^\"]+)\"/)[1]);
+            if (!el) { el = document.createElement('meta'); el.setAttribute(attr==='property'?'property':'name', sel.includes('property=')?sel.match(/property="([^"]+)"/)[1]:sel.match(/name="([^"]+)"/)[1]); document.head.appendChild(el); }
+            el.setAttribute(attr, sel.includes('property=')?sel.match(/property="([^"]+)"/)[1]:sel.match(/name="([^"]+)"/)[1]);
             el.setAttribute('content', value);
           };
           setMeta('meta[name="description"]','name', 'description');

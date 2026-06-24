@@ -18,18 +18,15 @@ export default function LetterBox({
   isDiffAll = false,     // deemphasize entire row (initial hold before selecting target)
   lightMode = false,
   stepEmoji = '🪜',     // emoji to use for step indicator
+  stepPulse = false,
 }) {
   const COLOR_CLASSES = {
-    G: lightMode 
-      ? "bg-green-500 border-2 border-green-600 text-white shadow-md shadow-green-500/30" 
-      : "bg-green-500 border-2 border-green-500 text-white shadow-md shadow-green-500/30",
-    Y: lightMode 
-      ? "bg-yellow-300 border-2 border-yellow-400 text-black shadow-md shadow-yellow-400/30" 
-      : "bg-yellow-300 border-2 border-yellow-400 text-black shadow-md shadow-yellow-400/30",
+    G: "bg-[#6aaa64] border border-[#6aaa64] text-white",
+    Y: "bg-[#c9b458] border border-[#c9b458] text-white",
   };
   const EMPTY_CLASSES = lightMode 
-    ? "bg-gray-200 border-gray-400 text-gray-900 transition-colors duration-200" 
-    : "bg-gray-800 border-gray-700 text-gray-200 transition-colors duration-200";
+    ? "bg-white border-2 border-parchment-400 text-navyink-900 transition-colors duration-200" 
+    : "bg-navyink-800 border-2 border-navyink-600 text-white transition-colors duration-200";
   const stateClass = state ? (COLOR_CLASSES[state] || EMPTY_CLASSES) : EMPTY_CLASSES;
 
   // Tile size: use tileSizePx when provided (from parent's viewport measurement), else fallback
@@ -61,8 +58,8 @@ export default function LetterBox({
         })();
   
   const base =
-    "relative inline-flex items-center justify-center border rounded-[6px] box-border " +
-    "select-none uppercase font-bold leading-none " +
+    "relative inline-flex items-center justify-center border rounded-[8px] box-border " +
+    "select-none uppercase font-crossword font-bold leading-none tracking-normal antialiased " +
     "aspect-square transition-all duration-300 ease-out";
   const hasChar = Boolean(char && char !== " ");
   const prevStateRef = useRef(state);
@@ -71,6 +68,7 @@ export default function LetterBox({
   const [particleTrigger, setParticleTrigger] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   const hasParticles = (state === 'G' || state === 'Y') && particleTrigger > 0;
+  const isElevated = isPopping || isGlowing || hasParticles;
   
   // Particle burst when state changes to G or Y
   useEffect(() => {
@@ -104,12 +102,12 @@ export default function LetterBox({
       type="button" 
       onClick={onClick}
       onContextMenu={onContextMenu}
-      className={`letter-box ${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''} ${isPopping ? 'scale-110 animate-bounce will-change-transform' : ''} ${isGlowing && state === 'G' ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-transparent will-change-shadow' : ''} ${isGlowing && state === 'Y' ? 'ring-2 ring-yellow-300 ring-offset-2 ring-offset-transparent will-change-shadow' : ''} ${isTyping ? 'ring-2 ring-sky-400 ring-offset-1 ring-offset-transparent animate-pulse will-change-shadow' : ''}`}
+      className={`letter-box ${base} ${stateClass} ${(isDiffAll || (hasChar && (isDiffExtra || isDiffFilled))) ? 'opacity-60' : ''} ${isElevated ? 'tile-elevated' : ''} ${isPopping ? 'tile-lock-flip will-change-transform' : ''} ${isGlowing && state === 'G' ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-transparent will-change-shadow' : ''} ${isGlowing && state === 'Y' ? 'ring-2 ring-yellow-300 ring-offset-2 ring-offset-transparent will-change-shadow' : ''} ${isTyping ? 'ring-2 ring-brand-400 ring-offset-1 ring-offset-transparent will-change-shadow' : ''}`}
       style={{
         width: tileSize,
         fontSize: textSize,
         transition: 'width 300ms ease-out, font-size 300ms ease-out',
-        zIndex: hasParticles ? 1 : 'auto', // Slightly raise when particles are active (keep below clue bar z-10)
+        zIndex: isElevated ? 10 : 'auto',
       }}
     >
       {/* Particle burst effect */}
@@ -120,14 +118,13 @@ export default function LetterBox({
 
       {/* Cursor highlight stays inside the box */}
       {isCursor && (
-        <span className="pointer-events-none absolute inset-[2px] rounded-[4px] border-2 border-sky-400" />
+        <span className={`pointer-events-none absolute inset-[2px] rounded-[5px] border-2 ${lightMode ? 'border-brand-600' : 'border-brand-300'}`} />
       )}
 
       {/* Step badge (actual step, always visible when revealed) */}
       {showStep && (
         <span
-          className="pointer-events-none absolute bottom-[1px] right-[1px] select-none
-                     text-[8px] sm:text-[10px] md:text-xs leading-none"
+          className={`pointer-events-none absolute bottom-[1px] right-[1px] select-none text-[8px] sm:text-[10px] md:text-xs leading-none ${stepPulse ? 'step-pulse' : ''}`}
           aria-hidden
         >
           {stepEmoji}

@@ -2,10 +2,49 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { isPreviewEnabled } from '../lib/date.js';
 import { shouldSendAnalytics } from '../lib/autosolveUtils.js';
+import { useLightMode, utilityPageClass, utilityCardClass, utilityInputClass, utilityMutedClass } from '../hooks/useLightMode.js';
 
 const DRAFT_KEY = 'puzzleCreatorDraft';
 const LAST_AUTHOR_KEY = 'puzzleCreatorLastAuthor';
 const LAST_EMAIL_KEY = 'puzzleCreatorLastEmail';
+
+// Reduce an answer to comparable letters only (ignores spaces/punctuation for phrases)
+function lettersOnly(s) {
+  return (s || '').toLowerCase().replace(/[^a-z]/g, '');
+}
+
+function letterCountMap(s) {
+  const m = {};
+  for (const ch of s) m[ch] = (m[ch] || 0) + 1;
+  return m;
+}
+
+/**
+ * Validate that each word is an anagram of the previous word plus exactly one
+ * new letter. Returns an error message string, or null when the chain is valid.
+ */
+function findStepProgressionError(words) {
+  for (let i = 1; i < words.length; i++) {
+    const prevRaw = (words[i - 1] || '').trim();
+    const curRaw = (words[i] || '').trim();
+    const prev = lettersOnly(prevRaw);
+    const cur = lettersOnly(curRaw);
+    if (!prev || !cur) continue; // empties are caught by the separate empty-field check
+
+    const pc = letterCountMap(prev);
+    const cc = letterCountMap(cur);
+    let isSuperset = true;
+    for (const ch in pc) {
+      if ((cc[ch] || 0) < pc[ch]) { isSuperset = false; break; }
+    }
+    const extraLetters = cur.length - prev.length;
+
+    if (!isSuperset || extraLetters !== 1) {
+      return `Invalid step at word ${i + 1}: "${curRaw}" must be an anagram of "${prevRaw}" plus exactly one new letter.`;
+    }
+  }
+  return null;
+}
 
 function loadDraft() {
   try {
@@ -62,6 +101,19 @@ const PuzzleCreatorSimple = () => {
   const hasRestoredRef = useRef(false);
 
   const navigate = useNavigate();
+  const light = useLightMode();
+  const page = utilityPageClass(light);
+  const card = utilityCardClass(light);
+  const input = utilityInputClass(light);
+  const muted = utilityMutedClass(light);
+  const link = light ? 'text-brand-700 hover:text-brand-800 underline' : 'text-brand-300 hover:text-brand-200 underline';
+  const btn = 'rounded-xl font-medium transition-colors bg-brand-600 hover:bg-brand-500 text-white disabled:opacity-50';
+  const btnSm = `${btn} px-3 py-1 text-sm`;
+  const btnMd = `${btn} px-4 py-2`;
+  const btnLg = `${btn} px-6 py-2 rounded-2xl`;
+  const pill = light
+    ? 'rounded-xl border border-parchment-300 bg-parchment-50 text-navyink-700 hover:bg-parchment-100'
+    : 'rounded-xl border border-navyink-600 bg-navyink-800 text-parchment-200 hover:bg-navyink-700';
 
   // Restore draft or last author/email on mount (once, safely)
   useEffect(() => {
@@ -235,6 +287,13 @@ const PuzzleCreatorSimple = () => {
       return;
     }
 
+    // Validate the step-word chain: each word = previous word + exactly one new letter
+    const stepError = findStepProgressionError(submissionWords);
+    if (stepError) {
+      setSubmissionStatus(stepError);
+      return;
+    }
+
     if (!submissionAuthor.trim()) {
       setSubmissionStatus('Please enter your name');
       return;
@@ -353,36 +412,21 @@ const PuzzleCreatorSimple = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-4">
+    <div className={`${page} p-4`}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Puzzle Creator</h1>
-              <p className="text-gray-400">Create and submit your own Stepword puzzles</p>
+              <h1 className="font-serif text-3xl font-bold mb-2">Puzzle Creator</h1>
+              <p className={muted}>Create and submit your own Stepword puzzles</p>
               <div className="mt-4">
-                <Link 
-                  to="/style-guide" 
-                  className="text-blue-400 hover:text-blue-300 underline font-medium"
-                >
-                  📖 Read the Style Guide →
-                </Link>
+                <Link to="/style-guide" className={`${link} font-medium`}>📖 Read the Style Guide →</Link>
               </div>
               {isPreviewEnabled() && (
                 <div className="mt-4 flex gap-4">
-                  <a 
-                    href="/explore" 
-                    className="text-blue-400 hover:text-blue-300 underline"
-                  >
-                    Explore word chains →
-                  </a>
-                  <a 
-                    href="/words" 
-                    className="text-blue-400 hover:text-blue-300 underline"
-                  >
-                    Word Database →
-                  </a>
+                  <a href="/explore" className={link}>Explore word chains →</a>
+                  <a href="/words" className={link}>Word Database →</a>
                 </div>
               )}
             </div>
@@ -399,7 +443,7 @@ const PuzzleCreatorSimple = () => {
                       setCopying(false);
                     }
                   }}
-                  className="px-3 py-1.5 text-xs rounded border border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700 disabled:opacity-50"
+                  className={`px-3 py-1.5 text-xs ${pill} disabled:opacity-50`}
                   disabled={copying}
                   title="Copy all words as a comma-separated list"
                 >
@@ -411,21 +455,19 @@ const PuzzleCreatorSimple = () => {
         </div>
 
         {/* Puzzle Submission Section */}
-        <div className="mt-8 pt-6 border-t border-gray-700">
+        <div className={`mt-8 pt-6 border-t ${light ? 'border-parchment-200' : 'border-navyink-700'}`}>
           <div className="mb-6">
-            <h2 className="text-2xl font-bold mb-4">Submit a Puzzle</h2>
-            <p className="text-gray-400 mb-4">
+            <h2 className="font-serif text-2xl font-bold mb-4">Submit a Puzzle</h2>
+            <p className={`${muted} mb-4`}>
               Create and submit your own Stepword puzzle for review. Each word must be an anagram of the previous word plus exactly one new letter.
             </p>
-            <p className="text-gray-400 text-sm">
+            <p className={`text-sm ${muted}`}>
               Questions? Email us at{' '}
-              <a href="mailto:hello@stepwords.xyz" className="text-blue-400 hover:text-blue-300 underline">
-                hello@stepwords.xyz
-              </a>
+              <a href="mailto:hello@stepwords.xyz" className={link}>hello@stepwords.xyz</a>
             </p>
           </div>
 
-          <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
+          <div className={`${card} p-6`}>
               {/* Puzzle Info */}
               <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -435,7 +477,7 @@ const PuzzleCreatorSimple = () => {
                     value={submissionAuthor}
                     onChange={(e) => setSubmissionAuthor(e.target.value)}
                     placeholder="e.g., 'John Doe'"
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                    className={`w-full px-3 py-2 rounded-xl border ${input}`}
                   />
                 </div>
                 <div>
@@ -447,7 +489,7 @@ const PuzzleCreatorSimple = () => {
                     value={submissionEmail}
                     onChange={(e) => setSubmissionEmail(e.target.value)}
                     placeholder="your.email@example.com"
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                    className={`w-full px-3 py-2 rounded-xl border ${input}`}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Your email will not be made public and will only be used if we need to contact you about your puzzle.
@@ -463,7 +505,7 @@ const PuzzleCreatorSimple = () => {
                     onChange={(e) => setSubmissionEmoji(e.target.value)}
                     placeholder="e.g., 🎃 or 🏃‍♀️"
                     maxLength="2"
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                    className={`w-full px-3 py-2 rounded-xl border ${input}`}
                     title="Optional: a single emoji to use instead of the default stepladder 🪜"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -482,7 +524,7 @@ const PuzzleCreatorSimple = () => {
                   onChange={(e) => setSubmissionNotes(e.target.value)}
                   placeholder="Any additional comments or notes about your puzzle..."
                   rows={3}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none resize-y"
+                  className={`w-full px-3 py-2 rounded-xl border resize-y ${input}`}
                 />
               </div>
 
@@ -494,7 +536,7 @@ const PuzzleCreatorSimple = () => {
                     <button
                       onClick={reverseWords}
                       disabled={submissionWords.length < 2}
-                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                      className={`${btnSm} bg-purple-600 hover:bg-purple-700`}
                       title="Reverse the order of all words and clues"
                     >
                       ↕️ Reverse
@@ -502,7 +544,7 @@ const PuzzleCreatorSimple = () => {
                     <button
                       onClick={addWordRow}
                       disabled={submissionWords.length >= 15}
-                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                      className={btnSm}
                     >
                       + Add Word
                     </button>
@@ -531,7 +573,7 @@ const PuzzleCreatorSimple = () => {
                           value={word}
                           onChange={(e) => updateWord(index, e.target.value)}
                           placeholder={`${3 + index} letters`}
-                          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                          className={`w-full px-3 py-2 rounded-xl border ${input}`}
                         />
                       </div>
                       <div className="md:col-span-2">
@@ -542,7 +584,7 @@ const PuzzleCreatorSimple = () => {
                           onChange={(e) => updateBreakdown(index, e.target.value)}
                           placeholder={`${(word || '').length}`}
                           title={'e.g. "5" or "3,4"'}
-                          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                          className={`w-full px-3 py-2 rounded-xl border ${input}`}
                         />
                       </div>
                       <div className="md:col-span-7">
@@ -552,7 +594,7 @@ const PuzzleCreatorSimple = () => {
                           value={submissionClues[index]}
                           onChange={(e) => updateClue(index, e.target.value)}
                           placeholder="Crossword-style clue"
-                          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none"
+                          className={`w-full px-3 py-2 rounded-xl border ${input}`}
                         />
                       </div>
                     </div>
@@ -592,7 +634,7 @@ const PuzzleCreatorSimple = () => {
                 <button
                   onClick={submitPuzzle}
                   disabled={submissionStatus === 'Submitting...'}
-                  className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors"
+                  className={btnLg}
                 >
                   {submissionStatus === 'Submitting...' ? 'Submitting...' : 'Submit Puzzle'}
                 </button>
@@ -601,7 +643,7 @@ const PuzzleCreatorSimple = () => {
                   <div className={`text-sm ${
                     submissionStatus.includes('successfully') 
                       ? 'text-green-400' 
-                      : submissionStatus.includes('Error') || submissionStatus.includes('Please')
+                      : submissionStatus.includes('Error') || submissionStatus.includes('Please') || submissionStatus.includes('Invalid')
                       ? 'text-red-400'
                       : 'text-yellow-400'
                   }`}>
@@ -616,7 +658,7 @@ const PuzzleCreatorSimple = () => {
         <div className="mt-8 pt-6 border-t border-gray-700">
           <button
             onClick={() => navigate('/')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            className={`${btnMd} mt-4`}
           >
             ← Back to Game
           </button>

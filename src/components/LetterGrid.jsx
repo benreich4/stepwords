@@ -74,7 +74,7 @@ export default function LetterGrid({
     tileSize = Math.max(TILE_MIN_PX, Math.min(TILE_MAX_PX, Math.min(tileFromWidth, tileFromHeight)));
     return { tileSizePx: tileSize, letterGapPx: letterGap, rowGapPx: rowGap };
   })();
-  const textSizePx = Math.max(11, Math.min(22, tileSizePx * 0.46));
+  const textSizePx = Math.max(13, Math.min(26, tileSizePx * 0.52));
   return (
     <div
       className="w-fit flex flex-col items-start select-none pb-0"
@@ -150,7 +150,7 @@ export default function LetterGrid({
           }
         } catch {}
       }}
-      onPointerUp={() => {
+      onPointerUp={(e) => {
         if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
         if (longPressActiveRef.current) {
           try {
@@ -229,7 +229,6 @@ export default function LetterGrid({
           const fromAns = rows[diffFromRow].answer.toUpperCase();
           const gap = Math.abs(diffFromRow - diffToRow);
           const backward = diffToRow < diffFromRow;  // comparing to previous words
-          const forward = diffToRow > diffFromRow;   // comparing to future words
 
           fromExtraMask = Array.from({ length: len }, () => false);
           fromFilledMask = Array.from({ length: len }, () => false);
@@ -282,7 +281,7 @@ export default function LetterGrid({
             key={i} 
             data-row-index={i} 
             className={`w-full flex flex-row items-center gap-1 px-0 transition-all duration-500 ${
-              isRowCompleting ? 'scale-105 transform-gpu will-change-transform' : ''
+              isRowCompleting ? 'relative z-30 scale-105 transform-gpu will-change-transform' : ''
             }`}
             style={isRowCompleting ? {
               animation: 'pulse 0.5s ease-out',
@@ -291,12 +290,12 @@ export default function LetterGrid({
             <button
               type="button"
               onClick={onJumpToRow ? () => onJumpToRow(i) : undefined}
-              className={`print-row-number shrink-0 w-6 h-6 md:w-8 md:h-8 rounded text-[10px] md:text-sm flex items-center justify-center border ${
+              className={`print-row-number shrink-0 w-6 h-6 md:w-8 md:h-8 rounded-md text-[10px] md:text-sm font-medium flex items-center justify-center border transition-colors ${
                 i===level
-                  ? (lightMode ? 'bg-sky-100 border-sky-300 text-sky-900' : 'bg-sky-700 border-sky-500 text-white')
+                  ? (lightMode ? 'bg-brand-700 border-brand-700 text-white' : 'bg-brand-500 border-brand-400 text-white')
                   : referencedRows?.has(i)
-                    ? (lightMode ? 'bg-yellow-100 border-yellow-300 text-yellow-700' : 'bg-yellow-700/30 border-yellow-400 text-yellow-200')
-                    : (lightMode ? 'bg-gray-100 border-gray-300 text-gray-700' : 'bg-gray-800 border-gray-700 text-gray-300')
+                    ? (lightMode ? 'bg-gold-500/15 border-gold-500/60 text-gold-600' : 'bg-gold-400/15 border-gold-400/60 text-gold-400')
+                    : (lightMode ? 'bg-white border-parchment-400 text-navyink-700/70' : 'bg-navyink-800 border-navyink-700 text-parchment-200/70')
               }`}
               aria-label={`Row ${i+1}`}
             >
@@ -340,6 +339,7 @@ export default function LetterGrid({
                     isDiffAll={isHoldingOnly && longPressStartRowRef.current === i}
                     lightMode={lightMode}
                     stepEmoji={stepEmoji}
+                    stepPulse={isRowCompleting && col === stepPos && actualStepRevealed}
                   />
                 );
               })}

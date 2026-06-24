@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { shouldSendAnalytics } from './autosolveUtils.js';
+import AnchoredPortal from '../components/AnchoredPortal.jsx';
 
 /**
  * Custom hook for lifeline functionality
@@ -117,6 +118,7 @@ export function useLifelines(rows, lockColors, guesses, lifelineLevel, setLifeli
  * Component for rendering the lifeline menu
  */
 export function LifelineMenu({ 
+  anchorRef,
   showLifelineMenu, 
   setShowLifelineMenu, 
   lifelineLevel, 
@@ -133,21 +135,26 @@ export function LifelineMenu({
   onRevealFirstLastStep,
   onGiveUpReveal
 }) {
-  if (!showLifelineMenu) return null;
-
   const [view, setView] = useState('root'); // 'root' | 'starts' | 'lifelines' | 'reveal'
 
   const goRoot = () => setView('root');
 
+  if (!showLifelineMenu) return null;
+
   return (
-    <div data-lifeline-menu className={`absolute right-0 top-full mt-1 min-w-[220px] rounded-lg border backdrop-blur-sm p-3 text-sm md:text-base shadow-xl menu-pop-in z-30 ${lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5 text-gray-800' : 'border-gray-700 bg-gray-900/95 ring-1 ring-white/10 text-gray-300'}`}>
+    <AnchoredPortal
+      anchorRef={anchorRef}
+      open={showLifelineMenu}
+      dataAttr={{ name: "data-lifeline-menu", value: true }}
+      className={`min-w-[220px] rounded-2xl border backdrop-blur-sm p-3 text-sm md:text-base shadow-2xl menu-pop-in ${lightMode ? 'border-parchment-200 bg-parchment-50 ring-1 ring-black/5 text-navyink-800' : 'border-navyink-700 bg-navyink-850 ring-1 ring-white/10 text-parchment-200'}`}
+    >
       {view === 'root' && (
         <div className="space-y-2 menu-pop-in">
-          <button onClick={() => setView('starts')} className={`w-full text-left px-3 py-2 rounded-md border ${lightMode ? 'border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-900' : 'border-gray-700 bg-gray-900/60 hover:bg-gray-800'}`}>Word starts</button>
-          <button onClick={() => setView('lifelines')} className={`w-full text-left px-3 py-2 rounded-md border ${lightMode ? 'border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-900' : 'border-gray-700 bg-gray-900/60 hover:bg-gray-800'}`}>Lifelines</button>
-          <button onClick={() => setView('reveal')} className={`w-full text-left px-3 py-2 rounded-md border ${lightMode ? 'border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-900' : 'border-gray-700 bg-gray-900/60 hover:bg-gray-800'}`}>Reveal</button>
+          <button onClick={() => setView('starts')} className={`w-full text-left px-3 py-2 rounded-md border ${lightMode ? 'border-parchment-300 bg-parchment-100 hover:bg-parchment-200 text-navyink-900' : 'border-navyink-700 bg-navyink-800 hover:bg-navyink-700'}`}>Word starts</button>
+          <button onClick={() => setView('lifelines')} className={`w-full text-left px-3 py-2 rounded-md border ${lightMode ? 'border-parchment-300 bg-parchment-100 hover:bg-parchment-200 text-navyink-900' : 'border-navyink-700 bg-navyink-800 hover:bg-navyink-700'}`}>Lifelines</button>
+          <button onClick={() => setView('reveal')} className={`w-full text-left px-3 py-2 rounded-md border ${lightMode ? 'border-parchment-300 bg-parchment-100 hover:bg-parchment-200 text-navyink-900' : 'border-navyink-700 bg-navyink-800 hover:bg-navyink-700'}`}>Reveal</button>
           <div className="flex justify-end">
-            <button onClick={() => setShowLifelineMenu(false)} className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">Close</button>
+            <button onClick={() => setShowLifelineMenu(false)} className="px-3 py-1.5 bg-brand-600 text-white rounded-full hover:bg-brand-500 text-sm">Close</button>
           </div>
         </div>
       )}
@@ -156,7 +163,7 @@ export function LifelineMenu({
         <div className="menu-pop-in">
           <div className="flex items-center justify-between mb-2">
             <h3 className={`text-sm font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>Word Starts</h3>
-            <button onClick={goRoot} className={`text-xs md:text-sm ${lightMode ? 'text-sky-600' : 'text-sky-400'} hover:underline`}>← Back</button>
+            <button onClick={goRoot} className={`text-xs md:text-sm ${lightMode ? 'text-brand-600' : 'text-brand-300'} hover:underline`}>← Back</button>
           </div>
           {lifelineLevel === 0 ? (
             <div className="mb-2">
@@ -175,10 +182,10 @@ export function LifelineMenu({
                         return (
                           <div
                             key={i}
-                            className={`w-4 h-4 border flex items-center justify-center text-sm font-semibold ${
+                            className={`w-4 h-4 rounded-[3px] border flex items-center justify-center text-sm font-serif font-semibold ${
                               isFullySolved
-                                ? 'bg-green-600 border-green-500 text-white'
-                                : 'bg-yellow-400 border-yellow-400 text-black'
+                                ? 'bg-[#6aaa64] border-[#5f9a5a] text-white'
+                                : 'bg-[#c9b458] border-[#bda64f] text-white'
                             }`}
                           >
                             {letter.toUpperCase()}
@@ -195,11 +202,11 @@ export function LifelineMenu({
           <div className={`mt-2 pt-2 border-t text-xs md:text-sm mb-2 ${lightMode ? 'border-gray-200 text-gray-600' : 'border-gray-700 text-gray-500'}`}>Each extension counts as 1 misstep.</div>
           <div className="flex justify-end gap-2">
             {lifelineLevel === 0 ? (
-              <button onClick={showPrefixes} className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm min-h-[36px] flex items-center">Show</button>
+              <button onClick={showPrefixes} className="px-3 py-2 bg-brand-600 text-white rounded-full hover:bg-brand-500 text-sm min-h-[36px] flex items-center">Show</button>
             ) : (
-              <button onClick={extendPrefixes} disabled={!canExtend} className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm min-h-[36px] flex items-center">{canExtend ? 'Extend' : 'Fully Extended'}</button>
+              <button onClick={extendPrefixes} disabled={!canExtend} className="px-3 py-2 bg-brand-600 text-white rounded-full hover:bg-brand-500 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm min-h-[36px] flex items-center">{canExtend ? 'Extend' : 'Fully Extended'}</button>
             )}
-            <button onClick={goRoot} className={`px-3 py-2 border rounded-md text-sm min-h-[36px] flex items-center ${lightMode ? 'border-gray-300 hover:bg-gray-100' : 'border-gray-700 hover:bg-gray-800'}`}>Back</button>
+            <button onClick={goRoot} className={`px-3 py-2 border rounded-md text-sm min-h-[36px] flex items-center ${lightMode ? 'border-parchment-300 hover:bg-parchment-100' : 'border-navyink-600 hover:bg-navyink-700'}`}>Back</button>
           </div>
         </div>
       )}
@@ -208,7 +215,7 @@ export function LifelineMenu({
         <div className="menu-pop-in">
           <div className="flex items-center justify-between mb-2">
             <h3 className={`text-sm font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>Lifelines</h3>
-            <button onClick={goRoot} className={`text-xs md:text-sm ${lightMode ? 'text-sky-600' : 'text-sky-400'} hover:underline`}>← Back</button>
+            <button onClick={goRoot} className={`text-xs md:text-sm ${lightMode ? 'text-brand-600' : 'text-brand-300'} hover:underline`}>← Back</button>
           </div>
           <div className={`text-xs md:text-sm mb-1 ${lightMode ? 'text-gray-600' : 'text-gray-500'}`}>Each lifeline can only be used once per puzzle.</div>
           <div className={`text-sm font-medium mb-2 ${lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Reveal:</div>
@@ -216,35 +223,35 @@ export function LifelineMenu({
             <button 
               onClick={onRevealFirst3} 
               disabled={lifelinesUsed?.first3}
-              className={`px-3 py-2 min-h-[40px] text-left rounded-md border flex items-center ${lightMode ? 'border-gray-300 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400' : 'border-gray-700 bg-gray-900/60 hover:bg-gray-800 disabled:bg-gray-800/30 disabled:text-gray-500'} disabled:cursor-not-allowed disabled:opacity-50`}
+              className={`px-3 py-2 min-h-[40px] text-left rounded-md border flex items-center ${lightMode ? 'border-parchment-300 bg-parchment-100 hover:bg-parchment-200 disabled:bg-parchment-100 disabled:text-navyink-900/40' : 'border-navyink-700 bg-navyink-800 hover:bg-navyink-700 disabled:bg-navyink-850 disabled:text-parchment-200/40'} disabled:cursor-not-allowed disabled:opacity-50`}
             >
               First {isQuick ? '2' : '3'} letters {lifelinesUsed?.first3 && "(Used)"}
             </button>
             <button 
               onClick={onRevealLast3} 
               disabled={lifelinesUsed?.last3}
-              className={`px-3 py-2 min-h-[40px] text-left rounded-md border flex items-center ${lightMode ? 'border-gray-300 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400' : 'border-gray-700 bg-gray-900/60 hover:bg-gray-800 disabled:bg-gray-800/30 disabled:text-gray-500'} disabled:cursor-not-allowed disabled:opacity-50`}
+              className={`px-3 py-2 min-h-[40px] text-left rounded-md border flex items-center ${lightMode ? 'border-parchment-300 bg-parchment-100 hover:bg-parchment-200 disabled:bg-parchment-100 disabled:text-navyink-900/40' : 'border-navyink-700 bg-navyink-800 hover:bg-navyink-700 disabled:bg-navyink-850 disabled:text-parchment-200/40'} disabled:cursor-not-allowed disabled:opacity-50`}
             >
               Last {isQuick ? '2' : '3'} letters {lifelinesUsed?.last3 && "(Used)"}
             </button>
             <button 
               onClick={onRevealMiddle3} 
               disabled={lifelinesUsed?.middle3}
-              className={`px-3 py-2 min-h-[40px] text-left rounded-md border flex items-center ${lightMode ? 'border-gray-300 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400' : 'border-gray-700 bg-gray-900/60 hover:bg-gray-800 disabled:bg-gray-800/30 disabled:text-gray-500'} disabled:cursor-not-allowed disabled:opacity-50`}
+              className={`px-3 py-2 min-h-[40px] text-left rounded-md border flex items-center ${lightMode ? 'border-parchment-300 bg-parchment-100 hover:bg-parchment-200 disabled:bg-parchment-100 disabled:text-navyink-900/40' : 'border-navyink-700 bg-navyink-800 hover:bg-navyink-700 disabled:bg-navyink-850 disabled:text-parchment-200/40'} disabled:cursor-not-allowed disabled:opacity-50`}
             >
               Middle {isQuick ? '2' : '3'} letters {lifelinesUsed?.middle3 && "(Used)"}
             </button>
             <button 
               onClick={onRevealFirstLastStep} 
               disabled={lifelinesUsed?.firstLastStep}
-              className={`px-3 py-2 min-h-[40px] text-left rounded-md border flex items-center ${lightMode ? 'border-gray-300 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400' : 'border-gray-700 bg-gray-900/60 hover:bg-gray-800 disabled:bg-gray-800/30 disabled:text-gray-500'} disabled:cursor-not-allowed disabled:opacity-50`}
+              className={`px-3 py-2 min-h-[40px] text-left rounded-md border flex items-center ${lightMode ? 'border-parchment-300 bg-parchment-100 hover:bg-parchment-200 disabled:bg-parchment-100 disabled:text-navyink-900/40' : 'border-navyink-700 bg-navyink-800 hover:bg-navyink-700 disabled:bg-navyink-850 disabled:text-parchment-200/40'} disabled:cursor-not-allowed disabled:opacity-50`}
             >
               {isQuick ? 'First/last letters' : 'First/last/step letters'} {lifelinesUsed?.firstLastStep && "(Used)"}
             </button>
           </div>
           <div className={`mt-2 pt-2 border-t text-xs md:text-sm mb-2 ${lightMode ? 'border-gray-200 text-gray-600' : 'border-gray-700 text-gray-500'}`}>Each lifeline counts as 2 missteps.</div>
           <div className="flex justify-end">
-            <button onClick={goRoot} className={`px-3 py-1.5 border rounded-md text-sm ${lightMode ? 'border-gray-300 hover:bg-gray-100' : 'border-gray-700 hover:bg-gray-800'}`}>Back</button>
+            <button onClick={goRoot} className={`px-3 py-1.5 border rounded-md text-sm ${lightMode ? 'border-parchment-300 hover:bg-parchment-100' : 'border-navyink-600 hover:bg-navyink-700'}`}>Back</button>
           </div>
         </div>
       )}
@@ -253,18 +260,18 @@ export function LifelineMenu({
         <div className="menu-pop-in">
           <div className="flex items-center justify-between mb-2">
             <h3 className={`text-sm font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>Reveal</h3>
-            <button onClick={goRoot} className={`text-xs md:text-sm ${lightMode ? 'text-sky-600' : 'text-sky-400'} hover:underline`}>← Back</button>
+            <button onClick={goRoot} className={`text-xs md:text-sm ${lightMode ? 'text-brand-600' : 'text-brand-300'} hover:underline`}>← Back</button>
           </div>
           <div className="grid grid-cols-1 gap-1 mb-2">
-            <button onClick={() => { onGiveUpReveal && onGiveUpReveal('letter'); }} className={`px-3 py-1.5 text-left rounded-md border ${lightMode ? 'border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-900' : 'border-gray-700 bg-gray-900/60 hover:bg-gray-800'}`}>Reveal letter</button>
-            <button onClick={() => { onGiveUpReveal && onGiveUpReveal('word'); }} className={`px-3 py-1.5 text-left rounded-md border ${lightMode ? 'border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-900' : 'border-gray-700 bg-gray-900/60 hover:bg-gray-800'}`}>Reveal word</button>
+            <button onClick={() => { onGiveUpReveal && onGiveUpReveal('letter'); }} className={`px-3 py-1.5 text-left rounded-md border ${lightMode ? 'border-parchment-300 bg-parchment-100 hover:bg-parchment-200 text-navyink-900' : 'border-navyink-700 bg-navyink-800 hover:bg-navyink-700'}`}>Reveal letter</button>
+            <button onClick={() => { onGiveUpReveal && onGiveUpReveal('word'); }} className={`px-3 py-1.5 text-left rounded-md border ${lightMode ? 'border-parchment-300 bg-parchment-100 hover:bg-parchment-200 text-navyink-900' : 'border-navyink-700 bg-navyink-800 hover:bg-navyink-700'}`}>Reveal word</button>
           </div>
           <div className={`mt-2 pt-2 border-t text-xs md:text-sm mb-2 ${lightMode ? 'border-gray-200 text-gray-600' : 'border-gray-700 text-gray-500'}`}>Revealing a letter counts as 2 missteps. Revealing a word limits your maximum to 0 stars.</div>
           <div className="flex justify-end">
-            <button onClick={goRoot} className={`px-3 py-1.5 border rounded-md text-sm ${lightMode ? 'border-gray-300 hover:bg-gray-100' : 'border-gray-700 hover:bg-gray-800'}`}>Back</button>
+            <button onClick={goRoot} className={`px-3 py-1.5 border rounded-md text-sm ${lightMode ? 'border-parchment-300 hover:bg-parchment-100' : 'border-navyink-600 hover:bg-navyink-700'}`}>Back</button>
           </div>
         </div>
       )}
-    </div>
+    </AnchoredPortal>
   );
 }
