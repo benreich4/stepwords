@@ -38,3 +38,4 @@ todos
 
 # Admin config (contains password hash)
 api/admin-config.php
+api/openai-config.php

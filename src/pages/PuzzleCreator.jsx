@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { isPreviewEnabled } from '../lib/date.js';
 import { shouldSendAnalytics } from '../lib/autosolveUtils.js';
 import { useLightMode, utilityPageClass, utilityCardClass, utilityInputClass, utilityMutedClass } from '../hooks/useLightMode.js';
+import ClueSuggestModal from '../components/ClueSuggestModal.jsx';
+import { fetchClueSuggestions } from '../lib/suggestClue.js';
 
 const DRAFT_KEY = 'puzzleCreatorDraft';
 const LAST_AUTHOR_KEY = 'puzzleCreatorLastAuthor';
@@ -97,6 +99,10 @@ const PuzzleCreatorSimple = () => {
   // title is not used in current backend format
   const [submissionStatus, setSubmissionStatus] = useState('');
   const [copying, setCopying] = useState(false);
+  const [clueSuggestRow, setClueSuggestRow] = useState(null);
+  const [clueSuggestions, setClueSuggestions] = useState([]);
+  const [clueSuggestLoading, setClueSuggestLoading] = useState(false);
+  const [clueSuggestError, setClueSuggestError] = useState('');
   const draftSaveTimeoutRef = useRef(null);
   const hasRestoredRef = useRef(false);
 
@@ -257,6 +263,38 @@ const PuzzleCreatorSimple = () => {
     const newClues = [...submissionClues];
     newClues[index] = value;
     setSubmissionClues(newClues);
+  };
+
+  const closeClueSuggest = () => {
+    setClueSuggestRow(null);
+    setClueSuggestions([]);
+    setClueSuggestError('');
+    setClueSuggestLoading(false);
+  };
+
+  const handleSuggestClue = async (index) => {
+    const answer = (submissionWords[index] || '').trim();
+    if (!answer) return;
+
+    setClueSuggestRow(index);
+    setClueSuggestions([]);
+    setClueSuggestError('');
+    setClueSuggestLoading(true);
+
+    try {
+      const clues = await fetchClueSuggestions(answer);
+      setClueSuggestions(clues);
+    } catch (err) {
+      setClueSuggestError(err?.message || 'Failed to fetch clue suggestions');
+    } finally {
+      setClueSuggestLoading(false);
+    }
+  };
+
+  const handleSelectSuggestedClue = (clue) => {
+    if (clueSuggestRow == null) return;
+    updateClue(clueSuggestRow, clue);
+    closeClueSuggest();
   };
 
   const updateBreakdown = (index, value) => {
@@ -589,13 +627,25 @@ const PuzzleCreatorSimple = () => {
                       </div>
                       <div className="md:col-span-7">
                         <label className="block text-xs text-gray-400 mb-1">Clue</label>
-                        <input
-                          type="text"
-                          value={submissionClues[index]}
-                          onChange={(e) => updateClue(index, e.target.value)}
-                          placeholder="Crossword-style clue"
-                          className={`w-full px-3 py-2 rounded-xl border ${input}`}
-                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={submissionClues[index]}
+                            onChange={(e) => updateClue(index, e.target.value)}
+                            placeholder="Crossword-style clue"
+                            className={`min-w-0 flex-1 px-3 py-2 rounded-xl border ${input}`}
+                          />
+                          {isPreviewEnabled() && (
+                            <button
+                              type="button"
+                              onClick={() => handleSuggestClue(index)}
+                              disabled={!(word || '').trim() || (clueSuggestLoading && clueSuggestRow === index)}
+                              className={`shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${pill}`}
+                            >
+                              {clueSuggestLoading && clueSuggestRow === index ? '…' : 'Suggest'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -664,6 +714,18 @@ const PuzzleCreatorSimple = () => {
           </button>
         </div>
       </div>
+
+      {clueSuggestRow != null && (
+        <ClueSuggestModal
+          answer={(submissionWords[clueSuggestRow] || '').trim()}
+          clues={clueSuggestions}
+          loading={clueSuggestLoading}
+          error={clueSuggestError}
+          lightMode={light}
+          onSelect={handleSelectSuggestedClue}
+          onClose={closeClueSuggest}
+        />
+      )}
     </div>
   );
 };
