@@ -8,6 +8,13 @@ function normalizeWord(raw) {
   return (raw || '').toLowerCase().replace(/[^a-z]/g, '');
 }
 
+const MIN_WORD_LEN = 3;
+const MAX_WORD_LEN = 15;
+
+function isValidWordLength(word) {
+  return word.length >= MIN_WORD_LEN && word.length <= MAX_WORD_LEN;
+}
+
 function parseWordList(text, cutoff) {
   const cutoffNum = Number.isFinite(cutoff) ? cutoff : 30;
   const words = [];
@@ -16,7 +23,7 @@ function parseWordList(text, cutoff) {
     const parts = line.split(';');
     if (parts.length < 2 || parseInt(parts[1]) < cutoffNum) continue;
     const word = normalizeWord(parts[0]);
-    if (!word || seen.has(word)) continue;
+    if (!word || !isValidWordLength(word) || seen.has(word)) continue;
     seen.add(word);
     words.push(word);
   }

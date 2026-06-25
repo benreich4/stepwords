@@ -34,8 +34,15 @@ function parseArgs() {
   return { out, sources };
 }
 
+const MIN_WORD_LEN = 3;
+const MAX_WORD_LEN = 15;
+
 function normalizeWord(raw) {
   return (raw || "").toLowerCase().replace(/[^a-z]/g, "");
+}
+
+function isValidWordLength(word) {
+  return word.length >= MIN_WORD_LEN && word.length <= MAX_WORD_LEN;
 }
 
 function parseLine(line) {
@@ -45,7 +52,7 @@ function parseLine(line) {
   if (semi <= 0) return null;
   const word = normalizeWord(trimmed.slice(0, semi));
   const score = parseInt(trimmed.slice(semi + 1), 10);
-  if (!word || !Number.isFinite(score)) return null;
+  if (!word || !Number.isFinite(score) || !isValidWordLength(word)) return null;
   return { word, score };
 }
 
