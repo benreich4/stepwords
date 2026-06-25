@@ -368,9 +368,9 @@ const Explore = () => {
                 className={`w-24 h-10 px-2 rounded-xl border ${input}`}
               >
                 <option value="0">0</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
                 <option value="30">30</option>
-                <option value="50">50</option>
-                <option value="60">60</option>
               </select>
             </div>
             <button
