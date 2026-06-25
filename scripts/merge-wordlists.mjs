@@ -34,12 +34,16 @@ function parseArgs() {
   return { out, sources };
 }
 
+function normalizeWord(raw) {
+  return (raw || "").toLowerCase().replace(/[^a-z]/g, "");
+}
+
 function parseLine(line) {
   const trimmed = line.trim();
   if (!trimmed || trimmed.startsWith("#")) return null;
   const semi = trimmed.indexOf(";");
   if (semi <= 0) return null;
-  const word = trimmed.slice(0, semi).toLowerCase().trim();
+  const word = normalizeWord(trimmed.slice(0, semi));
   const score = parseInt(trimmed.slice(semi + 1), 10);
   if (!word || !Number.isFinite(score)) return null;
   return { word, score };

@@ -4,6 +4,31 @@ import { fetchManifest, loadPuzzleById } from '../lib/puzzles.js';
 import { fetchQuickManifest, loadQuickById } from '../lib/quickPuzzles.js';
 import { useLightMode, utilityPageClass, utilityInputClass, utilityMutedClass } from '../hooks/useLightMode.js';
 
+function normalizeWord(raw) {
+  return (raw || '').toLowerCase().replace(/[^a-z]/g, '');
+}
+
+function parseWordList(text, cutoff) {
+  const cutoffNum = Number.isFinite(cutoff) ? cutoff : 30;
+  const words = [];
+  const seen = new Set();
+  for (const line of text.split('\n')) {
+    const parts = line.split(';');
+    if (parts.length < 2 || parseInt(parts[1]) < cutoffNum) continue;
+    const word = normalizeWord(parts[0]);
+    if (!word || seen.has(word)) continue;
+    seen.add(word);
+    words.push(word);
+  }
+  const dict = {};
+  words.forEach((word) => {
+    const sorted = word.split('').sort().join('');
+    if (!dict[sorted]) dict[sorted] = [];
+    if (!dict[sorted].includes(word)) dict[sorted].push(word);
+  });
+  return { words, dict };
+}
+
 // Small badge showing how many times a word has appeared in published puzzles
 function UsageBadge({ count, light = false }) {
   if (count == null) return null;
@@ -50,7 +75,7 @@ const Explore = () => {
 
   const usageCount = (word) => {
     if (!usage) return null;
-    return usage.get((word || '').toLowerCase().replace(/\s+/g, '')) || 0;
+    return usage.get(normalizeWord(word)) || 0;
   };
 
   // Tally how often each answer has been used across all main + quick puzzles
@@ -59,7 +84,7 @@ const Explore = () => {
     const tally = (counts, puzzle) => {
       if (!puzzle || !Array.isArray(puzzle.rows)) return;
       puzzle.rows.forEach((row) => {
-        const w = (row.answer || '').toLowerCase().trim().replace(/\s+/g, '');
+        const w = normalizeWord(row.answer || '');
         if (w) counts.set(w, (counts.get(w) || 0) + 1);
       });
     };
@@ -92,26 +117,7 @@ const Explore = () => {
       try {
         const response = await fetch('/wordList.txt');
         const text = await response.text();
-        const lines = text.split('\n');
-        
-        // Filter words with frequency >= 30 and build dictionary
-        const words = lines
-          .map(line => line.split(';'))
-          .filter(parts => parts.length >= 2 && parseInt(parts[1]) >= 30)
-          .map(parts => parts[0].toLowerCase().trim())
-          .filter(word => word.length > 0);
-
-        // Group by sorted letters
-        const dict = {};
-        words.forEach(word => {
-          const sorted = word.split('').sort().join('');
-          if (!dict[sorted]) {
-            dict[sorted] = [];
-          }
-          if (!dict[sorted].includes(word)) {
-            dict[sorted].push(word);
-          }
-        });
+        const { words, dict } = parseWordList(text, 30);
 
         setWordList(words);
         setWordDict(dict);
@@ -131,25 +137,7 @@ const Explore = () => {
       setReloading(true);
       const response = await fetch('/wordList.txt');
       const text = await response.text();
-      const lines = text.split('\n');
-
-      const cutoffNum = Number.isFinite(cutoff) ? cutoff : 30;
-      const words = lines
-        .map(line => line.split(';'))
-        .filter(parts => parts.length >= 2 && parseInt(parts[1]) >= cutoffNum)
-        .map(parts => parts[0].toLowerCase().trim())
-        .filter(word => word.length > 0);
-
-      const dict = {};
-      words.forEach(word => {
-        const sorted = word.split('').sort().join('');
-        if (!dict[sorted]) {
-          dict[sorted] = [];
-        }
-        if (!dict[sorted].includes(word)) {
-          dict[sorted].push(word);
-        }
-      });
+      const { words, dict } = parseWordList(text, cutoff);
 
       setWordList(words);
       setWordDict(dict);
@@ -232,7 +220,7 @@ const Explore = () => {
   };
 
   const handleInputChange = (e) => {
-    const newWord = e.target.value.toLowerCase();
+    const newWord = normalizeWord(e.target.value);
     setCurrentWord(newWord);
     // Reset path when typing a new word
     if (newWord !== currentWord) {
