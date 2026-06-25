@@ -3,20 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { fetchManifest, loadPuzzleById } from '../lib/puzzles.js';
 import { fetchQuickManifest, loadQuickById } from '../lib/quickPuzzles.js';
 import { useLightMode, utilityPageClass, utilityInputClass, utilityMutedClass } from '../hooks/useLightMode.js';
+import {
+  MIN_WORD_LEN,
+  MAX_WORD_LEN,
+  findSubWords as chainSubWords,
+  findAddWords as chainAddWords,
+  suggestRandomChain,
+} from '../lib/exploreChain.js';
 
 function normalizeWord(raw) {
   return (raw || '').toLowerCase().replace(/[^a-z]/g, '');
 }
-
-const MIN_WORD_LEN = 3;
-const MAX_WORD_LEN = 15;
 
 function isValidWordLength(word) {
   return word.length >= MIN_WORD_LEN && word.length <= MAX_WORD_LEN;
 }
 
 function parseWordList(text, cutoff) {
-  const cutoffNum = Number.isFinite(cutoff) ? cutoff : 30;
+  const cutoffNum = Number.isFinite(cutoff) ? cutoff : 10;
   const words = [];
   const seen = new Set();
   for (const line of text.split('\n')) {
@@ -65,7 +69,7 @@ const Explore = () => {
   const [minLength, setMinLength] = useState(10);
   const [suggesting, setSuggesting] = useState(false);
   const [chainMinLength, setChainMinLength] = useState(5);
-  const [scoreCutoff, setScoreCutoff] = useState(30);
+  const [scoreCutoff, setScoreCutoff] = useState(10);
   const [reloading, setReloading] = useState(false);
   const [usage, setUsage] = useState(null); // Map: word (no spaces) -> times used in puzzles
 
@@ -124,7 +128,7 @@ const Explore = () => {
       try {
         const response = await fetch('/wordList.txt');
         const text = await response.text();
-        const { words, dict } = parseWordList(text, 30);
+        const { words, dict } = parseWordList(text, 10);
 
         setWordList(words);
         setWordDict(dict);
@@ -156,42 +160,8 @@ const Explore = () => {
   };
 
   // Helper functions for word operations
-  const subOptions = (word) => {
-    if (word.length === 1) return [];
-    return Array.from(new Set(
-      Array.from({ length: word.length }, (_, i) => 
-        word.slice(0, i) + word.slice(i + 1)
-      )
-    ));
-  };
-
-  const addOptions = (word) => {
-    return 'abcdefghijklmnopqrstuvwxyz'.split('').map(c => word + c);
-  };
-
-  const findSubWords = (word) => {
-    const options = subOptions(word);
-    const results = [];
-    options.forEach(option => {
-      const sorted = option.split('').sort().join('');
-      if (wordDict[sorted]) {
-        results.push(...wordDict[sorted]);
-      }
-    });
-    return [...new Set(results)];
-  };
-
-  const findAddWords = (word) => {
-    const options = addOptions(word);
-    const results = [];
-    options.forEach(option => {
-      const sorted = option.split('').sort().join('');
-      if (wordDict[sorted]) {
-        results.push(...wordDict[sorted]);
-      }
-    });
-    return [...new Set(results)];
-  };
+  const findSubWords = (word) => chainSubWords(word, wordDict);
+  const findAddWords = (word) => chainAddWords(word, wordDict);
 
   // Find anagrams of the current word
   const findAnagrams = (word) => {
@@ -246,90 +216,31 @@ const Explore = () => {
     }
   };
 
-  // Suggest good starting points based on Scala logic
   const suggestStartingPoint = () => {
     if (wordList.length === 0 || Object.keys(wordDict).length === 0) return;
-    
+
+    const targetLen = Math.max(1, chainMinLength);
+    const shortestLen = minLength - targetLen + 1;
+    if (shortestLen < MIN_WORD_LEN) {
+      alert(
+        `Chain length ${targetLen} is too long for ${minLength}-letter words (shortest word would be ${shortestLen} letters; minimum is ${MIN_WORD_LEN}).`
+      );
+      return;
+    }
+
     setSuggesting(true);
-    
-    // Filter words by exact length and shuffle
-    const candidates = wordList
-      .filter(word => word.length === minLength)
-      .sort(() => Math.random() - 0.5); // Shuffle
-    
-    let bestWord = null;
-    
-    // Test up to 1000 random candidates to find good starting points
-    const testCount = Math.min(1000, candidates.length);
-    
-    for (let i = 0; i < testCount; i++) {
-      const word = candidates[i];
-      const chainLength = findMaxChainLength(word);
-      
-      // Only accept words that can form chains of at least the requested length
-      if (chainLength >= chainMinLength) {
-        bestWord = word;
-        break; // Use the first word we find meeting the requested chain length
+    window.setTimeout(() => {
+      const chain = suggestRandomChain(wordList, wordDict, minLength, targetLen);
+      if (chain) {
+        setPath([]);
+        setCurrentWord(chain[0]);
+      } else {
+        alert(
+          `No ${targetLen}-word chain found starting at length ${minLength}. Try a shorter chain or different word length.`
+        );
       }
-    }
-    
-    if (bestWord) {
-      setCurrentWord(bestWord);
-      setPath([]);
-    } else {
-      // If no word with chain >= requested found, show a message
-      alert(`No words found with chains of length ${chainMinLength}+ for word length ${minLength}. Tested ${testCount} candidates. Try a different length.`);
-    }
-    
-    setSuggesting(false);
-  };
-
-  // Find the maximum chain length for a given word (implementing Scala dIterator logic)
-  const findMaxChainLength = (startWord) => {
-    if (!startWord || startWord.length < 2) return 1;
-    
-    const queue = [[startWord]]; // Start with the word as a single-element path
-    let maxLength = 1;
-    const visited = new Set();
-    let iterations = 0;
-    
-    while (queue.length > 0 && iterations < 1000) { // Prevent infinite loops
-      iterations++;
-      const currentPath = queue.shift();
-      const currentWord = currentPath[currentPath.length - 1];
-      const pathKey = currentPath.join('|');
-      
-      if (visited.has(pathKey)) continue;
-      visited.add(pathKey);
-      
-      // Find all valid sub-words (words that can be formed by removing one letter)
-      const subOpts = subOptions(currentWord);
-      const validSubWords = [];
-      
-      for (const option of subOpts) {
-        const sorted = option.split('').sort().join('');
-        const words = wordDict[sorted] || [];
-        
-        for (const word of words) {
-          // Avoid cycles - don't use words already in the current path
-          if (!currentPath.includes(word)) {
-            validSubWords.push(word);
-          }
-        }
-      }
-      
-      // Add each valid sub-word as a new path
-      for (const subWord of validSubWords) {
-        const newPath = [...currentPath, subWord];
-        queue.push(newPath);
-        maxLength = Math.max(maxLength, newPath.length);
-      }
-      
-      // Limit search depth to prevent excessive computation
-      if (maxLength >= 15) break;
-    }
-
-    return maxLength;
+      setSuggesting(false);
+    }, 0);
   };
 
   if (loading) {
@@ -392,7 +303,7 @@ const Explore = () => {
                   value={minLength}
                   onChange={(e) => setMinLength(parseInt(e.target.value) || 10)}
                   min="3"
-                  max="20"
+                  max="15"
                   className={`w-20 px-2 py-2 rounded-xl border text-center ${input}`}
                 />
               </div>
@@ -402,8 +313,8 @@ const Explore = () => {
                   type="number"
                   value={chainMinLength}
                   onChange={(e) => { const v = parseInt(e.target.value, 10); setChainMinLength(Number.isFinite(v) ? v : 5); }}
-                  min="0"
-                  max="20"
+                  min="1"
+                  max="15"
                   className={`w-20 px-2 py-2 rounded-xl border text-center ${input}`}
                 />
               </div>
@@ -444,7 +355,7 @@ const Explore = () => {
               </div>
             )}
             <p className="text-xs text-gray-400 mt-2">
-              The suggest button finds words that can form long chains for better puzzle creation
+              Suggest picks a random chain of the requested length, starting at the word length you chose
             </p>
           </div>
         </div>
@@ -565,7 +476,7 @@ const Explore = () => {
               <button
                 onClick={() => {
                   // Create a puzzle from the current path
-                  const puzzleWords = [...path, currentWord].filter(word => word.length > 0);
+                  const puzzleWords = [...path, currentWord].filter(Boolean).reverse();
                   const puzzleClues = puzzleWords.map(() => ''); // Empty clues for user to fill
                   
                   // Store in localStorage for the submission page to pick up
