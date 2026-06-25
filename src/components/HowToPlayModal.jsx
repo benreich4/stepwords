@@ -1,11 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
 import { computeStepIndices } from "../lib/gameUtils.js";
 
-const EXAMPLE_WORDS = ["SOW", "OWES", "SWORE", "STEPWORD"];
+const EXAMPLE_WORDS = ["SOW", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"];
+
+function ExamplePuzzle({ words, stepIdx, stepEmoji, exampleBg }) {
+  return (
+    <div className={`rounded-2xl p-3 ${exampleBg}`}>
+      <div className="flex flex-col items-start gap-1">
+        {words.map((word, i) => (
+          <div key={i} className="flex gap-0.5">
+            {word.split("").map((letter, j) => (
+              <div
+                key={j}
+                className="relative inline-flex h-7 w-7 select-none items-center justify-center rounded-[5px] border-2 border-[#5f9a5a] bg-[#6aaa64] font-serif text-[11px] font-semibold uppercase leading-none text-white sm:h-7 sm:w-7 sm:text-xs"
+              >
+                <span>{letter}</span>
+                {i >= 1 && j === stepIdx[i] && (
+                  <span
+                    className="pointer-events-none absolute bottom-0 right-0 select-none text-[9px] leading-none"
+                    aria-hidden
+                  >
+                    {stepEmoji}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function HowToPlayModal({ onClose, lightMode = false, stepEmoji = "🪜" }) {
   const [step, setStep] = useState(0);
-  const stepCount = 4;
+  const stepCount = 5;
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -29,6 +58,7 @@ export default function HowToPlayModal({ onClose, lightMode = false, stepEmoji =
   const btnGhost = lightMode
     ? "border-parchment-300 text-navyink-700 hover:bg-parchment-100"
     : "border-navyink-600 text-parchment-200 hover:bg-navyink-700";
+  const body = `text-sm leading-relaxed ${muted}`;
 
   const isLast = step === stepCount - 1;
 
@@ -36,61 +66,44 @@ export default function HowToPlayModal({ onClose, lightMode = false, stepEmoji =
     switch (step) {
       case 0:
         return (
-          <>
-            <h3 className="mb-2 font-serif text-lg font-bold">Build the ladder</h3>
-            <p className={`text-sm leading-relaxed ${muted}`}>
-              Each answer is an <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>anagram</strong> of
-              the previous answer plus exactly one new letter.
+          <div className="space-y-3">
+            <p className={body}>
+              Each answer is an anagram of the previous answer plus exactly one new letter.
             </p>
-            <p className={`mt-3 text-sm leading-relaxed ${muted}`}>
-              Clues include word lengths — e.g.{" "}
-              <span className="font-medium">Audit (3,2,2)</span> means{" "}
-              <span className="font-medium">sit in on</span>.
+            <ExamplePuzzle
+              words={EXAMPLE_WORDS}
+              stepIdx={exampleStepIdx}
+              stepEmoji={stepEmoji}
+              exampleBg={exampleBg}
+            />
+            <p className={body}>
+              The {stepEmoji} indicates the location of the new letter in each answer.
             </p>
-          </>
+          </div>
         );
       case 1:
         return (
-          <>
-            <h3 className="mb-2 font-serif text-lg font-bold">Spot the new letter</h3>
-            <p className={`mb-3 text-sm leading-relaxed ${muted}`}>
-              The {stepEmoji} marks where each new letter was added.
+          <div className="space-y-3">
+            <p className={body}>
+              Each answer has a clue. Clues include word lengths for multi-word answers. For example,{" "}
+              <span className="font-medium">Audit (3,2,2)</span> could be a clue for{" "}
+              <span className="font-medium">sit in on</span>.
             </p>
-            <div className={`rounded-2xl p-3 ${exampleBg}`}>
-              <div className="flex flex-col items-start gap-1">
-                {EXAMPLE_WORDS.map((word, i) => (
-                  <div key={i} className="flex gap-0.5">
-                    {word.split("").map((letter, j) => (
-                      <div
-                        key={j}
-                        className="relative inline-flex h-7 w-7 select-none items-center justify-center rounded-[5px] border-2 border-[#5f9a5a] bg-[#6aaa64] font-serif text-xs font-semibold uppercase leading-none text-white"
-                      >
-                        <span>{letter}</span>
-                        {i >= 1 && j === exampleStepIdx[i] && (
-                          <span
-                            className="pointer-events-none absolute bottom-0 right-0 select-none text-[9px] leading-none"
-                            aria-hidden
-                          >
-                            {stepEmoji}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
+            <p className={body}>
+              Remember that clues will match in tense, number, and tone. The answer can usually be a direct
+              replacement for the clue — like in a crossword puzzle.
+            </p>
+          </div>
         );
       case 2:
         return (
-          <>
-            <h3 className="mb-2 font-serif text-lg font-bold">Guess and submit</h3>
-            <p className={`text-sm leading-relaxed ${muted}`}>
-              Fill a row, then press <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Enter</strong> or{" "}
-              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Submit</strong>.
+          <div className="space-y-3">
+            <p className={body}>
+              After you enter a word, you can hit <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Submit</strong> (or{" "}
+              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Enter</strong> on your keyboard). The letters for the
+              currently selected answer will turn:
             </p>
-            <ul className={`mt-3 space-y-2 text-sm ${muted}`}>
+            <ul className={`space-y-2 ${body}`}>
               <li>
                 <span className="font-semibold text-[#6aaa64]">Green</span> — correct on the first try
               </li>
@@ -98,32 +111,52 @@ export default function HowToPlayModal({ onClose, lightMode = false, stepEmoji =
                 <span className="font-semibold text-[#bda64f]">Yellow</span> — needed extra guesses or hints
               </li>
             </ul>
-          </>
+          </div>
         );
       case 3:
-      default:
         return (
-          <>
-            <h3 className="mb-2 font-serif text-lg font-bold">Stars, streaks & modes</h3>
-            <ul className={`space-y-2 text-sm leading-relaxed ${muted}`}>
+          <div className="space-y-3">
+            <p className={body}>
+              Tap the <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Hints</strong> button for help. There are three types:
+            </p>
+            <ul className={`space-y-2.5 ${body}`}>
               <li>
-                <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Stars</strong> — fewer missteps
-                and hints means more stars.
+                <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Word starts</strong> — reveals
+                the starting letters of all answers, alphabetically. You can extend to longer prefixes.
               </li>
               <li>
-                <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Streak</strong> — solve before
-                midnight ET to keep it going.
+                <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Lifelines</strong> — reveal
+                groups of letters across every row at once (first, last, middle, or first/last/step letters). Each
+                lifeline can only be used once per puzzle.
               </li>
               <li>
-                <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Hard mode</strong> hides {stepEmoji}{" "}
-                locations; <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Easy mode</strong> filters
-                the keyboard.
+                <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Reveal</strong> — reveal a
+                single letter or an entire word in the row you're working on.
               </li>
             </ul>
-            <p className={`mt-3 text-xs ${muted}`}>
-              Try the shorter daily Quick Puzzle for a warm-up.
-            </p>
-          </>
+          </div>
+        );
+      case 4:
+      default:
+        return (
+          <ul className={`space-y-2.5 ${body}`}>
+            <li>
+              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Stars</strong> — fewer missteps
+              and hints means more stars.
+            </li>
+            <li>
+              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Streak</strong> — solve before
+              midnight ET to keep it going.
+            </li>
+            <li>
+              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Hard mode</strong> hides {stepEmoji}{" "}
+              locations.
+            </li>
+            <li>
+              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Easy mode</strong> filters the
+              keyboard.
+            </li>
+          </ul>
         );
     }
   };
@@ -170,7 +203,7 @@ export default function HowToPlayModal({ onClose, lightMode = false, stepEmoji =
           ))}
         </div>
 
-        <div className="min-h-[168px] pt-2">{renderStep()}</div>
+        <div className="min-h-[200px] pt-2">{renderStep()}</div>
 
         <div className="mt-4 flex items-center justify-between gap-3">
           <button

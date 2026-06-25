@@ -67,6 +67,14 @@ export default function SettingsModal({ onClose, onLightModeChange }) {
   const light = settings.lightMode;
   const isDesktop = useIsDesktop();
 
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   const update = (patch) => {
     setSettings((prev) => {
       const next = { ...prev, ...patch };
