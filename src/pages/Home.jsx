@@ -340,6 +340,15 @@ export default function Home() {
   }, [quickManifest, todayIso]);
 
   useEffect(() => {
+    const refreshStreaks = () => {
+      setStreak(getStreak(false));
+      setQuickStreak(getStreak(true));
+    };
+    document.addEventListener("stepwords-puzzle-completed", refreshStreaks);
+    return () => document.removeEventListener("stepwords-puzzle-completed", refreshStreaks);
+  }, []);
+
+  useEffect(() => {
     document.title = "Stepwords — Daily Anagram Ladder Word Game";
     setStreak(getStreak(false));
     setQuickStreak(getStreak(true));

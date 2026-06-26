@@ -1,6 +1,6 @@
 /**
  * Streak tracking utilities - NYT Crossword style
- * 
+ *
  * Rules:
  * - Must solve TODAY's puzzle (not any puzzle)
  * - Must solve before midnight ET
@@ -9,7 +9,7 @@
  * - Separate streaks for main and quick puzzles
  */
 
-import { getTodayIsoInET } from './date.js';
+import { getTodayIsoInET, calendarDaysBetween } from './date.js';
 
 const MAIN_STREAK_KEY = 'stepwords-streak-main';
 const QUICK_STREAK_KEY = 'stepwords-streak-quick';
@@ -47,22 +47,14 @@ function isTodayPuzzle(puzzleDate) {
   try {
     const today = getTodayIsoInET();
     // Normalize puzzle date to ISO format (YYYY-MM-DD)
-    const puzzleDateStr = typeof puzzleDate === 'string' 
+    const puzzleDateStr = typeof puzzleDate === 'string'
       ? puzzleDate.split('T')[0] // Handle ISO datetime strings
       : puzzleDate;
-    
+
     return puzzleDateStr === today;
   } catch {
     return false;
   }
-}
-
-/**
- * Check if it's before midnight ET. Completing a puzzle always happens "now",
- * which is before the upcoming midnight, so this is always true.
- */
-function isBeforeMidnightET() {
-  return true;
 }
 
 /**
@@ -76,60 +68,45 @@ export function updateStreak(puzzleDate, isQuick = false) {
   try {
     // Only count if this is today's puzzle
     if (!isTodayPuzzle(puzzleDate)) {
-      return getStreak(isQuick); // Return current streak without updating
+      return getStreak(isQuick);
     }
-    
-    // Check if it's before midnight ET
-    if (!isBeforeMidnightET()) {
-      return getStreak(isQuick); // Too late, don't count
-    }
-    
+
     const today = getTodayIsoInET();
     const lastPlayDateKey = isQuick ? QUICK_LAST_PLAY_DATE_KEY : MAIN_LAST_PLAY_DATE_KEY;
     const lastPlayDate = localStorage.getItem(lastPlayDateKey);
     const streakData = getStreak(isQuick);
-    
-    // Ensure longest is defined (handle old data)
     const currentLongest = typeof streakData.longest === 'number' ? streakData.longest : (streakData.current || 0);
-    
-    // If already completed today's puzzle, don't update again
-    if (lastPlayDate === today) {
+
+    const gap = lastPlayDate ? calendarDaysBetween(lastPlayDate, today) : null;
+
+    // Already counted today
+    if (gap === 0) {
       return streakData;
     }
-    
-    // Calculate yesterday's date in ET
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = new Intl.DateTimeFormat('en-CA', { 
-      timeZone: 'America/New_York', 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
-    }).format(yesterday);
-    
+
     let newCurrent = 1;
-    
-    // If we solved yesterday's puzzle, continue the streak
-    if (lastPlayDate === yesterdayStr) {
-      // Consecutive day - increment streak
+
+    if (gap === 1) {
+      // Played yesterday — extend streak
       newCurrent = (streakData.current || 0) + 1;
-    } else if (lastPlayDate && lastPlayDate < yesterdayStr) {
-      // Last play was more than 1 day ago - missed a day, reset to 1
+    } else if (gap !== null && gap > 1) {
+      // Missed one or more days
       newCurrent = 1;
-    } else if (!lastPlayDate) {
-      // First time solving - start streak at 1
+    } else if (gap !== null && gap < 0) {
+      // last-play-date in the future (clock skew / bad data)
       newCurrent = 1;
+    } else if (gap === null) {
+      // Legacy saves may have a streak count but no last-play-date
+      newCurrent = (streakData.current || 0) > 0 ? (streakData.current || 0) + 1 : 1;
     }
-    // If lastPlayDate === today, we already returned above
-    
-    // Always update longest to be the maximum of current longest and new current streak
+
     const newLongest = Math.max(newCurrent, currentLongest);
     const newStreakData = { current: newCurrent, longest: newLongest };
-    
+
     const streakKey = isQuick ? QUICK_STREAK_KEY : MAIN_STREAK_KEY;
     localStorage.setItem(streakKey, JSON.stringify(newStreakData));
     localStorage.setItem(lastPlayDateKey, today);
-    
+
     return newStreakData;
   } catch (error) {
     console.warn('Error updating streak:', error);

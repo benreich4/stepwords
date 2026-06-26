@@ -180,3 +180,13 @@ export function getWeekDatesFromKey(weekKey) {
     return `${y}-${m}-${day}`;
   });
 }
+
+/** Whole calendar days from `fromIso` to `toIso` (YYYY-MM-DD). */
+export function calendarDaysBetween(fromIso, toIso) {
+  if (!fromIso || !toIso) return null;
+  const parse = (iso) => {
+    const [y, m, d] = String(iso).split("T")[0].split("-").map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.round((parse(toIso) - parse(fromIso)) / 86_400_000);
+}
