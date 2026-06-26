@@ -27,6 +27,24 @@ export function readMap(key) {
   }
 }
 
+/** String-safe membership test for completed / perfect id arrays. */
+export function isPuzzleIdInList(list, id) {
+  if (!Array.isArray(list) || id == null) return false;
+  const idStr = String(id);
+  return list.some((entry) => String(entry) === idStr);
+}
+
+/** Whether a puzzle counts as solved for calendar / home UI. */
+export function isPuzzleSolved(id, completed, stars, times) {
+  const idStr = String(id);
+  if (completed?.has?.(idStr)) return true;
+  const score = stars?.[idStr] ?? stars?.[id];
+  if (Number.isFinite(score) && score > 0) return true;
+  const elapsed = times?.[idStr] ?? times?.[id];
+  if (Number.isFinite(elapsed)) return true;
+  return false;
+}
+
 export function hasProgress(ns, id) {
   try {
     const s = JSON.parse(localStorage.getItem(`${ns}-${id}`) || "null");
@@ -42,9 +60,9 @@ export function hasProgress(ns, id) {
 }
 
 /** Resolve visual status of a single main or quick puzzle cell. */
-export function cellStatus(ns, id, completed, stars, perfect) {
+export function cellStatus(ns, id, completed, stars, perfect, times = {}) {
   const idStr = String(id);
-  const solved = completed.has(idStr) || completed.has(id);
+  const solved = isPuzzleSolved(id, completed, stars, times);
   const score = stars[idStr] ?? stars[id];
   const isPerfect = perfect.has(idStr) || perfect.has(id);
   const failed = Number.isFinite(score) && score === 0 && !solved;

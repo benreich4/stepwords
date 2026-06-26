@@ -22,6 +22,7 @@ import { playStepSound, playIncorrectSound } from "./lib/progressSound.js";
 import { hapticTap, hapticRowLock, hapticError, hapticWin } from "./lib/haptics.js";
 import { getPersonalBestHighlights } from "./lib/personalBests.js";
 import { recordMainDailyStars } from "./lib/perfectWeek.js";
+import { isPuzzleIdInList } from "./lib/puzzleStatus.js";
 import { useAutosolve } from "./lib/autosolve.js";
 import { isAutosolveMode, isPartialAutosolveMode, shouldSendAnalytics } from "./lib/autosolveUtils.js";
 import AutosolveIntroPopup from "./components/AutosolveIntroPopup.jsx";
@@ -376,7 +377,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const isPuzzleCompleted = useMemo(() => {
     try {
       const c = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-      return Array.isArray(c) && c.includes(puzzle.id);
+      return Array.isArray(c) && isPuzzleIdInList(c, puzzle.id);
     } catch {
       return false;
     }
@@ -687,7 +688,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     // If puzzle already completed, show the solved grid (don't auto-open the modal)
     try {
       const completed = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-      if (completed.includes(puzzle.id)) {
+      if (isPuzzleIdInList(completed, puzzle.id)) {
         const solvedColors = rows.map((r) => Array(r.answer.length).fill('G'));
         setLockColors(solvedColors);
         setGuesses(rows.map((r) => (r.answer || '').toUpperCase()));
@@ -699,13 +700,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           if (Number.isFinite(map[puzzle.id])) setStars(map[puzzle.id]);
         } catch {}
 
-        // Update streak if this is today's puzzle (in case it wasn't updated when completed)
+        // Refresh streak display for today's puzzle (don't re-run streak logic on revisit)
         try {
           const today = getTodayIsoInET();
           const puzzleDateStr = puzzle.date?.split('T')[0];
           if (puzzleDateStr === today) {
-            const updatedStreak = updateStreak(puzzle.date, isQuick);
-            setStreak(updatedStreak);
+            setStreak(getStreak(isQuick));
           }
         } catch {}
       }
@@ -736,7 +736,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     let isCompleted = false;
     try {
       const completed = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-      isCompleted = Array.isArray(completed) && completed.some((id) => String(id) === String(puzzle.id));
+      isCompleted = Array.isArray(completed) && isPuzzleIdInList(completed, puzzle.id);
     } catch {}
     if (!isCompleted) return;
 
@@ -1270,8 +1270,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         // Mark puzzle as completed first (needed for milestone check)
         try {
           const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-          if (!completedPuzzles.includes(puzzle.id)) {
-            completedPuzzles.push(puzzle.id);
+          if (!isPuzzleIdInList(completedPuzzles, puzzle.id)) {
+            completedPuzzles.push(String(puzzle.id));
             localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
           }
         } catch {}
@@ -1322,8 +1322,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           if (finalScore === 10 && hintCount === 0) {
             const pkey = `${puzzleNamespace}-perfect`;
             const arr = JSON.parse(localStorage.getItem(pkey) || '[]');
-            if (!arr.includes(puzzle.id)) {
-              arr.push(puzzle.id);
+            if (!isPuzzleIdInList(arr, puzzle.id)) {
+              arr.push(String(puzzle.id));
               localStorage.setItem(pkey, JSON.stringify(arr));
             }
           }
@@ -1690,7 +1690,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       if (showShare) return;
       try {
         const completed = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-        if (Array.isArray(completed) && completed.some((id) => String(id) === String(puzzle.id))) return;
+        if (Array.isArray(completed) && isPuzzleIdInList(completed, puzzle.id)) return;
       } catch {}
       // Only auto-submit if the player hasn't manually submitted any row yet
       if (guessCount > 0) return;
@@ -1734,8 +1734,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         if (finalScore === 10 && hintCount === 0) {
           const pkey = `${puzzleNamespace}-perfect`;
           const arr = JSON.parse(localStorage.getItem(pkey) || '[]');
-          if (!arr.includes(puzzle.id)) {
-            arr.push(puzzle.id);
+          if (!isPuzzleIdInList(arr, puzzle.id)) {
+            arr.push(String(puzzle.id));
             localStorage.setItem(pkey, JSON.stringify(arr));
           }
         }
@@ -1778,8 +1778,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       try { localStorage.removeItem(puzzleKey); } catch {}
       try {
         const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-        if (!completedPuzzles.includes(puzzle.id)) {
-          completedPuzzles.push(puzzle.id);
+        if (!isPuzzleIdInList(completedPuzzles, puzzle.id)) {
+          completedPuzzles.push(String(puzzle.id));
           localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
         }
         // Dispatch event to notify App.jsx of completion

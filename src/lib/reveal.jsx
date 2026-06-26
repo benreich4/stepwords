@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { shouldSendAnalytics } from './autosolveUtils.js';
 import { playCompletionSoundOnce } from './solveSound.js';
 import { updateStreak } from './streak.js';
+import { isPuzzleIdInList } from './puzzleStatus.js';
 import { checkMilestones } from './milestones.js';
 
 /**
@@ -66,8 +67,8 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
         // Mark puzzle as completed
         try {
           const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-          if (!completedPuzzles.includes(puzzle.id)) {
-            completedPuzzles.push(puzzle.id);
+          if (!isPuzzleIdInList(completedPuzzles, puzzle.id)) {
+            completedPuzzles.push(String(puzzle.id));
             localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
           }
         } catch {}

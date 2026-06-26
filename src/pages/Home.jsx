@@ -5,7 +5,7 @@ import { fetchQuickManifest } from "../lib/quickPuzzles.js";
 import { formatDateWithDayOfWeek, getTodayIsoInET, isPreviewEnabled, getRecentDatesET, formatShortWeekday } from "../lib/date.js";
 import { getInitialLightMode, saveLightModePreference } from "../lib/theme.js";
 import { getStreak } from "../lib/streak.js";
-import { readSet, readMap, cellStatus } from "../lib/puzzleStatus.js";
+import { readSet, readMap, cellStatus, isPuzzleSolved } from "../lib/puzzleStatus.js";
 import HowToPlayModal from "../components/HowToPlayModal.jsx";
 import SettingsModal from "../components/SettingsModal.jsx";
 
@@ -82,7 +82,7 @@ function borderedCardHoverCls(light) {
   return light ? "hover:bg-parchment-200 hover:border-parchment-300" : "hover:bg-navyink-700 hover:border-navyink-600";
 }
 
-function WeekDayCell({ iso, puzzle, ns, completed, stars, perfect, light, onPlay }) {
+function WeekDayCell({ iso, puzzle, ns, completed, stars, times, perfect, light, onPlay }) {
   const weekday = formatShortWeekday(iso);
 
   if (!puzzle) {
@@ -98,7 +98,7 @@ function WeekDayCell({ iso, puzzle, ns, completed, stars, perfect, light, onPlay
     );
   }
 
-  const status = cellStatus(ns, puzzle.id, completed, stars, perfect);
+  const status = cellStatus(ns, puzzle.id, completed, stars, perfect, times);
 
   return (
     <button
@@ -126,6 +126,7 @@ function ThisWeekStrip({
   ns,
   completed,
   stars,
+  times,
   perfect,
   onPlay,
   onMore,
@@ -148,6 +149,7 @@ function ThisWeekStrip({
             ns={ns}
             completed={completed}
             stars={stars}
+            times={times}
             perfect={perfect}
             light={light}
             onPlay={onPlay}
@@ -170,6 +172,17 @@ function ThisWeekStrip({
     </div>
   );
 }
+
+const PROGRESS_STORAGE_KEYS = new Set([
+  "stepwords-completed",
+  "quickstep-completed",
+  "stepwords-stars",
+  "quickstep-stars",
+  "stepwords-times",
+  "quickstep-times",
+  "stepwords-perfect",
+  "quickstep-perfect",
+]);
 
 function Arrow({ light }) {
   return (
@@ -255,20 +268,29 @@ function useArchiveStatus() {
   const readAll = () => ({
     mainCompleted: readSet("stepwords-completed"),
     mainStars: readMap("stepwords-stars"),
+    mainTimes: readMap("stepwords-times"),
     mainPerfect: readSet("stepwords-perfect"),
     quickCompleted: readSet("quickstep-completed"),
     quickStars: readMap("quickstep-stars"),
+    quickTimes: readMap("quickstep-times"),
     quickPerfect: readSet("quickstep-perfect"),
   });
   const [status, setStatus] = useState(readAll);
   useEffect(() => {
     const refresh = () => setStatus(readAll());
+    const onStorage = (e) => {
+      if (e.key && PROGRESS_STORAGE_KEYS.has(e.key)) refresh();
+    };
     refresh();
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", refresh);
+    document.addEventListener("stepwords-puzzle-completed", refresh);
+    window.addEventListener("storage", onStorage);
     return () => {
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refresh);
+      document.removeEventListener("stepwords-puzzle-completed", refresh);
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
   return status;
@@ -291,11 +313,15 @@ export default function Home() {
   const {
     mainCompleted,
     mainStars,
+    mainTimes,
     mainPerfect,
     quickCompleted,
     quickStars,
+    quickTimes,
     quickPerfect,
   } = useArchiveStatus();
+  const dailyDone = daily?.id != null && isPuzzleSolved(daily.id, mainCompleted, mainStars, mainTimes);
+  const quickDone = quick?.id != null && isPuzzleSolved(quick.id, quickCompleted, quickStars, quickTimes);
   const mainByDate = useMemo(() => {
     const preview = isPreviewEnabled();
     const map = new Map();
@@ -469,7 +495,7 @@ export default function Home() {
             className={`rounded-none border-0 shadow-none ${puzzleRowHoverCls(light)}`}
             icon={<span className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ${light ? "bg-parchment-100" : "bg-navyink-700"}`}><MiniStair light={light} variant="brand" /></span>}
             title="Daily Puzzle"
-            done={daily?.done}
+            done={dailyDone}
             subtitle={
               loading
                 ? "Loading…"
@@ -488,6 +514,7 @@ export default function Home() {
               ns="stepwords"
               completed={mainCompleted}
               stars={mainStars}
+              times={mainTimes}
               perfect={mainPerfect}
               onPlay={(id) => navigate(`/${id}`)}
               onMore={() => navigate("/archives")}
@@ -507,7 +534,7 @@ export default function Home() {
             className={`rounded-none border-0 shadow-none ${puzzleRowHoverCls(light)}`}
             icon={<span className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ${light ? "bg-parchment-100" : "bg-navyink-700"}`}><MiniStair light={light} /></span>}
             title="Quick Puzzle"
-            done={quick?.done}
+            done={quickDone}
             subtitle={quick ? puzzleSubtitle(quick.author, quick.words ?? 5) : ""}
             trailing={<StreakChip light={light} value={quickStreak.current} />}
           />
@@ -520,6 +547,7 @@ export default function Home() {
               ns="quickstep"
               completed={quickCompleted}
               stars={quickStars}
+              times={quickTimes}
               perfect={quickPerfect}
               onPlay={(id) => navigate(`/quick/${id}`)}
               onMore={() => navigate("/archives")}
