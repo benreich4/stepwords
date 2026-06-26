@@ -4,7 +4,7 @@ import { fetchManifest } from "../lib/puzzles.js";
 import { fetchQuickManifest } from "../lib/quickPuzzles.js";
 import { formatDateWithDayOfWeek, getTodayIsoInET, isPreviewEnabled, getRecentDatesET, formatShortWeekday } from "../lib/date.js";
 import { getInitialLightMode, saveLightModePreference } from "../lib/theme.js";
-import { getStreak } from "../lib/streak.js";
+import { getDisplayStreak } from "../lib/streak.js";
 import { readSet, readMap, cellStatus, isPuzzleSolved } from "../lib/puzzleStatus.js";
 import HowToPlayModal from "../components/HowToPlayModal.jsx";
 import SettingsModal from "../components/SettingsModal.jsx";
@@ -301,8 +301,6 @@ export default function Home() {
   const [light, setLight] = useState(getInitialLightMode);
   const [daily, setDaily] = useState(null);
   const [quick, setQuick] = useState(null);
-  const [streak, setStreak] = useState({ current: 0, longest: 0 });
-  const [quickStreak, setQuickStreak] = useState({ current: 0, longest: 0 });
   const [howTo, setHowTo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -339,19 +337,31 @@ export default function Home() {
     return map;
   }, [quickManifest, todayIso]);
 
-  useEffect(() => {
-    const refreshStreaks = () => {
-      setStreak(getStreak(false));
-      setQuickStreak(getStreak(true));
-    };
-    document.addEventListener("stepwords-puzzle-completed", refreshStreaks);
-    return () => document.removeEventListener("stepwords-puzzle-completed", refreshStreaks);
-  }, []);
+  const streak = useMemo(
+    () =>
+      getDisplayStreak(false, {
+        completed: mainCompleted,
+        stars: mainStars,
+        times: mainTimes,
+        recentDates,
+        puzzlesByDate: mainByDate,
+      }),
+    [mainCompleted, mainStars, mainTimes, recentDates, mainByDate]
+  );
+  const quickStreak = useMemo(
+    () =>
+      getDisplayStreak(true, {
+        completed: quickCompleted,
+        stars: quickStars,
+        times: quickTimes,
+        recentDates,
+        puzzlesByDate: quickByDate,
+      }),
+    [quickCompleted, quickStars, quickTimes, recentDates, quickByDate]
+  );
 
   useEffect(() => {
     document.title = "Stepwords — Daily Anagram Ladder Word Game";
-    setStreak(getStreak(false));
-    setQuickStreak(getStreak(true));
     let alive = true;
 
     Promise.all([fetchManifest(), fetchQuickManifest()])

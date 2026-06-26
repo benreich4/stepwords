@@ -10,7 +10,7 @@
  */
 
 import { getTodayIsoInET, calendarDaysBetween } from './date.js';
-import { isPuzzleIdInList } from './puzzleStatus.js';
+import { isPuzzleIdInList, isPuzzleSolved } from './puzzleStatus.js';
 
 const MAIN_STREAK_KEY = 'stepwords-streak-main';
 const QUICK_STREAK_KEY = 'stepwords-streak-quick';
@@ -37,6 +37,28 @@ export function getAllStreaks() {
     main: getStreak(false),
     quick: getStreak(true),
   };
+}
+
+/**
+ * Streak for UI display. Reads stored streak but returns current: 0 when
+ * nothing in the recent calendar shows as solved — avoids streak 1 with empty
+ * week stars from stale storage. Does not modify localStorage.
+ */
+export function getDisplayStreak(isQuick, { completed, stars, times, recentDates, puzzlesByDate }) {
+  const stored = getStreak(isQuick);
+  if (stored.current === 0) return stored;
+
+  const dates = recentDates || [];
+  const byDate = puzzlesByDate || new Map();
+  const hasVisibleSolve = dates.some((iso) => {
+    const puzzle = byDate.get(iso);
+    if (!puzzle) return false;
+    return isPuzzleSolved(puzzle.id, completed, stars, times);
+  });
+
+  if (hasVisibleSolve) return stored;
+
+  return { ...stored, current: 0 };
 }
 
 function normalizePuzzleDate(puzzleDate) {
