@@ -4,6 +4,7 @@ import LetterGrid from "./components/LetterGrid.jsx";
 import ShareModal from "./components/ShareModal.jsx";
 import HowToPlayModal from "./components/HowToPlayModal.jsx";
 import OnScreenKeyboard from "./components/OnScreenKeyboard.jsx";
+import AnchoredPortal from "./components/AnchoredPortal.jsx";
 import Toast from "./components/Toast.jsx";
 import QuickIntroModal from "./components/QuickIntroModal.jsx";
 import Confetti from "./components/Confetti.jsx";
@@ -14,10 +15,13 @@ import { useLifelines, LifelineMenu } from "./lib/lifelines.jsx";
 import { useReveal, RevealConfirmModal } from "./lib/reveal.jsx";
 import { usePuzzleTimer } from "./lib/timer.js";
 import { updateStreak, getStreak } from "./lib/streak.js";
-import { getInitialLightMode, saveLightModePreference } from "./lib/theme.js";
+import { saveLightModePreference, readHeaderCollapsed, saveHeaderCollapsed } from "./lib/theme.js";
 import { checkMilestones, checkPerfectSolve } from "./lib/milestones.js";
 import { playCompletionSoundOnce } from "./lib/solveSound.js";
-import { playStepSound, playIncorrectSound, playIncompleteSound } from "./lib/progressSound.js";
+import { playStepSound, playIncorrectSound } from "./lib/progressSound.js";
+import { hapticTap, hapticRowLock, hapticError, hapticWin } from "./lib/haptics.js";
+import { getPersonalBestHighlights } from "./lib/personalBests.js";
+import { recordMainDailyStars } from "./lib/perfectWeek.js";
 import { useAutosolve } from "./lib/autosolve.js";
 import { isAutosolveMode, isPartialAutosolveMode, shouldSendAnalytics } from "./lib/autosolveUtils.js";
 import AutosolveIntroPopup from "./components/AutosolveIntroPopup.jsx";
@@ -188,16 +192,16 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const submitBtnRef = useRef(null);
   const collapseBtnRef = useRef(null);
   const starsRef = useRef(null);
-  const lastPointsRef = useRef(10);
   const clueBarRef = useRef(null);
   const [dragStartRow, setDragStartRow] = useState(null);
   const [dragOverRow, setDragOverRow] = useState(null);
   const [diffTipShown, setDiffTipShown] = useState(() => {
     try { return localStorage.getItem('stepwords-diff-tip-shown') === '1'; } catch { return false; }
   });
-  const [headerCollapsed, setHeaderCollapsed] = useState(() => {
-    try { return localStorage.getItem('stepwords-header-collapsed') === '1'; } catch { return false; }
-  });
+  const [headerCollapsed, setHeaderCollapsed] = useState(readHeaderCollapsed);
+  // Measure header content for a smooth max-height collapse/expand (matches keyboard)
+  const headerInnerRef = useRef(null);
+  const [headerContentHeight, setHeaderContentHeight] = useState(0);
 
   // Determine if this puzzle was already completed or failed before timer fields existed
   // const hideTimerDueToLegacy = useMemo(() => shouldHideTimerForLegacy(puzzleNamespace, puzzle.id, savedState.hadTimerFields), [puzzleNamespace, puzzle.id, savedState.hadTimerFields]);
@@ -206,15 +210,26 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key === 'stepwords-header-collapsed') {
-        try { setHeaderCollapsed(localStorage.getItem('stepwords-header-collapsed') === '1'); } catch {}
+        try { setHeaderCollapsed(readHeaderCollapsed()); } catch {}
       }
     };
     const onCustom = () => {
-      try { setHeaderCollapsed(localStorage.getItem('stepwords-header-collapsed') === '1'); } catch {}
+      try { setHeaderCollapsed(readHeaderCollapsed()); } catch {}
     };
     window.addEventListener('storage', onStorage);
     document.addEventListener('stepwords-header-toggle', onCustom);
     return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('stepwords-header-toggle', onCustom); };
+  }, []);
+
+  // Keep the header's measured height in sync so the collapse animates smoothly
+  useEffect(() => {
+    const node = headerInnerRef.current;
+    if (!node) return;
+    const measure = () => { try { setHeaderContentHeight(node.scrollHeight); } catch {} };
+    const ro = new ResizeObserver(measure);
+    ro.observe(node);
+    measure();
+    return () => ro.disconnect();
   }, []);
   const lastActivityRef = useRef(Date.now());
   // Track progress (typing, locking, submits) to nudge jumping ahead
@@ -286,9 +301,9 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [settings, setSettings] = useState(() => {
     try {
       const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}');
-      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true, lightMode: s.lightMode === true, showAllClues: s.showAllClues === true, soundsEnabled: s.soundsEnabled !== false, hideTimerWhileSolving: s.hideTimerWhileSolving === true };
+      return { hardMode: s.hardMode === true, easyMode: s.easyMode === true, lightMode: s.lightMode !== false, showAllClues: s.showAllClues === true, soundsEnabled: s.soundsEnabled !== false, hideTimerWhileSolving: s.hideTimerWhileSolving === true };
     } catch {
-      return { hardMode: false, easyMode: false, lightMode: false, showAllClues: false, soundsEnabled: true, hideTimerWhileSolving: false };
+      return { hardMode: false, easyMode: false, lightMode: true, showAllClues: false, soundsEnabled: true, hideTimerWhileSolving: false };
     }
   });
   // In print mode or partial autosolve mode, force light mode and show all clues
@@ -309,10 +324,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   }, [settings, printMode]);
   const [showSettings, setShowSettings] = useState(false);
   // Easy mode now saved globally in settings (like hardMode)
-  // Legacy hint fields kept for save compatibility
-  const [hintsUsed] = useState(savedState.hintsUsed || { initialLetters: false, stepLetters: false, filterKeyboard: false });
-  const [rowsInitialHintUsed] = useState(savedState.rowsInitialHintUsed || rows.map(() => false));
-  const [rowsStepHintUsed] = useState(savedState.rowsStepHintUsed || rows.map(() => false));
   // Colors now simplified: 'G' for correct, 'Y' for hint-revealed or previously incorrect
   const [wasWrong, setWasWrong] = useState(savedState.wasWrong);
   // Session stats
@@ -321,6 +332,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [wrongGuessCount, setWrongGuessCount] = useState(savedState.wrongGuessCount);
 
   const [showShare, setShowShare] = useState(false);
+  const shareDismissedRef = useRef(false);
+  const [winExtras, setWinExtras] = useState(null);
   const [shareText, setShareText] = useState("");
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [confettiTrigger, setConfettiTrigger] = useState(0);
@@ -335,7 +348,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   // User-placed temporary step ladders (hard mode only): array of null or column index for each row
   const [userStepGuesses, setUserStepGuesses] = useState(() => rows.map(() => null));
   // Timer via hook
-  const { elapsedMs, running: timerRunning, finished: timerFinished, start: startTimer, pause: pauseTimer, stop: stopTimer, format: formatElapsed } = usePuzzleTimer(savedState.elapsedMs || 0, savedState.timerFinished || false);
+  const { elapsedMs, finished: timerFinished, start: startTimer, pause: pauseTimer, stop: stopTimer, format: formatElapsed } = usePuzzleTimer(savedState.elapsedMs || 0, savedState.timerFinished || false);
 
   // Pause/resume on visibility change (after timer hook is ready)
   useEffect(() => {
@@ -633,12 +646,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // On mobile, collapse the date/author header when opening or switching puzzles
+  useEffect(() => {
+    if (!isMobile || printMode) return;
+    setHeaderCollapsed(true);
+    saveHeaderCollapsed(true);
+    try { document.dispatchEvent(new CustomEvent('stepwords-header-toggle')); } catch {}
+  }, [puzzle.id, isMobile, printMode]);
+
   // Focus input on desktop
   useEffect(() => {
-    console.log('Focus effect:', { isMobile, hasInput: !!inputRef.current });
     if (!isMobile && inputRef.current) {
       inputRef.current.focus();
-      console.log('Input focused');
     }
   }, [level, isMobile]);
 
@@ -665,14 +684,21 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       localStorage.setItem(`${puzzleNamespace}-visited`, '1');
     } catch {}
     
-    // If puzzle already completed previously, immediately show share modal
+    // If puzzle already completed, show the solved grid (don't auto-open the modal)
     try {
       const completed = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
       if (completed.includes(puzzle.id)) {
-        const share = buildEmojiShareGridFrom(rows, lockColors);
-        setShareText(share);
-        setShowShare(true);
-        
+        const solvedColors = rows.map((r) => Array(r.answer.length).fill('G'));
+        setLockColors(solvedColors);
+        setGuesses(rows.map((r) => (r.answer || '').toUpperCase()));
+        setShareText(buildEmojiShareGridFrom(rows, solvedColors));
+        setDidFail(false);
+        stopTimer();
+        try {
+          const map = JSON.parse(localStorage.getItem(`${puzzleNamespace}-stars`) || '{}');
+          if (Number.isFinite(map[puzzle.id])) setStars(map[puzzle.id]);
+        } catch {}
+
         // Update streak if this is today's puzzle (in case it wasn't updated when completed)
         try {
           const today = getTodayIsoInET();
@@ -705,26 +731,34 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     showToast(`Lose a star for every 4 missteps. Next star lost in ${nextLossIn} ${nextLossIn === 1 ? 'misstep' : 'missteps'}.`, 5200, 'info');
   };
 
+  function ensureSolvedVisualState() {
+    if (!rows?.length) return;
+    let isCompleted = false;
+    try {
+      const completed = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
+      isCompleted = Array.isArray(completed) && completed.some((id) => String(id) === String(puzzle.id));
+    } catch {}
+    if (!isCompleted) return;
 
-  function revealIndicesInCurrentRow(indices) {
-    const i = level;
-    const ans = rows[i]?.answer?.toUpperCase?.() || "";
-    const len = ans.length;
-    if (!len || !Array.isArray(indices) || indices.length === 0) return;
-    const newLockColors = lockColors.map(rc => rc.slice());
-    const rowLock = newLockColors[i] ? newLockColors[i].slice() : Array(len).fill(null);
-    const curChars = (guesses[i] || "").toUpperCase().padEnd(len, " ").slice(0, len).split("");
-    for (const c of indices) {
-      if (c < 0 || c >= len) continue;
-      if (!rowLock[c]) rowLock[c] = "Y";
-      curChars[c] = ans[c];
-    }
-    newLockColors[i] = rowLock;
-    const newGuesses = guesses.slice();
-    newGuesses[i] = curChars.join("").trimEnd();
-    setLockColors(newLockColors);
-    setGuesses(newGuesses);
+    const fullGreen = rows.map((r) => Array((r?.answer || '').length).fill('G'));
+    const fullGuesses = rows.map((r) => (r?.answer || '').toUpperCase());
+    setLockColors(fullGreen);
+    setGuesses(fullGuesses);
+    stopTimer();
+    setShareText(buildEmojiShareGridFrom(rows, fullGreen));
+    setDidFail(false);
+    try {
+      const map = JSON.parse(localStorage.getItem(`${puzzleNamespace}-stars`) || '{}');
+      if (Number.isFinite(map[puzzle.id])) setStars(map[puzzle.id]);
+    } catch {}
   }
+
+  const handleCloseShareModal = () => {
+    shareDismissedRef.current = true;
+    setShowShare(false);
+    setWinExtras(null);
+    ensureSolvedVisualState();
+  };
 
 
   function revealAllAsYellowAndFill() {
@@ -795,7 +829,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   const [showAutosolveFinalMoved, setShowAutosolveFinalMoved] = useState(false);
   
   // Autosolve hook handles all autosolve logic
-  const { autosolveGuessRef } = useAutosolve({
+  useAutosolve({
     autosolveMode,
     rows,
     setLevel,
@@ -1129,8 +1163,10 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     setWasWrong(wasWrongAfter);
     try { lastActivityRef.current = Date.now(); } catch {}
     setGuessCount((n) => n + 1);
-    if (hadWrong) setWrongGuessCount((n) => n + 1);
-    const scoreBefore = Math.max(0, scoreBase - (hintCount + wrongGuessCount));
+    if (hadWrong) {
+      setWrongGuessCount((n) => n + 1);
+      if (!autosolveMode) hapticError();
+    }
     // If already at 0 and we get any new missteps → immediate loss
     if (pointsNow === 0 && hadWrong) {
       const { newLock } = revealAllAsYellowAndFill();
@@ -1191,6 +1227,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       // Row completion animation
       setRowCompletionAnimation(i);
       setTimeout(() => setRowCompletionAnimation(null), 1000);
+      if (!autosolveMode) hapticRowLock();
 
       // ✅ Only consider the puzzle solved if *every* row is fully colored
       if (isPuzzleSolved(colorsAfter, rows)) {
@@ -1204,6 +1241,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         const awarded = wordRevealed ? 0 : (finalScore >= 7 ? 3 : (finalScore >= 4 ? 2 : (finalScore >= 1 ? 1 : 0)));
         setStars(awarded);
         setDidFail(false);
+
+        const personalBestHighlights = getPersonalBestHighlights(puzzleNamespace, puzzle.id, elapsedMs);
         
         // Check for perfect solve
         const isPerfect = checkPerfectSolve(hintCount, wrongGuessCount);
@@ -1213,11 +1252,20 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         
         // Trigger confetti celebration!
         setConfettiTrigger(prev => prev + 1);
-        if (!autosolveMode && effectiveSettings.soundsEnabled) stepSoundDone.then(() => playCompletionSoundOnce(puzzle.id, puzzleNamespace, isPerfect, true));
+        if (!autosolveMode) {
+          hapticWin();
+          if (effectiveSettings.soundsEnabled) stepSoundDone.then(() => playCompletionSoundOnce(puzzle.id, puzzleNamespace, isPerfect, true));
+        }
 
         // Update streak (only if this is today's puzzle)
         const newStreak = updateStreak(puzzle.date, isQuick);
         setStreak(newStreak);
+
+        let perfectWeekResult = null;
+        if (!isQuick && puzzle.date === getTodayIsoInET()) {
+          perfectWeekResult = recordMainDailyStars(puzzle.date, awarded);
+        }
+        setWinExtras({ personalBestHighlights, streak: newStreak, perfectWeek: perfectWeekResult });
         
         // Mark puzzle as completed first (needed for milestone check)
         try {
@@ -1361,7 +1409,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   // Keyboard event handlers (desktop)
   function onKeyDown(e) {
-    console.log('Key pressed:', e.key, 'isMobile:', isMobile);
     if (isMobile) return; // Only handle keyboard on desktop
     
     // Let browser/system shortcuts work (Cmd/Ctrl combos, F5, etc.)
@@ -1450,6 +1497,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       if (e.key !== 'Escape') return;
       if (showHowToPlay) {
         handleCloseHowToPlay();
+      } else if (showShare) {
+        handleCloseShareModal();
       } else if (showSettings) {
         setShowSettings(false);
       } else if (showLifelineMenu) {
@@ -1458,13 +1507,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [showHowToPlay, showSettings, showLifelineMenu, handleCloseHowToPlay]);
+  }, [showHowToPlay, showSettings, showLifelineMenu, showShare, handleCloseHowToPlay, handleCloseShareModal]);
 
   // Minimal: close Settings when clicking/tapping outside
   useEffect(() => {
     const handler = (e) => {
       try {
-        if (showSettings && settingsRef.current && !settingsRef.current.contains(e.target)) {
+        if (showSettings && settingsRef.current && !settingsRef.current.contains(e.target) && !e.target.closest?.('[data-settings-menu]')) {
           setShowSettings(false);
         }
       } catch {}
@@ -1481,7 +1530,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   useEffect(() => {
     const handler = (e) => {
       try {
-        if (showLifelineMenu && lifelineRef.current && !lifelineRef.current.contains(e.target)) {
+        if (showLifelineMenu && lifelineRef.current && !lifelineRef.current.contains(e.target) && !e.target.closest?.('[data-lifeline-menu]')) {
           setShowLifelineMenu(false);
         }
       } catch {}
@@ -1624,17 +1673,25 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
 
   // On-screen keyboard handlers (mobile)
   const handleKeyPress = (key) => {
+    hapticTap();
     typeChar(key);
   };
 
   // Auto-submit all rows when the entire grid is filled and every letter is correct
   const autoSubmitDoneRef = useRef(false);
   useEffect(() => {
-    if (autoSubmitDoneRef.current) return;
+    shareDismissedRef.current = false;
+  }, [puzzle.id]);
+  useEffect(() => {
+    if (autoSubmitDoneRef.current || shareDismissedRef.current) return;
     try {
       if (!rows || !rows.length) return;
       // If already solved/showing share, skip
       if (showShare) return;
+      try {
+        const completed = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
+        if (Array.isArray(completed) && completed.some((id) => String(id) === String(puzzle.id))) return;
+      } catch {}
       // Only auto-submit if the player hasn't manually submitted any row yet
       if (guessCount > 0) return;
       // Check all rows fully filled and exactly match answers
@@ -1762,7 +1819,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       while (left >= 0 && isBlocked(level, left)) left--;
       if (left >= 0) {
         // Delete the letter at the immediate editable left (if any) and move cursor there
-        const chLeft = cur[left];
         const updated = cur.slice(0, left) + " " + cur.slice(left + 1);
         setGuessAt(level, updated.trimEnd());
         setCursor(left);
@@ -1828,7 +1884,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     <>
     <div 
       ref={gameContainerRef}
-      className={`w-screen h-[105vh] flex flex-col ${printMode ? 'print-puzzle-fit items-center' : ''} ${effectiveSettings.lightMode ? 'bg-white text-black' : 'bg-black text-white'}`}
+      className={`w-full flex-1 min-h-0 flex flex-col overflow-hidden ${printMode ? 'print-puzzle-fit items-center h-auto overflow-visible' : ''} ${effectiveSettings.lightMode ? 'bg-parchment-100 text-navyink-900' : 'bg-navyink-900 text-parchment-50'}`}
     >
       {/* Print Mode Header - outside scaled area so it spans full page */}
       {printMode && (
@@ -1860,61 +1916,63 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       )}
       
       {!printMode && (
-        <div className={`${isMobile ? 'px-1' : 'px-3'} text-center transition-all duration-300 ease-out ${headerCollapsed ? 'h-0 overflow-hidden p-0 m-0 opacity-0' : 'pt-1 opacity-100'} ${isQuick 
-          ? (effectiveSettings.lightMode ? 'bg-orange-50 border-t border-b border-orange-300' : 'bg-orange-900/40 border-t border-b border-orange-800')
-          : (effectiveSettings.lightMode ? 'bg-blue-50 border-t border-b border-blue-300' : 'bg-blue-900/40 border-t border-b border-blue-800')
-        }`}>
-          {!headerCollapsed && (
-          <>
-          {puzzle.date && (
-            <div className={`text-sm sm:text-lg md:text-xl font-bold mb-0.5 flex items-center justify-center gap-3 ${effectiveSettings.lightMode ? 'text-gray-900' : 'text-gray-100'}`}>
-              {prevId && (
-                <a href={`/${isQuick ? 'quick/' : ''}${prevId}`} className={`px-2 py-1 rounded ${effectiveSettings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Previous puzzle">←</a>
-              )}
-              <span>
-                {formatDateWithDayOfWeek(puzzle.date)}
-              </span>
-              {nextId && (
-                <a href={`/${isQuick ? 'quick/' : ''}${nextId}`} className={`px-2 py-1 rounded ${effectiveSettings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Next puzzle">→</a>
-              )}
+        <div
+          className="transition-[max-height,opacity] duration-300 ease-out overflow-hidden"
+          style={{ maxHeight: headerCollapsed ? 0 : headerContentHeight, opacity: headerCollapsed ? 0 : 1 }}
+          aria-hidden={headerCollapsed}
+        >
+          <div
+            ref={headerInnerRef}
+            className={`${isMobile ? 'px-1' : 'px-3'} text-center pt-1.5 pb-1 ${effectiveSettings.lightMode ? 'bg-gold-500/10 border-t border-b border-gold-500/25' : 'bg-gold-400/10 border-t border-b border-gold-400/20'}`}
+          >
+            {puzzle.date && (
+              <div className={`font-serif text-base sm:text-lg md:text-xl font-bold mb-0.5 flex items-center justify-center gap-3 ${effectiveSettings.lightMode ? 'text-navyink-900' : 'text-parchment-50'}`}>
+                {prevId && (
+                  <a href={`/${isQuick ? 'quick/' : ''}${prevId}`} className={`px-2 py-1 rounded ${effectiveSettings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Previous puzzle">←</a>
+                )}
+                <span>
+                  {formatDateWithDayOfWeek(puzzle.date)}
+                </span>
+                {nextId && (
+                  <a href={`/${isQuick ? 'quick/' : ''}${nextId}`} className={`px-2 py-1 rounded ${effectiveSettings.lightMode ? 'hover:bg-gray-200' : 'hover:bg-gray-800'}`} aria-label="Next puzzle">→</a>
+                )}
+              </div>
+            )}
+            {puzzle.author && (
+              <div className={`text-xs sm:text-sm mb-1 ${effectiveSettings.lightMode ? 'text-navyink-700/65' : 'text-parchment-200/55'}`}>
+                By <Link to={`/author/${encodeURIComponent(puzzle.author)}`} className={`underline hover:no-underline ${effectiveSettings.lightMode ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300 hover:text-gray-100'}`}>{puzzle.author}</Link>
+              </div>
+            )}
+            <div className={`text-xs sm:text-base italic mb-1 ${effectiveSettings.lightMode ? 'text-navyink-700' : 'text-parchment-200'}`}>
+              {puzzle.title}
             </div>
-          )}
-          {puzzle.author && (
-            <div className={`text-xs sm:text-sm mb-1 ${effectiveSettings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
-              By <Link to={`/author/${encodeURIComponent(puzzle.author)}`} className={`underline hover:no-underline ${effectiveSettings.lightMode ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300 hover:text-gray-100'}`}>{puzzle.author}</Link>
-            </div>
-          )}
-          <div className={`text-xs sm:text-base italic mb-1 ${effectiveSettings.lightMode ? 'text-gray-700' : 'text-gray-300'}`}>
-            {puzzle.title}
           </div>
-          </>
-          )}
         </div>
       )}
 
       {!printMode && (
         <div className="sticky top-0 z-20">
-        <div className={`relative z-30 w-full ${isMobile ? 'px-1' : 'px-2 sm:px-3 xl:px-4 2xl:px-6'} h-8 md:h-10 xl:h-10 2xl:h-12 flex items-center justify-between backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-gray-100 border-gray-300' : 'bg-gray-900 border-gray-800'}`}>
-          <div className={`flex items-center gap-1 sm:gap-2 text-xs xl:text-sm 2xl:text-base ${effectiveSettings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
+        <div className={`relative z-30 w-full ${isMobile ? 'px-1' : 'px-2 sm:px-3 xl:px-4 2xl:px-6'} h-9 md:h-11 xl:h-11 2xl:h-12 flex items-center justify-between backdrop-blur ${headerCollapsed ? '' : 'border-t'} border-b transition-[height,background-color] duration-300 ease-out ${effectiveSettings.lightMode ? 'bg-parchment-50/90 border-parchment-200' : 'bg-navyink-850/90 border-navyink-700'}`}>
+          <div className={`flex items-center gap-1 sm:gap-2 text-xs xl:text-sm 2xl:text-base ${effectiveSettings.lightMode ? 'text-navyink-800' : 'text-parchment-200'}`}>
           <div
             ref={starsRef}
-            className={`px-2 py-0.5 md:px-3 md:py-1 rounded border flex items-center gap-0.5 text-sm md:text-base cursor-pointer transition-all duration-300 ${settings.lightMode ? 'border-gray-300 bg-gray-50 shadow-sm' : 'border-gray-700 bg-gray-800 shadow-sm'}`}
+            className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full border flex items-center gap-0.5 text-sm md:text-base cursor-pointer transition-all duration-300 ${settings.lightMode ? 'border-parchment-200 bg-parchment-50' : 'border-navyink-700 bg-navyink-800'}`}
             title="Current stars"
             role="button"
             tabIndex={0}
             onClick={showStarsInfo}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showStarsInfo(); } }}
           >
-            <span className={`leading-none transition-all duration-300 ${currentStars >= 1 ? 'text-yellow-300 drop-shadow-[0_0_1px_rgba(253,224,71,0.6)]' : 'text-gray-500'}`}>★</span>
-            <span className={`leading-none transition-all duration-300 ${currentStars >= 2 ? 'text-yellow-300 drop-shadow-[0_0_1px_rgba(253,224,71,0.6)]' : 'text-gray-500'}`}>★</span>
-            <span className={`leading-none transition-all duration-300 ${currentStars >= 3 ? 'text-yellow-300 drop-shadow-[0_0_1px_rgba(253,224,71,0.6)]' : 'text-gray-500'}`}>★</span>
+            <span className={`leading-none transition-all duration-300 ${currentStars >= 1 ? 'text-gold-400' : (settings.lightMode ? 'text-parchment-300' : 'text-navyink-600')}`}>★</span>
+            <span className={`leading-none transition-all duration-300 ${currentStars >= 2 ? 'text-gold-400' : (settings.lightMode ? 'text-parchment-300' : 'text-navyink-600')}`}>★</span>
+            <span className={`leading-none transition-all duration-300 ${currentStars >= 3 ? 'text-gold-400' : (settings.lightMode ? 'text-parchment-300' : 'text-navyink-600')}`}>★</span>
         </div>
         
         {/* Streak Display */}
         <div 
-          className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 md:px-3 py-0.5 md:py-1 rounded border text-[9px] sm:text-[10px] md:text-sm cursor-pointer transition-opacity hover:opacity-80 ${isQuick 
-            ? (effectiveSettings.lightMode ? 'border-orange-300 bg-orange-50 text-orange-800 shadow-sm' : 'border-orange-600 bg-orange-900/40 text-orange-300 shadow-lg shadow-orange-500/20')
-            : (effectiveSettings.lightMode ? 'border-blue-300 bg-blue-50 text-blue-800 shadow-sm' : 'border-blue-600 bg-blue-900/40 text-blue-300 shadow-lg shadow-blue-500/20')
+          className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 md:px-3 py-0.5 md:py-1 rounded-full border text-[9px] sm:text-[10px] md:text-sm cursor-pointer transition-opacity hover:opacity-80 ${isQuick 
+            ? (effectiveSettings.lightMode ? 'border-gold-500/40 bg-gold-500/10 text-gold-600' : 'border-gold-400/40 bg-gold-400/10 text-gold-400')
+            : (effectiveSettings.lightMode ? 'border-brand-100 bg-brand-50 text-brand-700' : 'border-brand-700 bg-brand-900/50 text-brand-300')
           }`}
           onClick={() => {
             const puzzleType = isQuick ? 'Quick' : 'Main';
@@ -1936,7 +1994,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         </div>
         
         {showHeaderElapsed && (
-          <div className={`shrink-0 ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 md:px-3 md:py-1 rounded border text-[10px] sm:text-xs md:text-sm xl:text-sm font-mono tabular-nums select-none ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-800' : 'border-gray-700 bg-gray-800 text-gray-300'}`} title="Elapsed time">
+          <div className={`shrink-0 ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 md:px-3 md:py-1 rounded-full border text-[10px] sm:text-xs md:text-sm xl:text-sm font-mono tabular-nums select-none ${settings.lightMode ? 'border-parchment-200 bg-parchment-50 text-navyink-700' : 'border-navyink-700 bg-navyink-800 text-parchment-200'}`} title="Elapsed time">
             {formatElapsed(elapsedMs)}
           </div>
         )}
@@ -1952,7 +2010,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <div ref={lifelineRef} className="relative">
             <button
               onClick={() => setShowLifelineMenu((v) => !v)}
-              className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] w-8 md:w-10 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+              className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] w-8 md:w-10 ${settings.lightMode ? 'border-parchment-200 bg-parchment-50 text-navyink-700 hover:bg-parchment-100' : 'border-navyink-700 bg-navyink-800 text-parchment-200 hover:bg-navyink-700'}`}
               aria-label="Hints"
             >
               <span className="relative inline-flex items-center justify-center" aria-hidden>
@@ -1966,6 +2024,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               </span>
             </button>
             <LifelineMenu
+              anchorRef={lifelineRef}
               showLifelineMenu={showLifelineMenu}
               setShowLifelineMenu={setShowLifelineMenu}
               lifelineLevel={lifelineLevel}
@@ -2005,14 +2064,17 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           </div>
           <button
             onClick={() => setShowHowToPlay(true)}
-            className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] w-8 md:w-10 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+            className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] w-8 md:w-10 ${settings.lightMode ? 'border-parchment-200 bg-parchment-50 text-navyink-700 hover:bg-parchment-100' : 'border-navyink-700 bg-navyink-800 text-parchment-200 hover:bg-navyink-700'}`}
             title="How to Play"
           >
             ?
           </button>
           {isPuzzleCompleted && !showShare && !didFail && (
             <button
-              onClick={() => setShowShare(true)}
+              onClick={() => {
+                shareDismissedRef.current = false;
+                setShowShare(true);
+              }}
               className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] gap-0.5 ${settings.lightMode ? 'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100' : 'border-rose-600 bg-rose-900/40 text-rose-300 hover:bg-rose-800/60'}`}
               title="Rate this puzzle"
             >
@@ -2024,16 +2086,21 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           <div ref={settingsRef} className="relative">
             <button
               onClick={() => setShowSettings((v) => !v)}
-              className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] w-8 md:w-10 ${settings.lightMode ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+              className={`px-2 py-0.5 md:px-3 md:py-1 rounded-md text-xs md:text-sm border flex items-center justify-center min-h-[20px] md:min-h-[28px] w-8 md:w-10 ${settings.lightMode ? 'border-parchment-200 bg-parchment-50 text-navyink-700 hover:bg-parchment-100' : 'border-navyink-700 bg-navyink-800 text-parchment-200 hover:bg-navyink-700'}`}
               aria-label="Settings"
             >
               ⚙️
             </button>
             {showSettings && (
-              <div className={`absolute right-0 top-full mt-1 w-60 rounded-lg border backdrop-blur-sm shadow-xl p-2 text-sm md:text-base menu-pop-in z-30 ${settings.lightMode ? 'border-gray-300 bg-white ring-1 ring-black/5' : 'border-gray-700 bg-gray-900 ring-1 ring-white/10'}`}>
+              <AnchoredPortal
+                anchorRef={settingsRef}
+                open={showSettings}
+                dataAttr={{ name: "data-settings-menu", value: true }}
+                className={`w-72 md:w-80 rounded-2xl border backdrop-blur-sm shadow-2xl p-3 text-sm md:text-base menu-pop-in ${settings.lightMode ? 'border-parchment-200 bg-parchment-50 ring-1 ring-black/5' : 'border-navyink-700 bg-navyink-850 ring-1 ring-white/10'}`}
+              >
                 
                 <label className="flex items-center justify-between py-1">
-                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hard mode</span>
+                  <span className={`${settings.lightMode ? 'text-navyink-800' : 'text-parchment-200'}`}>Hard mode</span>
                   <button
                     role="switch"
                     aria-checked={settings.hardMode ? "true" : "false"}
@@ -2048,18 +2115,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                         } catch {}
                       }
                     }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.hardMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.hardMode ? 'bg-brand-600' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}
                     aria-label="Toggle hard mode"
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.hardMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-navyink-700/65' : 'text-parchment-200/55'}`}>
                   Hides step locations ({stepEmoji}) until revealed. Saved as your default.
                 </div>
 
                 <label className="flex items-center justify-between py-1">
-                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Easy mode</span>
+                  <span className={`${settings.lightMode ? 'text-navyink-800' : 'text-parchment-200'}`}>Easy mode</span>
                   <button
                     role="switch"
                     aria-checked={settings.easyMode ? "true" : "false"}
@@ -2074,18 +2141,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                         } catch {}
                       }
                     }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.easyMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.easyMode ? 'bg-brand-600' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}
                     aria-label="Toggle easy mode"
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.easyMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-xs md:text-sm ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Filters keyboard to letters in this puzzle. Saved as your default.</div>
-                <div className={`my-2 border-t ${settings.lightMode ? 'border-gray-200' : 'border-gray-800'}`}></div>
+                <div className={`text-xs md:text-sm ${settings.lightMode ? 'text-navyink-700/65' : 'text-parchment-200/55'}`}>Filters keyboard to letters in this puzzle. Saved as your default.</div>
+                <div className={`my-2 border-t ${settings.lightMode ? 'border-parchment-200' : 'border-navyink-700'}`}></div>
 
                 {/* Moved Light mode below divider */}
                 <label className="flex items-center justify-between py-1">
-                  <span className={`${settings.lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Light mode</span>
+                  <span className={`${settings.lightMode ? 'text-navyink-700' : 'text-parchment-200'}`}>Light mode</span>
                   <button
                     role="switch"
                     aria-checked={settings.lightMode ? "true" : "false"}
@@ -2101,44 +2168,44 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                         document.dispatchEvent(new CustomEvent('stepwords-settings-updated', { detail: { lightMode: checked } }));
                       } catch {}
                     }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.lightMode ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.lightMode ? 'bg-brand-600' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}
                     aria-label="Toggle light mode"
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.lightMode ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Invert colors for a light appearance.</div>
+                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-navyink-700/65' : 'text-parchment-200/55'}`}>Invert colors for a light appearance.</div>
 
                 <label className="flex items-center justify-between py-1">
-                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Sounds</span>
+                  <span className={`${settings.lightMode ? 'text-navyink-800' : 'text-parchment-200'}`}>Sounds</span>
                   <button
                     role="switch"
                     aria-checked={settings.soundsEnabled ? "true" : "false"}
                     onClick={() => setSettings(s => ({ ...s, soundsEnabled: !s.soundsEnabled }))}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.soundsEnabled ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.soundsEnabled ? 'bg-brand-600' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}
                     aria-label="Toggle sounds"
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.soundsEnabled ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Step, correct, and celebration sounds. Saved as your default.</div>
+                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-navyink-700/65' : 'text-parchment-200/55'}`}>Step, correct, and celebration sounds. Saved as your default.</div>
 
                 <label className="flex items-center justify-between py-1">
-                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Hide timer while solving</span>
+                  <span className={`${settings.lightMode ? 'text-navyink-800' : 'text-parchment-200'}`}>Hide timer while solving</span>
                   <button
                     role="switch"
                     aria-checked={settings.hideTimerWhileSolving ? "true" : "false"}
                     onClick={() => setSettings(s => ({ ...s, hideTimerWhileSolving: !s.hideTimerWhileSolving }))}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.hideTimerWhileSolving ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.hideTimerWhileSolving ? 'bg-brand-600' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}
                     aria-label="Toggle hide timer while solving"
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.hideTimerWhileSolving ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Time is still recorded; it appears when you finish and counts toward stats.</div>
+                <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-navyink-700/65' : 'text-parchment-200/55'}`}>Time is still recorded; it appears when you finish and counts toward stats.</div>
 
                 <label className="flex items-center justify-between py-1">
-                  <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Use OS keyboard</span>
+                  <span className={`${settings.lightMode ? 'text-navyink-800' : 'text-parchment-200'}`}>Use OS keyboard</span>
                   <button
                     role="switch"
                     aria-checked={useOsKeyboard ? "true" : "false"}
@@ -2152,20 +2219,20 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                         try { localStorage.removeItem('stepwords-kb-collapsed'); } catch {}
                       }
                     }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${useOsKeyboard ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${useOsKeyboard ? 'bg-brand-600' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}
                     aria-label="Toggle OS keyboard"
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useOsKeyboard ? 'translate-x-4' : 'translate-x-1'}`}></span>
                   </button>
                 </label>
-                <div className={`text-xs md:text-sm ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Shows your device keyboard instead of the on‑screen keys. Not saved.</div>
+                <div className={`text-xs md:text-sm ${settings.lightMode ? 'text-navyink-700/65' : 'text-parchment-200/55'}`}>Shows your device keyboard instead of the on‑screen keys. Not saved.</div>
                 
                 {!isMobile && (
                   <>
-                    <div className={`my-2 border-t ${settings.lightMode ? 'border-gray-200' : 'border-gray-800'}`}></div>
+                    <div className={`my-2 border-t ${settings.lightMode ? 'border-parchment-200' : 'border-navyink-700'}`}></div>
                     
                     <label className="flex items-center justify-between py-1">
-                      <span className={`${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>Show all clues</span>
+                      <span className={`${settings.lightMode ? 'text-navyink-800' : 'text-parchment-200'}`}>Show all clues</span>
                       <button
                         role="switch"
                         aria-checked={settings.showAllClues ? "true" : "false"}
@@ -2173,37 +2240,37 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
                           const checked = !settings.showAllClues;
                           setSettings(s => ({ ...s, showAllClues: checked }));
                         }}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.showAllClues ? 'bg-sky-500' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500`}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.showAllClues ? 'bg-brand-600' : 'bg-gray-600'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}
                         aria-label="Toggle show all clues"
                       >
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.showAllClues ? 'translate-x-4' : 'translate-x-1'}`}></span>
                       </button>
                     </label>
-                    <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Display all clues next to their answer spaces instead of showing one at a time.</div>
+                    <div className={`text-xs md:text-sm mb-2 ${settings.lightMode ? 'text-navyink-700/65' : 'text-parchment-200/55'}`}>Display all clues next to their answer spaces instead of showing one at a time.</div>
                   </>
                 )}
-              </div>
+              </AnchoredPortal>
             )}
           </div>
         </div>
         </div>
       {!printMode && (!effectiveSettings.showAllClues || isMobile) && (
-        <div ref={clueBarRef} className={`relative z-10 w-full ${isMobile ? 'px-1' : 'px-3'} py-2 backdrop-blur border-b ${effectiveSettings.lightMode ? 'bg-gray-200 border-gray-300' : 'bg-gray-800 border-sky-900/60'}`}>
+        <div ref={clueBarRef} className={`relative z-10 w-full ${isMobile ? 'px-1' : 'px-3'} py-2.5 backdrop-blur border-b ${effectiveSettings.lightMode ? 'bg-parchment-50 border-parchment-200' : 'bg-navyink-850 border-navyink-700'}`}>
           <div className="flex items-center justify-between">
             <button
               onClick={() => moveLevel(-1)}
               aria-label="Previous word"
-              className={`px-2 py-1 rounded ${settings.lightMode ? 'text-gray-800 hover:bg-gray-200' : 'text-gray-300 hover:text-white hover:bg-gray-900/40'}`}
+              className={`px-2.5 py-1 rounded-full text-lg leading-none transition-colors ${settings.lightMode ? 'text-navyink-700 hover:bg-parchment-100' : 'text-parchment-200 hover:bg-navyink-700'}`}
             >
               ←
             </button>
-            <div className={`text-sm md:text-lg xl:text-xl 2xl:text-xl mx-2 flex-1 text-center ${settings.lightMode ? 'text-gray-800' : 'text-gray-300'}`}>
-              <span className="font-semibold">Clue:</span> {renderClueText(clue)}
+            <div className={`font-serif text-base md:text-lg xl:text-xl 2xl:text-xl mx-2 flex-1 text-center ${settings.lightMode ? 'text-navyink-900' : 'text-parchment-50'}`}>
+              {renderClueText(clue)}
             </div>
           <button
               onClick={() => moveLevel(1)}
               aria-label="Next word"
-              className={`px-2 py-1 rounded ${settings.lightMode ? 'text-gray-800 hover:bg-gray-200' : 'text-gray-300 hover:text-white hover:bg-gray-900/40'}`}
+              className={`px-2.5 py-1 rounded-full text-lg leading-none transition-colors ${settings.lightMode ? 'text-navyink-700 hover:bg-parchment-100' : 'text-parchment-200 hover:bg-navyink-700'}`}
             >
               →
           </button>
@@ -2219,7 +2286,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         <div 
           ref={gridScrollRef}
           id="grid-scroll"
-          className={`flex-1 min-w-0 overflow-auto pt-5 sm:pt-4 md:pt-3 pb-8 z-0 w-full max-w-4xl mx-auto ${printMode ? 'print-scaled-content' : ''}`}
+          className={`flex-1 min-h-0 min-w-0 overflow-auto overscroll-contain pt-5 sm:pt-4 md:pt-3 pb-2 z-0 w-full max-w-4xl mx-auto ${printMode ? 'print-scaled-content' : ''}`}
         onClick={() => {
           if ((useOsKeyboard || !isMobile) && inputRef.current) {
             inputRef.current.focus();
@@ -2389,7 +2456,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           hintCount={hintCount}
           wrongGuessCount={wrongGuessCount}
           guessCount={guessCount}
-          rowsLength={rows.length}
           isQuick={isQuick}
           stars={stars}
           didFail={didFail}
@@ -2397,6 +2463,8 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           lightMode={effectiveSettings.lightMode}
           puzzleId={puzzle.id}
           puzzleNamespace={puzzleNamespace}
+          shareRows={rows}
+          shareGridColors={lockColors}
           onShare={() => {
             try {
               if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
@@ -2408,9 +2476,11 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
               }
             } catch (_err) { void 0; }
           }}
-          onClose={() => {
-            setShowShare(false);
-          }}
+          onClose={handleCloseShareModal}
+          puzzleDate={puzzle.date}
+          streak={winExtras?.streak ?? streak}
+          personalBestHighlights={winExtras?.personalBestHighlights ?? []}
+          perfectWeek={winExtras?.perfectWeek ?? null}
         />
       )}
 
@@ -2444,6 +2514,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       {/* Milestone modal */}
       {!printMode && milestone && (
         <MilestoneModal 
+          key={milestone.id || milestone.message} 
           milestone={milestone} 
           onClose={() => setMilestone(null)} 
           lightMode={effectiveSettings.lightMode} 
@@ -2458,18 +2529,18 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       />}
 
       {!printMode && showLoss && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className={`w-full max-w-sm rounded-lg border p-4 ${effectiveSettings.lightMode ? 'border-gray-300 bg-white text-gray-900' : 'border-gray-700 bg-gray-900 text-gray-200'}`}>
-            <div className="text-lg font-semibold mb-2">Out of missteps</div>
-            <div className={`text-sm mb-4 ${effectiveSettings.lightMode ? 'text-gray-700' : ''}`}>You ran out of missteps. Better luck tomorrow!</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navyink-900/60 px-4 backdrop-blur-sm">
+          <div className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl animate-fade-in-up ${effectiveSettings.lightMode ? 'border-parchment-200 bg-parchment-50 text-navyink-900' : 'border-navyink-700 bg-navyink-850 text-parchment-50'}`}>
+            <div className="font-serif text-lg font-bold mb-2">Out of missteps</div>
+            <div className={`text-sm mb-5 ${effectiveSettings.lightMode ? 'text-navyink-700/75' : 'text-parchment-200/65'}`}>You ran out of missteps. Better luck tomorrow!</div>
             <div className="flex justify-end gap-2 text-sm">
               <button
-                className={`px-3 py-1.5 rounded-md border ${effectiveSettings.lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
+                className={`px-4 py-2 rounded-full border ${effectiveSettings.lightMode ? 'border-parchment-300 text-navyink-700 hover:bg-parchment-100' : 'border-navyink-600 text-parchment-200 hover:bg-navyink-700'}`}
                 onClick={() => setShowLoss(false)}
               >Close</button>
               <a
                 href="/archives"
-                className="px-3 py-1.5 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+                className={`px-4 py-2 rounded-full font-semibold text-white shadow-sm transition-colors ${effectiveSettings.lightMode ? 'bg-brand-700 hover:bg-brand-800' : 'bg-brand-600 hover:bg-brand-500'}`}
                 onClick={(e) => {
                   try { e.preventDefault(); window.history.pushState({}, "", "/archives"); } catch {}
                   setShowLoss(false);

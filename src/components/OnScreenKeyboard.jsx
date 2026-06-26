@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnter, onBackspace, disabledKeys = new Set(), filteredLetters = null, onResize, submitReady = false, submitButtonRef = null, collapsed = false, onToggleCollapse = () => {}, toggleRef = null }) {
   const [isTiny, setIsTiny] = useState(() => {
@@ -27,36 +28,100 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
     }
   };
 
-  const getKeyClass = (key) => {
-    const baseClass = "px-2 py-3 h-14 sm:h-10 xl:h-12 2xl:h-14 rounded font-semibold select-none touch-manipulation text-sm xl:text-base";
-    
-    if (key === 'SUBMIT' || key === 'BACKSPACE') {
-      const pulse = key === 'SUBMIT' && submitReady ? ' animate-pulse ring-2 ring-emerald-400' : '';
-      return lightMode
-        ? `${baseClass} bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400 border border-gray-300 text-xs${pulse}`
-        : `${baseClass} bg-gray-600 text-white hover:bg-gray-500 active:bg-gray-700 text-xs${pulse}`;
+  const [pressedKey, setPressedKey] = useState(null);
+  const pressFlashRef = useRef(null);
+
+  const keyAllowed = (key) => {
+    if (disabledKeys.has(key)) return false;
+    if (key === 'SUBMIT' || key === 'BACKSPACE') return true;
+    if (filteredLetters && !filteredLetters.includes(key)) return false;
+    return true;
+  };
+
+  const releasePressedKey = () => {
+    if (pressFlashRef.current) {
+      clearTimeout(pressFlashRef.current);
+      pressFlashRef.current = null;
     }
-    
+    setPressedKey(null);
+  };
+
+  const pressKey = (key) => {
+    if (!keyAllowed(key)) return;
+    if (pressFlashRef.current) clearTimeout(pressFlashRef.current);
+    setPressedKey(key);
+    handleKeyClick(key);
+    pressFlashRef.current = setTimeout(() => {
+      setPressedKey(null);
+      pressFlashRef.current = null;
+    }, 120);
+  };
+
+  useEffect(() => {
+    const clear = () => releasePressedKey();
+    window.addEventListener('pointerup', clear);
+    window.addEventListener('touchend', clear, { passive: true });
+    window.addEventListener('touchcancel', clear, { passive: true });
+    window.addEventListener('blur', clear);
+    return () => {
+      window.removeEventListener('pointerup', clear);
+      window.removeEventListener('touchend', clear);
+      window.removeEventListener('touchcancel', clear);
+      window.removeEventListener('blur', clear);
+      if (pressFlashRef.current) clearTimeout(pressFlashRef.current);
+    };
+  }, []);
+
+  const getKeyClass = (key) => {
+    const baseClass = "px-2 py-3 h-14 sm:h-10 xl:h-12 2xl:h-14 rounded-lg font-crossword font-bold tracking-normal select-none touch-manipulation text-sm xl:text-base transition-colors";
+    const isPressed = pressedKey === key;
+
+    if (key === 'SUBMIT') {
+      const pulse = submitReady ? ' ring-2 ring-brand-300 ring-offset-1 ring-offset-transparent' : '';
+      return lightMode
+        ? `${baseClass} text-white text-xs${pulse} ${isPressed ? 'bg-brand-900' : 'bg-brand-700 hover:bg-brand-800'}`
+        : `${baseClass} text-white text-xs${pulse} ${isPressed ? 'bg-brand-700' : 'bg-brand-600 hover:bg-brand-500'}`;
+    }
+    if (key === 'BACKSPACE') {
+      return lightMode
+        ? `${baseClass} border border-parchment-400 text-xs ${isPressed ? 'bg-parchment-300 text-navyink-700' : 'bg-parchment-200 text-navyink-700 hover:bg-parchment-300'}`
+        : `${baseClass} text-xs ${isPressed ? 'bg-navyink-800 text-parchment-50' : 'bg-navyink-700 text-parchment-50 hover:bg-navyink-600'}`;
+    }
+
     const isDisabled = disabledKeys.has(key);
     // Only filter letter keys; do not filter special keys like SUBMIT/BACKSPACE
     const isFiltered = filteredLetters && !filteredLetters.includes(key);
-    
+
     if (lightMode) {
       return `${baseClass} ${
         isDisabled || isFiltered
-          ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-          : 'bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400 border border-gray-300'
+          ? 'bg-parchment-100 text-navyink-900/25 cursor-not-allowed border border-parchment-200'
+          : isPressed
+            ? 'bg-parchment-200 text-navyink-900 border border-parchment-400 shadow-sm'
+            : 'bg-white text-navyink-900 hover:bg-parchment-100 border border-parchment-400 shadow-sm'
       }`;
     }
-    return `${baseClass} ${isDisabled || isFiltered ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-800'}`;
+    return `${baseClass} ${
+      isDisabled || isFiltered
+        ? 'bg-navyink-850 text-parchment-200/25 cursor-not-allowed'
+        : isPressed
+          ? 'bg-navyink-800 text-parchment-50'
+          : 'bg-navyink-700 text-parchment-50 hover:bg-navyink-600'
+    }`;
   };
 
   const rootRef = useRef(null);
   const contentOuterRef = useRef(null);
   const contentInnerRef = useRef(null);
   const [contentHeight, setContentHeight] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    if (!rootRef.current) return;
+    setMounted(true);
+  }, []);
+  useEffect(() => {
+    // Wait until the portal content is mounted so refs point at real DOM.
+    if (!mounted || !rootRef.current) return;
     const el = rootRef.current;
     const ro = new ResizeObserver(() => {
       try { onResize && onResize(el.getBoundingClientRect().height); } catch {}
@@ -65,16 +130,17 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
     // initial
     try { onResize && onResize(el.getBoundingClientRect().height); } catch {}
     return () => ro.disconnect();
-  }, [onResize]);
+  }, [onResize, mounted]);
 
   // Measure inner content height for animated collapse/expand (max-height)
   useEffect(() => {
-    if (!contentInnerRef.current) return;
+    // Wait until the portal content is mounted so refs point at real DOM.
+    if (!mounted || !contentInnerRef.current) return;
     const node = contentInnerRef.current;
     const measure = () => {
       try {
         const h = node.scrollHeight;
-        setContentHeight(h);
+        if (h > 0) setContentHeight(h);
       } catch {}
     };
     const ro = new ResizeObserver(() => measure());
@@ -82,10 +148,10 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
     // initial
     measure();
     return () => ro.disconnect();
-  }, []);
+  }, [mounted]);
 
-  return (
-    <div ref={rootRef} className={`fixed bottom-0 left-0 right-0 w-full border-t z-20 transition-[height,background-color] duration-300 ease-out ${lightMode ? 'bg-white/90 border-gray-200' : 'bg-gray-900 border-gray-700'}`} style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', userSelect: 'none' }}>
+  const keyboard = (
+    <div ref={rootRef} className={`fixed bottom-0 left-0 right-0 w-full border-t z-40 transition-[height,background-color] duration-300 ease-out ${lightMode ? 'bg-parchment-100/95 border-parchment-300 backdrop-blur-sm' : 'bg-navyink-850/95 border-navyink-700 backdrop-blur-sm'}`} style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', userSelect: 'none', paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Collapse handle (larger tap target; wrapper handles events) */}
       <div
         className="w-full flex items-center justify-center py-0.5 md:py-1"
@@ -96,7 +162,7 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
       >
         <button
           ref={toggleRef}
-          className={`px-2 py-0.5 md:px-3 md:py-1 text-xs md:text-sm rounded border pointer-events-none ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
+          className={`px-2 py-0.5 md:px-3 md:py-1 text-xs md:text-sm rounded-full border pointer-events-none ${lightMode ? 'border-parchment-300 text-navyink-700' : 'border-navyink-600 text-parchment-200'}`}
           aria-label={collapsed ? 'Expand keyboard' : 'Collapse keyboard'}
         >
           {collapsed ? '▲' : '▼'}
@@ -121,29 +187,34 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
                       // Use pointer for mouse/pen; touch handled in onTouchStart to avoid missed taps on iOS
                       if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
                       e.preventDefault();
-                      const isDisabled = disabledKeys.has(key);
-                      const isSpecial = (key === 'SUBMIT' || key === 'BACKSPACE');
-                      const isFiltered = filteredLetters && !filteredLetters.includes(key);
-                      if (!isDisabled && (isSpecial || !isFiltered)) {
-                        handleKeyClick(key);
-                      }
+                      pressKey(key);
                     }}
+                    onPointerUp={() => releasePressedKey()}
+                    onPointerLeave={() => releasePressedKey()}
+                    onPointerCancel={() => releasePressedKey()}
                     onTouchStart={(e) => {
                       // Dedicated touch handler for iOS Chrome/Safari to improve rapid-tap reliability
                       e.preventDefault();
                       e.stopPropagation();
-                      const isDisabled = disabledKeys.has(key);
-                      const isSpecial = (key === 'SUBMIT' || key === 'BACKSPACE');
-                      const isFiltered = filteredLetters && !filteredLetters.includes(key);
-                      if (!isDisabled && (isSpecial || !isFiltered)) {
-                        handleKeyClick(key);
-                      }
+                      pressKey(key);
                     }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      releasePressedKey();
+                      try { e.currentTarget.blur(); } catch {}
+                    }}
+                    onTouchCancel={(e) => {
+                      e.preventDefault();
+                      releasePressedKey();
+                      try { e.currentTarget.blur(); } catch {}
+                    }}
+                    onContextMenu={(e) => e.preventDefault()}
                     onTouchMove={(e) => { e.preventDefault(); }}
                     disabled={disabledKeys.has(key) || (!['SUBMIT','BACKSPACE'].includes(key) && (filteredLetters && !filteredLetters.includes(key)))}
                     className={getKeyClass(key)}
                     style={{
                       WebkitTapHighlightColor: 'transparent',
+                      WebkitTouchCallout: 'none',
                       minWidth: key === 'SUBMIT' ? (isTiny ? '62px' : '70px') : key === 'BACKSPACE' ? (isTiny ? '54px' : '60px') : (isTiny ? '28px' : '32px'),
                       height: undefined
                     }}
@@ -155,20 +226,11 @@ export default function OnScreenKeyboard({ lightMode = false, onKeyPress, onEnte
               </div>
             ))}
           </div>
-          {/* Copyright notice */}
-          <div className={`px-3 pt-3 pb-1 text-xs ${lightMode ? 'text-gray-500 border-t border-gray-200' : 'text-gray-500 border-t border-gray-700'} ${collapsed ? '' : 'kb-pop-in'}`} style={{ animationDelay: collapsed ? undefined : '60ms' }}>
-            <div className="flex justify-between items-center gap-6 min-w-0">
-              <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-[60vw]">© 2025 Stepwords™. All rights reserved.</span>
-              <a 
-                href="mailto:hello@stepwords.xyz"
-                className="text-sky-400 hover:underline whitespace-nowrap"
-              >
-                hello@stepwords.xyz
-              </a>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   );
+
+  if (!mounted) return null;
+  return createPortal(keyboard, document.body);
 }

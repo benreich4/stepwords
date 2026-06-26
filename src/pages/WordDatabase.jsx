@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchManifest, loadPuzzleById } from '../lib/puzzles.js';
 import { fetchQuickManifest, loadQuickById } from '../lib/quickPuzzles.js';
+import { getInitialLightMode } from '../lib/theme.js';
 
 export default function WordDatabase() {
   const [loading, setLoading] = useState(true);
@@ -9,14 +10,7 @@ export default function WordDatabase() {
   const [wordData, setWordData] = useState(null); // Map of word -> { frequency, clues: [{ clue, puzzleId, puzzleType, date }] }
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWord, setSelectedWord] = useState(null);
-  const [lightMode, setLightMode] = useState(() => {
-    try {
-      const s = JSON.parse(localStorage.getItem('stepwords-settings') || '{}');
-      return s.lightMode === true;
-    } catch {
-      return false;
-    }
-  });
+  const [lightMode] = useState(getInitialLightMode);
 
   useEffect(() => {
     document.title = 'Stepwords - Word Database';

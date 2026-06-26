@@ -39,20 +39,20 @@ export default function AutosolveIntroPopup({
     <>
       {/* Backdrop blur - fades out as modal moves */}
       <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-[1500ms] ease-in-out pointer-events-none z-40"
+        className="fixed inset-0 bg-navyink-900/60 backdrop-blur-sm transition-opacity duration-[1500ms] ease-in-out pointer-events-none z-40"
         style={{ opacity: moved ? 0 : 1 }} 
       />
       <div 
         className="fixed z-50 left-1/2 transition-[top,transform] duration-[1500ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] will-change-[top,transform]"
         style={popupStyle}
       >
-        <div className={`${lightMode ? 'bg-white text-gray-900 border-gray-300' : 'bg-gray-900 text-gray-100 border-gray-700'} relative z-10 w-[90vw] max-w-md rounded-xl border shadow-xl`}>
+        <div className={`${lightMode ? 'bg-parchment-50 text-navyink-900 border-parchment-200' : 'bg-navyink-850 text-parchment-50 border-navyink-700'} relative z-10 w-[90vw] max-w-md rounded-3xl border shadow-2xl`}>
           <div className="p-6">
-            <div className="text-xl font-semibold mb-3">How Stepwords Works</div>
-            <div className={`${lightMode ? 'text-gray-700' : 'text-gray-300'} text-sm mb-4 space-y-2`}>
+            <div className="font-serif text-xl font-bold mb-3">How Stepwords Works</div>
+            <div className={`${lightMode ? 'text-navyink-700/75' : 'text-parchment-200/65'} text-[15px] leading-relaxed mb-4 space-y-2`}>
               <p>Each answer is an anagram of the previous answer plus one additional letter.</p>
               <p>Check out daily puzzles at{' '}
-                <a href="https://stepwords.xyz" className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">
+                <a href="https://stepwords.xyz" className={`hover:underline ${lightMode ? 'text-brand-700' : 'text-brand-300'}`} target="_blank" rel="noopener noreferrer">
                   https://stepwords.xyz
                 </a>
               </p>

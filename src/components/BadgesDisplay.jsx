@@ -19,17 +19,17 @@ export default function BadgesDisplay({ lightMode = false, compact = false }) {
         return (
           <div
             key={key}
-            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border-2 ${
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border ${
               compact ? 'text-xs md:text-sm' : 'text-sm md:text-base'
             } ${
               isAchieved
-                ? (lightMode ? 'bg-emerald-100 border-emerald-500' : 'bg-emerald-900/40 border-emerald-500')
-                : (lightMode ? 'bg-gray-100 border-gray-300 border-dashed' : 'bg-gray-800/30 border-gray-600 border-dashed')
+                ? (lightMode ? 'bg-emerald-50 border-emerald-400' : 'bg-emerald-900/30 border-emerald-500/70')
+                : (lightMode ? 'bg-parchment-100 border-parchment-300 border-dashed' : 'bg-navyink-850 border-navyink-600 border-dashed')
             }`}
             title={desc}
           >
-            <span className={isAchieved ? color : 'text-gray-500'}>{e}</span>
-            <span className={isAchieved ? (lightMode ? 'text-emerald-900 font-medium' : 'text-emerald-100 font-medium') : (lightMode ? 'text-gray-500' : 'text-gray-500')}>{desc}</span>
+            <span className={isAchieved ? color : (lightMode ? 'text-navyink-700/40' : 'text-parchment-200/35')}>{e}</span>
+            <span className={isAchieved ? (lightMode ? 'text-emerald-800 font-medium' : 'text-emerald-100 font-medium') : (lightMode ? 'text-navyink-700/55' : 'text-parchment-200/45')}>{desc}</span>
           </div>
         );
       })}

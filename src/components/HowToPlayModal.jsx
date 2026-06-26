@@ -1,79 +1,225 @@
+import { useEffect, useMemo, useState } from "react";
 import { computeStepIndices } from "../lib/gameUtils.js";
 
-export default function HowToPlayModal({ onClose, lightMode = false, stepEmoji = '🪜' }) {
-  const exampleWords = ["SOW", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"];
-  const exampleRows = exampleWords.map(w => ({ answer: w }));
-  const exampleStepIdx = computeStepIndices(exampleRows);
+const EXAMPLE_WORDS = ["SOW", "OWES", "SWORE", "POWERS", "POWDERS", "STEPWORD"];
+
+function ExamplePuzzle({ words, stepIdx, stepEmoji, exampleBg }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 py-4 overflow-y-auto">
-      <div className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl my-auto ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gradient-to-b from-gray-900 to-black'}`}>
-        <div className="flex items-start justify-between mb-4">
-          <div className={`text-2xl font-bold ${lightMode ? 'text-gray-900' : 'text-white'}`}>How to Play</div>
+    <div className={`rounded-2xl p-3 ${exampleBg}`}>
+      <div className="flex flex-col items-start gap-1">
+        {words.map((word, i) => (
+          <div key={i} className="flex gap-0.5">
+            {word.split("").map((letter, j) => (
+              <div
+                key={j}
+                className="relative inline-flex h-7 w-7 select-none items-center justify-center rounded-[5px] border-2 border-[#5f9a5a] bg-[#6aaa64] font-serif text-[11px] font-semibold uppercase leading-none text-white sm:h-7 sm:w-7 sm:text-xs"
+              >
+                <span>{letter}</span>
+                {i >= 1 && j === stepIdx[i] && (
+                  <span
+                    className="pointer-events-none absolute bottom-0 right-0 select-none text-[9px] leading-none"
+                    aria-hidden
+                  >
+                    {stepEmoji}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function HowToPlayModal({ onClose, lightMode = false, stepEmoji = "🪜" }) {
+  const [step, setStep] = useState(0);
+  const stepCount = 5;
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  const exampleRows = useMemo(() => EXAMPLE_WORDS.map((w) => ({ answer: w })), []);
+  const exampleStepIdx = useMemo(() => computeStepIndices(exampleRows), [exampleRows]);
+
+  const panel = lightMode
+    ? "border-parchment-200 bg-parchment-50 text-navyink-900"
+    : "border-navyink-700 bg-navyink-850 text-parchment-50";
+  const muted = lightMode ? "text-navyink-700/70" : "text-parchment-200/60";
+  const exampleBg = lightMode ? "bg-parchment-100" : "bg-navyink-800";
+  const btnPrimary = lightMode
+    ? "bg-brand-700 hover:bg-brand-800"
+    : "bg-brand-600 hover:bg-brand-500";
+  const btnGhost = lightMode
+    ? "border-parchment-300 text-navyink-700 hover:bg-parchment-100"
+    : "border-navyink-600 text-parchment-200 hover:bg-navyink-700";
+  const body = `text-sm leading-relaxed ${muted}`;
+
+  const isLast = step === stepCount - 1;
+
+  const renderStep = () => {
+    switch (step) {
+      case 0:
+        return (
+          <div className="space-y-3">
+            <p className={body}>
+              Each answer is an anagram of the previous answer plus exactly one new letter.
+            </p>
+            <ExamplePuzzle
+              words={EXAMPLE_WORDS}
+              stepIdx={exampleStepIdx}
+              stepEmoji={stepEmoji}
+              exampleBg={exampleBg}
+            />
+            <p className={body}>
+              The {stepEmoji} indicates the location of the new letter in each answer.
+            </p>
+          </div>
+        );
+      case 1:
+        return (
+          <div className="space-y-3">
+            <p className={body}>
+              Each answer has a clue. Clues include word lengths for multi-word answers. For example,{" "}
+              <span className="font-medium">Audit (3,2,2)</span> could be a clue for{" "}
+              <span className="font-medium">sit in on</span>.
+            </p>
+            <p className={body}>
+              Remember that clues will match in tense, number, and tone. The answer can usually be a direct
+              replacement for the clue — like in a crossword puzzle.
+            </p>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="space-y-3">
+            <p className={body}>
+              After you enter a word, you can hit <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Submit</strong> (or{" "}
+              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Enter</strong> on your keyboard). The letters for the
+              currently selected answer will turn:
+            </p>
+            <ul className={`space-y-2 ${body}`}>
+              <li>
+                <span className="font-semibold text-[#6aaa64]">Green</span> — correct on the first try
+              </li>
+              <li>
+                <span className="font-semibold text-[#bda64f]">Yellow</span> — needed extra guesses or hints
+              </li>
+            </ul>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="space-y-3">
+            <p className={body}>
+              Tap the <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Hints</strong> button for help. There are three types:
+            </p>
+            <ul className={`space-y-2.5 ${body}`}>
+              <li>
+                <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Word starts</strong> — reveals
+                the starting letters of all answers, alphabetically. You can extend to longer prefixes.
+              </li>
+              <li>
+                <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Lifelines</strong> — reveal
+                groups of letters across every row at once (first, last, middle, or first/last/step letters). Each
+                lifeline can only be used once per puzzle.
+              </li>
+              <li>
+                <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Reveal</strong> — reveal a
+                single letter or an entire word in the row you're working on.
+              </li>
+            </ul>
+          </div>
+        );
+      case 4:
+      default:
+        return (
+          <ul className={`space-y-2.5 ${body}`}>
+            <li>
+              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Stars</strong> — fewer missteps
+              and hints means more stars.
+            </li>
+            <li>
+              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Streak</strong> — solve before
+              midnight ET to keep it going.
+            </li>
+            <li>
+              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Hard mode</strong> hides {stepEmoji}{" "}
+              locations.
+            </li>
+            <li>
+              <strong className={lightMode ? "text-navyink-900" : "text-parchment-50"}>Easy mode</strong> filters the
+              keyboard.
+            </li>
+          </ul>
+        );
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div
+        className="absolute inset-0 bg-navyink-900/60 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="How to Play"
+        className={`relative z-10 w-full max-w-sm rounded-3xl border p-5 shadow-2xl animate-fade-in-up ${panel}`}
+      >
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-xl font-bold">How to Play</h2>
+            <p className={`mt-0.5 text-xs ${muted}`}>
+              {step + 1} of {stepCount}
+            </p>
+          </div>
           <button
             onClick={onClose}
-            className={`ml-4 p-2 rounded-lg transition-colors ${lightMode ? 'text-gray-600 hover:text-black hover:bg-gray-100' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
+            className={`-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors ${lightMode ? "text-navyink-700 hover:bg-parchment-100" : "text-parchment-200 hover:bg-navyink-700"}`}
             aria-label="Close"
           >
             ✕
           </button>
         </div>
-        
-        <div className={`space-y-4 ${lightMode ? 'text-gray-800' : 'text-gray-200'}`}>
-          <p>
-            Each answer is an <strong className={`${lightMode ? 'text-gray-900' : 'text-white'}`}>anagram</strong> of the previous answer plus one additional letter. 
-          </p>
-          
-          <p>
-            Every clue includes the length of each word in the answer (e.g. <span className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}> Audit (3,2,2)</span> is a clue for <span className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>sit in on</span>).
-          </p>
-          
-          <div className={`${lightMode ? 'bg-gray-100' : 'bg-gray-800'} rounded-lg p-4 my-4`}>
-            <div className={`text-sm mb-3 ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Example puzzle:</div>
-            <div className="flex flex-col items-start gap-1">
-              {exampleWords.map((word, i) => (
-                <div key={i} className="flex gap-0">
-                  {word.split("").map((letter, j) => (
-                    <div
-                      key={j}
-                      className="relative inline-flex items-center justify-center border rounded-[6px] select-none uppercase font-bold leading-none w-8 h-8 text-sm bg-green-600 border-green-500 text-white"
-                    >
-                      <span>{letter}</span>
-                      {i >= 1 && j === exampleStepIdx[i] && (
-                        <span className="pointer-events-none absolute bottom-[1px] right-[1px] select-none text-[10px] leading-none" aria-hidden>
-                          {stepEmoji}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-            
-          </div>
-          
-          <div className="space-y-2 text-sm">
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>The {stepEmoji} shows where the new letter was added.</li>
-              <li>Correct letters turn <span className="text-green-400">green</span>;  Ones that required multiple guesses or hints turn <span className="text-yellow-400">yellow</span>.</li>
-              <li>Submit a row with <strong>Enter</strong> or <strong>Submit</strong>.</li>
-              <li><strong>Hard mode</strong>: hides {stepEmoji} step locations</li>
-              <li><strong>Easy mode</strong>: filters the keyboard.</li>
-              <li><strong>Stars</strong>: Achieve more stars the fewer missteps and hints used. Use too many and you lose the game!</li>
-              <li><strong>Streaks</strong>: Solve today's puzzle before midnight ET to keep your streak going. Separate streaks for Main and Quick puzzles.</li>
-              <li><strong>Quick Stepword</strong>: a daily warm‑up.</li>
-            </ul>
-          </div>
-          <p className={`${lightMode ? 'text-gray-600' : 'text-gray-400'} text-xs`}>
-            Puzzles get a bit harder over the week, and a new one unlocks every night at midnight (ET).
-          </p>
+
+        <div className="mb-1 flex justify-center gap-1.5" aria-hidden>
+          {Array.from({ length: stepCount }).map((_, i) => (
+            <span
+              key={i}
+              className={`h-1.5 rounded-full transition-all ${
+                i === step
+                  ? `w-4 ${lightMode ? "bg-brand-700" : "bg-brand-500"}`
+                  : `w-1.5 ${lightMode ? "bg-parchment-300" : "bg-navyink-600"}`
+              }`}
+            />
+          ))}
         </div>
-        
-        <div className="flex justify-end mt-6">
+
+        <div className="min-h-[200px] pt-2">{renderStep()}</div>
+
+        <div className="mt-4 flex items-center justify-between gap-3">
           <button
-            onClick={onClose}
-            className={`px-6 py-2 rounded-md text-white font-semibold hover:bg-sky-700 ${lightMode ? 'bg-sky-600' : 'bg-sky-600'}`}
+            type="button"
+            onClick={() => setStep((s) => Math.max(0, s - 1))}
+            disabled={step === 0}
+            className={`rounded-full border px-4 py-2 text-sm transition-colors disabled:invisible ${btnGhost}`}
           >
-            Got it!
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={isLast ? onClose : () => setStep((s) => s + 1)}
+            className={`rounded-full px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors ${btnPrimary}`}
+          >
+            {isLast ? "Got it" : "Next"}
           </button>
         </div>
       </div>

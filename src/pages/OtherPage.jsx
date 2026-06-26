@@ -7,7 +7,6 @@ import { formatDateWithDayOfWeek, getTodayIsoInET, isPreviewEnabled } from "../l
 export default function OtherPage() {
   const { puzzleId } = useParams();
   const [data, setData] = useState(null);
-  const [nav, setNav] = useState({ prevId: null, nextId: null });
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -24,17 +23,6 @@ export default function OtherPage() {
           throw new Error("This puzzle is not yet available.");
         }
         setData(json);
-        const idx = manifest.findIndex((p) => String(p.id) === String(puzzleId));
-        let prevId = null, nextId = null;
-        if (idx > 0) {
-          const prev = manifest[idx - 1];
-          if (prev && (preview || !prev.date || prev.date <= todayET)) prevId = String(prev.id);
-        }
-        if (idx >= 0 && idx + 1 < manifest.length) {
-          const next = manifest[idx + 1];
-          if (next && (preview || !next.date || next.date <= todayET)) nextId = String(next.id);
-        }
-        setNav({ prevId, nextId });
         const dateStr = json.date ? formatDateWithDayOfWeek(json.date) : "";
         const pageTitle = `Other Stepword – #${json.id}${dateStr ? ` (${dateStr})` : ""}`;
         document.title = pageTitle;

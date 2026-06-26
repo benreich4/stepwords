@@ -2,14 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchPacks } from "../lib/puzzlePacks.js";
 
-function getLightMode() {
-  try {
-    const s = JSON.parse(localStorage.getItem("stepwords-settings") || "{}");
-    return s.lightMode === true;
-  } catch {
-    return false;
-  }
-}
+import { getInitialLightMode } from "../lib/theme.js";
 
 export default function PacksPage() {
   const [packs, setPacks] = useState([]);
@@ -22,7 +15,7 @@ export default function PacksPage() {
       .catch((e) => setErr(e.message));
   }, []);
 
-  const lightMode = getLightMode();
+  const lightMode = getInitialLightMode();
 
   if (err) return <div className="px-3 py-4 text-red-400">{err}</div>;
 

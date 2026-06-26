@@ -2,7 +2,8 @@
  * Milestone/badge tracking and celebration utilities
  */
 
-import { ALL_BADGES, FIRST_SOLVE_BADGE, getAchievedBadges } from './badges.js';
+import { getPerfectWeekCount } from './perfectWeek.js';
+import { getAchievedBadges, ALL_BADGES, FIRST_SOLVE_BADGE } from './badges.js';
 
 const BADGES_KEY = 'stepwords-badges-achieved';
 const OLD_MILESTONES_KEY = 'stepwords-milestones-achieved';
@@ -118,6 +119,7 @@ export function checkMilestones(puzzleId, isQuick, stats, puzzleNamespace) {
       { key: '25-perfects', condition: perfectCount >= 25 },
       { key: '50-perfects', condition: perfectCount >= 50 },
       { key: '100-perfects', condition: perfectCount >= 100 },
+      { key: 'perfect-week', condition: getPerfectWeekCount() >= 1 },
       { key: 'hint-word-starts', condition: hintsUsed.has('hint-word-starts') },
       { key: 'hint-first3', condition: hintsUsed.has('hint-first3') },
       { key: 'hint-last3', condition: hintsUsed.has('hint-last3') },
@@ -155,7 +157,7 @@ function getBadgeDef(key) {
   }
   const def = ALL_BADGES.find((b) => b.key === key);
   const cat = def?.category;
-  const emoji = cat === 'solves' ? '🏆' : cat === 'streak' ? '🔥' : cat === 'speed' ? '⏱️' : cat === 'perfects' ? '✨' : cat === 'hints' ? '💡' : '🏅';
+  const emoji = cat === 'solves' ? '🏆' : cat === 'streak' ? '🔥' : cat === 'speed' ? '⏱️' : cat === 'perfects' ? '✨' : cat === 'week' ? '📅' : cat === 'hints' ? '💡' : '🏅';
   const msg = def?.description || key;
   return { message: `${emoji} ${msg}`, emoji };
 }

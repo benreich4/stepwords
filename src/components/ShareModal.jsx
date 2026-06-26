@@ -1,21 +1,92 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
+import { formatDateWithDayOfWeek, getTodayIsoInET } from "../lib/date.js";
+import { shouldSendAnalytics } from "../lib/autosolveUtils.js";
 import { fetchManifest } from "../lib/puzzles.js";
 import { fetchQuickManifest } from "../lib/quickPuzzles.js";
-import { getTodayIsoInET } from "../lib/date.js";
-import { shouldSendAnalytics } from "../lib/autosolveUtils.js";
 import { getOrCreateUserId, submitRating, modeFromNamespace } from "../lib/ratings.js";
+import { pickTodayPuzzle, readSet } from "../lib/puzzleStatus.js";
 import RatingIntroPopup from "./RatingIntroPopup.jsx";
 
+const RATING_INTRO_SEEN_KEY = "stepwords-rating-intro-seen";
 const RATINGS_KEY = (ns) => `${ns}-ratings`;
-const RATING_INTRO_SEEN_KEY = 'stepwords-rating-intro-seen';
+
+function StatColumn({ label, children, lightMode, bordered }) {
+  return (
+    <div className={`flex flex-1 flex-col items-center justify-center px-1 py-2.5 ${bordered ? (lightMode ? "border-l border-parchment-200" : "border-l border-navyink-700") : ""}`}>
+      <div className={`font-sans text-lg font-bold tabular-nums leading-none ${lightMode ? "text-navyink-900" : "text-parchment-50"}`}>
+        {children}
+      </div>
+      <div className={`mt-1 text-[9px] font-medium uppercase tracking-wider ${lightMode ? "text-navyink-700/55" : "text-parchment-200/50"}`}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+const STAR_FILLED = "#FFD700";
+const STAR_EMPTY_LIGHT = "#D8C9AB";
+const STAR_EMPTY_DARK = "#4A6080";
+
+function StarRating({ count, lightMode, max = 3 }) {
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {Array.from({ length: max }, (_, i) => {
+        const filled = i < count;
+        const fill = filled ? STAR_FILLED : lightMode ? STAR_EMPTY_LIGHT : STAR_EMPTY_DARK;
+        return (
+          <svg key={i} viewBox="0 0 24 24" width="20" height="20" className="shrink-0" aria-hidden>
+            <path
+              fill={fill}
+              style={{ fill }}
+              d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+            />
+          </svg>
+        );
+      })}
+    </span>
+  );
+}
+
+function ShareIcon({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <polyline points="16 6 12 2 8 6" />
+      <line x1="12" y1="2" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function ShareGridVisual({ rows, colors, lightMode }) {
+  if (!rows?.length) return null;
+  const emptyCls = lightMode ? "bg-parchment-200" : "bg-navyink-700";
+  return (
+    <div className="inline-flex flex-col gap-[3px]" aria-label="Puzzle result grid">
+      {rows.map((row, i) => (
+        <div key={i} className="flex gap-[3px]">
+          {Array.from({ length: row.answer.length }, (_, c) => {
+            const tok = colors?.[i]?.[c];
+            const cls =
+              tok === "G"
+                ? "bg-[#6aaa64]"
+                : tok === "Y"
+                  ? "bg-[#c9b458]"
+                  : emptyCls;
+            return <div key={c} className={`h-3 w-3 shrink-0 ${cls}`} />;
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ShareModal({
   shareText,
   hintCount,
   wrongGuessCount,
   guessCount,
-  rowsLength,
   onClose,
   isQuick = false,
   stars = null,
@@ -25,15 +96,21 @@ export default function ShareModal({
   lightMode = false,
   puzzleId = null,
   puzzleNamespace = null,
+  puzzleDate = null,
+  streak = null,
+  personalBestHighlights = [],
+  perfectWeek = null,
+  shareRows = null,
+  shareGridColors = null,
 }) {
   const [notice, setNotice] = useState("");
-  const ns = puzzleNamespace || (isQuick ? 'quickstep' : 'stepwords');
+  const ns = puzzleNamespace || (isQuick ? "quickstep" : "stepwords");
   const ratingsKey = RATINGS_KEY(ns);
 
   const [showRatingIntro, setShowRatingIntro] = useState(() => {
     if (!puzzleId || didFail) return false;
     try {
-      return localStorage.getItem(RATING_INTRO_SEEN_KEY) !== '1';
+      return localStorage.getItem(RATING_INTRO_SEEN_KEY) !== "1";
     } catch {
       return false;
     }
@@ -42,18 +119,20 @@ export default function ShareModal({
   const [rating, setRating] = useState(() => {
     if (!puzzleId) return null;
     try {
-      const map = JSON.parse(localStorage.getItem(ratingsKey) || '{}');
+      const map = JSON.parse(localStorage.getItem(ratingsKey) || "{}");
       const r = map[puzzleId];
-      return typeof r === 'number' && r >= 1 && r <= 5 ? r : null;
+      return typeof r === "number" && r >= 1 && r <= 5 ? r : null;
     } catch {
       return null;
     }
   });
 
+  const [todayCta, setTodayCta] = useState(null);
+
   const saveRating = (value) => {
     if (!puzzleId) return;
     try {
-      const map = JSON.parse(localStorage.getItem(ratingsKey) || '{}');
+      const map = JSON.parse(localStorage.getItem(ratingsKey) || "{}");
       map[puzzleId] = value;
       localStorage.setItem(ratingsKey, JSON.stringify(map));
     } catch {}
@@ -62,7 +141,7 @@ export default function ShareModal({
   const dismissRatingIntro = () => {
     setShowRatingIntro(false);
     try {
-      localStorage.setItem(RATING_INTRO_SEEN_KEY, '1');
+      localStorage.setItem(RATING_INTRO_SEEN_KEY, "1");
     } catch {}
   };
 
@@ -74,106 +153,89 @@ export default function ShareModal({
       const userId = getOrCreateUserId();
       const mode = modeFromNamespace(ns);
       await submitRating(puzzleId, mode, value, userId);
-    } catch (_err) {
-      // Keep in localStorage; server sync may retry later or user can change again
-    }
+    } catch {}
     try {
-      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
-        window.gtag('event', 'puzzle_rated', {
-          puzzle_id: puzzleId || 'unknown',
+      if (shouldSendAnalytics() && window.gtag && typeof window.gtag === "function") {
+        window.gtag("event", "puzzle_rated", {
+          puzzle_id: puzzleId || "unknown",
           mode: modeFromNamespace(ns),
           rating: value,
-          value: value,
+          value,
           is_rating_change: previousRating !== null,
           hint_count: hintCount,
           guess_count: guessCount,
           stars: Number.isFinite(stars) ? stars : null,
         });
       }
-    } catch (_err) { void 0; }
+    } catch {}
   };
-  const [ctaHref, setCtaHref] = useState(isQuick ? "/" : "/quick");
-  const [ctaText, setCtaText] = useState(isQuick ? "Try today’s Main Stepword Puzzle" : "Try today’s Quick Stepword Puzzle");
-  const isPerfect = !didFail && hintCount === 0 && wrongGuessCount === 0;
-  const [perfectPulse, setPerfectPulse] = useState(isPerfect);
-  // Determine if this is today's puzzle in ET
-  const { isTodayET, puzzleDateText } = (() => {
+
+  const puzzleDateText = (() => {
+    if (puzzleDate) return formatDateWithDayOfWeek(puzzleDate);
     try {
-      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-      // Expect the page to have puzzle date in document.title e.g., "(..., September 19, 2025)"
       const m = document.title.match(/\((\w+,\s+\w+\s+\d{1,2},\s+\d{4})\)$/);
-      if (!m) return { isTodayET: false, puzzleDateText: null };
-      const dt = new Date(m[1]);
-      const y = dt.getFullYear();
-      const mm = String(dt.getMonth()+1).padStart(2,'0');
-      const dd = String(dt.getDate()).padStart(2,'0');
-      const iso = `${y}-${mm}-${dd}`;
-      return { isTodayET: iso === today, puzzleDateText: m[1] };
+      return m ? m[1] : formatDateWithDayOfWeek(getTodayIsoInET());
     } catch {
-      return { isTodayET: false, puzzleDateText: null };
+      return formatDateWithDayOfWeek(getTodayIsoInET());
     }
   })();
 
-  const hasTime = Boolean(elapsedTime && !didFail);
+  const isTodayET = (() => {
+    try {
+      const today = getTodayIsoInET();
+      if (puzzleDate) return puzzleDate === today;
+      const m = document.title.match(/\((\w+,\s+\w+\s+\d{1,2},\s+\d{4})\)$/);
+      if (!m) return false;
+      const dt = new Date(m[1]);
+      const iso = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+      return iso === today;
+    } catch {
+      return false;
+    }
+  })();
 
-  // Run Perfect badge pulse animation once when modal opens (for duration of WOW sound)
-  useEffect(() => {
-    if (!isPerfect) return;
-    const t = setTimeout(() => setPerfectPulse(false), 1400);
-    return () => clearTimeout(t);
-  }, [isPerfect]);
+  const starCount = (() => {
+    let s = stars;
+    if (!Number.isFinite(s) && puzzleId) {
+      try {
+        const map = JSON.parse(localStorage.getItem(`${ns}-stars`) || "{}");
+        if (Number.isFinite(map[puzzleId])) s = map[puzzleId];
+      } catch {}
+    }
+    return Math.max(0, Math.min(3, s || 0));
+  })();
+  const streakCount = streak?.current > 0 ? streak.current : 0;
 
-  // Handle ESCAPE key to close modal
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        onClose?.();
-      }
+      if (e.key === "Escape") onClose?.();
     };
-    window.addEventListener('keydown', handleEscape);
-    return () => {
-      window.removeEventListener('keydown', handleEscape);
-    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose]);
 
-  // Determine CTA destination: if today's target mode is already solved, link to most recent unsolved; else link to today's in target mode
   useEffect(() => {
     let cancelled = false;
+    setTodayCta(null);
     (async () => {
       try {
-        const today = getTodayIsoInET();
         if (isQuick) {
-          // Link to today's Main if unsolved, otherwise to most recent unsolved Main
           const list = await fetchManifest();
-          const completed = new Set(JSON.parse(localStorage.getItem('stepwords-completed') || '[]'));
-          const available = list.filter(p => p.date <= today);
-          const todayMeta = available.find(p => p.date === today);
-          if (todayMeta && !completed.has(todayMeta.id)) {
-            if (!cancelled) { setCtaHref(`/${todayMeta.id}`); setCtaText("Try today’s Main Stepword Puzzle"); }
-            return;
-          }
-          // pick most recent unsolved
-          const recentUnsolved = available.slice().reverse().find(p => !completed.has(p.id));
-          if (recentUnsolved) {
-            if (!cancelled) { setCtaHref(`/${recentUnsolved.id}`); setCtaText("Try an unsolved puzzle from the archives!"); }
-          } else {
-            if (!cancelled) { setCtaHref('/archives'); setCtaText("Try an unsolved puzzle from the archives!"); }
+          const completed = readSet("stepwords-completed");
+          const todayMeta = pickTodayPuzzle(list);
+          if (todayMeta?.id != null && !completed.has(String(todayMeta.id))) {
+            if (!cancelled) {
+              setTodayCta({ href: `/${todayMeta.id}`, text: "Try today's Daily puzzle" });
+            }
           }
         } else {
-          // From Main → target Quick
           const list = await fetchQuickManifest();
-          const completed = new Set(JSON.parse(localStorage.getItem('quickstep-completed') || '[]'));
-          const available = list.filter(p => p.date <= today);
-          const todayMeta = available.find(p => p.date === today);
-          if (todayMeta && !completed.has(todayMeta.id)) {
-            if (!cancelled) { setCtaHref(`/quick/${todayMeta.id}`); setCtaText("Try today’s Quick Stepword Puzzle"); }
-            return;
-          }
-          const recentUnsolved = available.slice().reverse().find(p => !completed.has(p.id));
-          if (recentUnsolved) {
-            if (!cancelled) { setCtaHref(`/quick/${recentUnsolved.id}`); setCtaText("Try an unsolved puzzle from the archives!"); }
-          } else {
-            if (!cancelled) { setCtaHref('/archives'); setCtaText("Try an unsolved puzzle from the archives!"); }
+          const completed = readSet("quickstep-completed");
+          const todayMeta = pickTodayPuzzle(list);
+          if (todayMeta?.id != null && !completed.has(String(todayMeta.id))) {
+            if (!cancelled) {
+              setTodayCta({ href: `/quick/${todayMeta.id}`, text: "Try today's Quick puzzle" });
+            }
           }
         }
       } catch {}
@@ -181,165 +243,177 @@ export default function ShareModal({
     return () => { cancelled = true; };
   }, [isQuick]);
 
-  return (
+  const handleShareClick = async () => {
+    try {
+      onShare && onShare();
+    } catch {}
+    try {
+      const header = didFail
+        ? isQuick
+          ? isTodayET
+            ? "I tried today's Quick Stepword Puzzle."
+            : `I tried the Quick Stepword Puzzle for ${puzzleDateText}.`
+          : isTodayET
+            ? "I tried today's Stepword Puzzle."
+            : `I tried the Stepword Puzzle for ${puzzleDateText}.`
+        : isQuick
+          ? isTodayET
+            ? "I solved today's Quick Stepword Puzzle!"
+            : `I solved the Quick Stepword Puzzle for ${puzzleDateText}!`
+          : isTodayET
+            ? "I solved today's Stepword Puzzle!"
+            : `I solved the Stepword Puzzle for ${puzzleDateText}!`;
+      const starLine = !didFail && Number.isFinite(stars) ? `\nStars: ${"★".repeat(starCount)}${"☆".repeat(3 - starCount)}` : "";
+      const timeLine = elapsedTime && !didFail ? `\nTime: ${elapsedTime}` : "";
+      const composed = `${header}${starLine}${timeLine}\n\n${shareText}\n\nhttps://stepwords.xyz${isQuick ? "/quick" : ""}`;
+      await navigator.clipboard.writeText(composed);
+      setNotice("Copied to clipboard");
+    } catch {
+      setNotice("Copy failed");
+    }
+  };
+
+  const pageBg = lightMode ? "bg-parchment-100 text-navyink-900" : "bg-navyink-900 text-parchment-50";
+  const cardBg = lightMode ? "bg-white shadow-card" : "bg-navyink-850 shadow-card-dark border border-navyink-700";
+  const muted = lightMode ? "text-navyink-700/60" : "text-parchment-200/55";
+  const accent = lightMode ? "text-navyink-700/70 hover:text-navyink-900" : "text-parchment-200/60 hover:text-parchment-100";
+  const secondaryBtn = lightMode
+    ? "border-parchment-300 bg-white text-navyink-800 hover:bg-parchment-50"
+    : "border-navyink-600 bg-navyink-850 text-parchment-100 hover:bg-navyink-700";
+
+  const closeAndNavigate = () => {
+    try { onClose?.(); } catch {}
+  };
+
+  return createPortal(
     <>
-    {showRatingIntro && (
-      <RatingIntroPopup onClose={dismissRatingIntro} lightMode={lightMode} />
-    )}
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-2 sm:px-4 overflow-y-auto py-2 sm:py-4 animate-in fade-in duration-300">
-      <div className={`relative w-full max-w-lg rounded-xl border px-3 pt-2 pb-4 shadow-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-500 will-change-transform ${lightMode ? 'border-gray-300 bg-white' : 'border-gray-700 bg-gray-900'}`}>
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <div className={`text-lg sm:text-xl font-bold ${lightMode ? 'text-gray-900' : 'text-white'}`}>
-            {didFail ? 'Too many missteps' : '🎊 You solved it! 🎊'}
-          </div>
-          {isPerfect && (
-            <span
-              className={`inline-flex items-center gap-1 text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border font-bold shrink-0 ${lightMode ? 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-md shadow-emerald-300/30' : 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/30'} ${perfectPulse ? 'perfect-wow-animate' : ''}`}
-            >
-              ✨ Perfect! ✨
-            </span>
-          )}
-          </div>
-          <button
-            onClick={onClose}
-            className={`p-1 rounded-md shrink-0 ${lightMode ? 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
+      {showRatingIntro && (
+        <RatingIntroPopup onClose={dismissRatingIntro} lightMode={lightMode} />
+      )}
+      <div className={`fixed inset-0 z-[60] flex flex-col overflow-y-auto ${pageBg}`}>
+        <button
+          type="button"
+          onClick={onClose}
+          className={`absolute right-4 top-4 z-20 grid h-9 w-9 place-items-center rounded-full text-lg transition-colors ${lightMode ? "text-navyink-700/50 hover:bg-parchment-200/80 hover:text-navyink-800" : "text-parchment-200/50 hover:bg-navyink-800 hover:text-parchment-100"}`}
+          aria-label="Close"
+        >
+          ✕
+        </button>
 
-        {puzzleId && !didFail && (
-          <div className={`mb-2 rounded-lg border p-2 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
-            <p className={`text-sm mb-1 ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Rate this puzzle</p>
-            <div className="flex gap-1 items-center">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => handleRate(n)}
-                  className={`p-1 text-2xl leading-none transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-1 rounded ${lightMode ? 'focus:ring-rose-500 text-rose-500 hover:text-rose-600' : 'focus:ring-rose-400 text-rose-400 hover:text-rose-300'}`}
-                  aria-label={`${n} ${n === 1 ? 'heart' : 'hearts'}`}
-                  aria-pressed={rating === n}
-                >
-                  {rating !== null && n <= rating ? '❤️' : '🤍'}
-                </button>
+        <div className="relative z-0 mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center px-5 py-8 text-center animate-fade-in-up">
+          <h1 className="font-serif text-3xl font-bold tracking-tight">
+            {didFail ? "Out of guesses" : "Solved!"}
+          </h1>
+          <p className={`mt-1 text-xs ${muted}`}>{puzzleDateText}</p>
+
+          {puzzleId && !didFail && (
+            <div className={`mt-4 w-full rounded-xl border px-3 py-2 ${lightMode ? "border-parchment-200 bg-white" : "border-navyink-700 bg-navyink-850"}`}>
+              <p className={`mb-1 text-xs font-medium ${lightMode ? "text-navyink-700" : "text-parchment-200"}`}>Rate this puzzle</p>
+              <div className="flex justify-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => handleRate(n)}
+                    className="p-0.5 text-xl leading-none transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-1 rounded"
+                    aria-label={`${n} ${n === 1 ? "heart" : "hearts"}`}
+                    aria-pressed={rating === n}
+                  >
+                    {rating !== null && n <= rating ? "❤️" : "🤍"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 flex w-full justify-center">
+            {shareRows?.length && shareGridColors ? (
+              <ShareGridVisual rows={shareRows} colors={shareGridColors} lightMode={lightMode} />
+            ) : (
+              <pre className={`text-left font-mono text-xs leading-snug ${lightMode ? "text-navyink-800" : "text-parchment-100"}`}>
+                {shareText}
+              </pre>
+            )}
+          </div>
+
+          {!didFail && (
+            <div className={`mt-4 flex w-full overflow-hidden rounded-xl ${cardBg}`}>
+              <StatColumn label="Time" lightMode={lightMode}>
+                {elapsedTime || "—"}
+              </StatColumn>
+              <StatColumn label="Stars" lightMode={lightMode} bordered>
+                <span aria-label={`${starCount} of 3 stars`}>
+                  <StarRating count={starCount} lightMode={lightMode} />
+                </span>
+              </StatColumn>
+              <StatColumn label="Day streak" lightMode={lightMode} bordered>
+                {streakCount}
+              </StatColumn>
+            </div>
+          )}
+
+          {(personalBestHighlights?.length > 0 || perfectWeek?.isNew) && !didFail && (
+            <div className={`mt-2 w-full space-y-0.5 text-xs font-medium ${lightMode ? "text-brand-700" : "text-brand-300"}`}>
+              {personalBestHighlights?.map((msg) => (
+                <p key={msg}>⚡ {msg}</p>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Primary CTA – move user to today's other puzzle (prominent) */}
-        <div className="mb-2">
-          <Link
-            to={ctaHref}
-            className="block w-full text-center px-3 py-1.5 rounded-md bg-emerald-500 text-white font-semibold hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all duration-200 text-sm"
-            onClick={() => {
-              try {
-                if (shouldSendAnalytics() && window.gtag && typeof window.gtag === 'function') {
-                  const target = ctaHref.startsWith('/quick') ? 'quick' : (ctaHref === '/archives' ? 'archives' : 'main');
-                  window.gtag('event', 'cta_navigate', { target, source: 'completion_modal_top', mode: isQuick ? 'quick' : 'main' });
-                }
-              } catch {}
-              try { onClose?.(); } catch {}
-            }}
-          >
-            {ctaText}
-          </Link>
-        </div>
-
-        <div className={`mb-2 grid gap-1.5 text-sm ${hasTime ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          <div className={`rounded-lg border p-2 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
-            <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Guesses</div>
-            <div className={`text-base font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{guessCount}/{rowsLength}</div>
-          </div>
-          <div className={`rounded-lg border p-2 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
-            <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Hints used</div>
-            <div className={`text-base font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{hintCount}</div>
-          </div>
-          {hasTime && (
-            <div className={`rounded-lg border p-2 ${lightMode ? 'border-gray-300 bg-gray-50' : 'border-gray-700 bg-gray-800/70'}`}>
-              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Time</div>
-              <div className={`text-base font-semibold ${lightMode ? 'text-gray-900' : 'text-gray-100'}`}>{elapsedTime}</div>
+              {perfectWeek?.isNew && <p>📅 Perfect week! 7 days at 3★</p>}
             </div>
           )}
-          {Number.isFinite(stars) && !didFail && (
-            <div className={`${hasTime ? 'col-span-3' : 'col-span-2'} rounded-lg border p-2 flex items-center justify-between ${lightMode ? 'border-gray-300 bg-yellow-50/50' : 'border-gray-700 bg-yellow-900/30'}`}>
-              <div className={`${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Stars</div>
-              <div className="text-lg font-semibold text-yellow-400">{'★'.repeat(Math.max(0,Math.min(3,stars||0)))}{'☆'.repeat(Math.max(0,3-(stars||0)))}</div>
-            </div>
-          )}
-        </div>
 
-        <pre className={`whitespace-pre-wrap text-base sm:text-lg leading-snug mb-2 p-2 rounded-lg border ${lightMode ? 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-900' : 'border-gray-700 bg-gradient-to-br from-gray-900/70 to-gray-800/70 text-gray-100'}`}>
-          {shareText}
-        </pre>
-
-        <div className="mb-2 text-center">
-          <p className={`text-sm mb-1 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Would love to hear your thoughts and ideas!</p>
-          <a 
-            href="mailto:hello@stepwords.xyz"
-            className={`text-sm hover:underline ${lightMode ? 'text-sky-600' : 'text-sky-400'}`}
-          >
-            hello@stepwords.xyz
-          </a>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
           <button
-            onClick={async () => {
-              try {
-                onShare && onShare();
-              } catch {}
-              try {
-                const header = didFail
-                  ? (isQuick
-                      ? (isTodayET
-                          ? "I tried today's Quick Stepword Puzzle."
-                          : (puzzleDateText ? `I tried the Quick Stepword Puzzle for ${puzzleDateText}.` : "I tried the Quick Stepword Puzzle."))
-                      : (isTodayET
-                          ? "I tried today's Stepword Puzzle."
-                          : (puzzleDateText ? `I tried the Stepword Puzzle for ${puzzleDateText}.` : "I tried the Stepword Puzzle.")))
-                  : (isQuick
-                      ? (isTodayET
-                          ? "I solved today's Quick Stepword Puzzle!"
-                          : (puzzleDateText ? `I solved the Quick Stepword Puzzle for ${puzzleDateText}!` : "I solved the Quick Stepword Puzzle!"))
-                      : (isTodayET
-                          ? "I solved today's Stepword Puzzle!"
-                          : (puzzleDateText ? `I solved the Quick Stepword Puzzle for ${puzzleDateText}!` : "I solved the Quick Stepword Puzzle!")));
-                const starLine = (!didFail && Number.isFinite(stars)) ? `\nStars: ${'★'.repeat(Math.max(0,Math.min(3,stars||0)))}${'☆'.repeat(Math.max(0,3-(stars||0)))}` : '';
-                const timeLine = (elapsedTime && !didFail) ? `\nTime: ${elapsedTime}` : '';
-                const composed = `${header}${starLine}${timeLine}\n\n${shareText}\n\nhttps://stepwords.xyz${isQuick ? '/quick' : ''}`;
-                await navigator.clipboard.writeText(composed);
-                setNotice("Message copied to clipboard");
-              } catch {
-                setNotice("Copy failed");
-              }
-            }}
-            className="px-2.5 py-1 rounded-md bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700"
+            type="button"
+            onClick={handleShareClick}
+            className={`press mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors ${lightMode ? "bg-brand-800 hover:bg-brand-900" : "bg-brand-600 hover:bg-brand-500"}`}
           >
+            <ShareIcon className="h-4 w-4" />
             Share
           </button>
-          <Link
-            to="/archives"
-            onClick={() => { try { onClose?.(); } catch {} }}
-            className={`px-2.5 py-1 rounded-md border text-sm font-semibold ${lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-200 hover:bg-gray-800'}`}
-          >
-            Archives
-          </Link>
-          <button
-            onClick={onClose}
-            className={`px-2.5 py-1 rounded-md border text-sm ${lightMode ? 'border-gray-300 text-gray-800 hover:bg-gray-100' : 'border-gray-700 text-gray-200 hover:bg-gray-800'}`}
-          >
-            Close
-          </button>
+
           {notice && (
-            <span className={`text-xs ${lightMode ? 'text-emerald-700' : 'text-emerald-400'}`}>{notice}</span>
+            <p className={`mt-1.5 text-xs ${lightMode ? "text-emerald-700" : "text-emerald-400"}`}>{notice}</p>
           )}
+
+          <div className={`mt-3 grid w-full gap-2 ${todayCta ? "grid-cols-2" : "grid-cols-1"}`}>
+            {todayCta && (
+              <Link
+                to={todayCta.href}
+                onClick={() => {
+                  try {
+                    if (shouldSendAnalytics() && window.gtag && typeof window.gtag === "function") {
+                      window.gtag("event", "cta_navigate", {
+                        target: isQuick ? "main" : "quick",
+                        source: "completion_modal",
+                        mode: isQuick ? "quick" : "main",
+                      });
+                    }
+                  } catch {}
+                  closeAndNavigate();
+                }}
+                className={`press flex min-h-[2.5rem] min-w-0 items-center justify-center rounded-full px-2 py-2 text-[11px] font-semibold leading-tight text-white shadow-sm transition-colors ${lightMode ? "bg-emerald-700 hover:bg-emerald-800" : "bg-emerald-600 hover:bg-emerald-500"}`}
+              >
+                {todayCta.text}
+              </Link>
+            )}
+            <Link
+              to="/archives"
+              onClick={closeAndNavigate}
+              className={`press flex min-h-[2.5rem] min-w-0 items-center justify-center rounded-full border px-2 py-2 text-xs font-semibold transition-colors ${secondaryBtn}`}
+            >
+              Archives
+            </Link>
+          </div>
+
+          <Link
+            to="/"
+            onClick={closeAndNavigate}
+            className={`mt-4 text-xs font-medium transition-colors ${accent}`}
+          >
+            Back to home
+          </Link>
         </div>
       </div>
-    </div>
-    </>
+    </>,
+    document.body
   );
 }

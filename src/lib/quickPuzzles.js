@@ -1,7 +1,19 @@
+// Cache the quick manifest request to avoid re-fetching index.json on every navigation.
+let quickManifestPromise = null;
+
 export async function fetchQuickManifest() {
-  const res = await fetch("/quick/index.json");
-  if (!res.ok) throw new Error("Failed to load quick puzzle manifest");
-  return res.json();
+  if (!quickManifestPromise) {
+    quickManifestPromise = fetch("/quick/index.json")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load quick puzzle manifest");
+        return res.json();
+      })
+      .catch((err) => {
+        quickManifestPromise = null; // allow retry on failure
+        throw err;
+      });
+  }
+  return quickManifestPromise;
 }
 
 export async function loadQuickById(id) {

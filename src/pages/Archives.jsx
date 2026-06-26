@@ -2,139 +2,107 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchManifest } from "../lib/puzzles.js";
 import { fetchQuickManifest } from "../lib/quickPuzzles.js";
-import { getTodayIsoInET, isPreviewEnabled } from "../lib/date.js";
-import { parseLocalISODate } from "../lib/date.js";
-import BadgesDisplay from "../components/BadgesDisplay.jsx";
+import { getTodayIsoInET, isPreviewEnabled, parseLocalISODate } from "../lib/date.js";
+import { getInitialLightMode, readLightMode } from "../lib/theme.js";
+import { readSet, readMap, cellStatus } from "../lib/puzzleStatus.js";
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function Archives() {
   const navigate = useNavigate();
   const [manifest, setManifest] = useState([]);
-  const [err, setErr] = useState("");
   const [quickManifest, setQuickManifest] = useState([]);
+  const [err, setErr] = useState("");
+  const [lightMode, setLightMode] = useState(getInitialLightMode);
   const [current, setCurrent] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('stepwords-archives-current') || 'null');
-      if (saved && typeof saved.year === 'number' && typeof saved.month === 'number') return saved;
+      const saved = JSON.parse(localStorage.getItem("stepwords-archives-current") || "null");
+      if (saved && typeof saved.year === "number" && typeof saved.month === "number") return saved;
     } catch {}
     return { year: 0, month: 0 };
   });
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(0);
 
   useEffect(() => {
-    document.title = "Stepword Puzzles - Archives";
-    fetchManifest()
-      .then((list) => setManifest(list))
-      .catch((e) => setErr(e.message));
-    fetchQuickManifest()
-      .then((list) => setQuickManifest(list))
-      .catch(() => { /* quick is optional; ignore errors */ });
+    document.title = "Stepwords — Archives";
+    fetchManifest().then(setManifest).catch((e) => setErr(e.message));
+    fetchQuickManifest().then(setQuickManifest).catch(() => {});
+    const onSettings = () => {
+      try { const s = JSON.parse(localStorage.getItem("stepwords-settings") || "{}"); setLightMode(readLightMode(s)); } catch {}
+    };
+    document.addEventListener("stepwords-settings-updated", onSettings);
+    return () => document.removeEventListener("stepwords-settings-updated", onSettings);
   }, []);
 
-  const completedIds = useMemo(() => {
-    try {
-      return new Set(JSON.parse(localStorage.getItem("stepwords-completed") || "[]"));
-    } catch {
-      return new Set();
-    }
-  }, []);
-  const quickCompletedIds = useMemo(() => {
-    try {
-      return new Set(JSON.parse(localStorage.getItem('quickstep-completed') || '[]'));
-    } catch {
-      return new Set();
-    }
-  }, []);
+  const completedIds = useMemo(() => readSet("stepwords-completed"), []);
+  const quickCompletedIds = useMemo(() => readSet("quickstep-completed"), []);
+  const mainStars = useMemo(() => readMap("stepwords-stars"), []);
+  const quickStars = useMemo(() => readMap("quickstep-stars"), []);
+  const mainPerfect = useMemo(() => readSet("stepwords-perfect"), []);
+  const quickPerfect = useMemo(() => readSet("quickstep-perfect"), []);
 
   const { months, minDate, maxDate, minYM, maxYM, quickByDate } = useMemo(() => {
     if (!manifest.length) return { months: [], minDate: null, maxDate: null, minYM: null, maxYM: null, quickByDate: new Map() };
-
-    // Map date string -> puzzle (main)
     const byDate = new Map();
     const quickMap = new Map();
-    let minDate = null;
-    let maxDate = null;
+    let minDate = null, maxDate = null;
     for (const p of manifest) {
       byDate.set(p.date, p);
       const d = parseLocalISODate(p.date);
       if (!minDate || d < minDate) minDate = d;
       if (!maxDate || d > maxDate) maxDate = d;
     }
-    // Map quick puzzles by date (if available)
-    for (const q of (quickManifest || [])) {
-      quickMap.set(q.date, q);
-    }
+    for (const q of quickManifest || []) quickMap.set(q.date, q);
 
-    // Clamp maxDate to today (ET) unless preview is enabled
     const todayET = getTodayIsoInET();
     const preview = isPreviewEnabled();
     const todayDate = parseLocalISODate(todayET);
     if (!preview && maxDate && maxDate > todayDate) maxDate = todayDate;
 
-    // Build list of months from minDate to maxDate inclusive
     const start = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
     const end = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
-    const months = [];
-
-    for (let y = start.getFullYear(), m = start.getMonth(); y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth()); ) {
-      months.push({ year: y, month: m });
-      m += 1;
-      if (m > 11) { m = 0; y += 1; }
+    const monthsList = [];
+    for (let y = start.getFullYear(), m = start.getMonth(); y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth());) {
+      monthsList.push({ year: y, month: m });
+      m += 1; if (m > 11) { m = 0; y += 1; }
     }
 
-    // For each month, build a 6x7 grid of dates (Sun-Sat)
-    const todayET2 = getTodayIsoInET();
-    const preview2 = isPreviewEnabled();
-    const monthData = months.map(({ year, month }) => {
+    const monthData = monthsList.map(({ year, month }) => {
       const firstOfMonth = new Date(year, month, 1);
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const startOffset = firstOfMonth.getDay(); // 0=Sun
+      const startOffset = firstOfMonth.getDay();
       const cells = Array.from({ length: 42 }, (_, idx) => {
         const dayNum = idx - startOffset + 1;
-        if (dayNum < 1 || dayNum > daysInMonth) return null; // outside current month
+        if (dayNum < 1 || dayNum > daysInMonth) return null;
         const d = new Date(year, month, dayNum);
-        // Only render within puzzle range
         if (d < minDate || d > maxDate) return { date: d, puzzle: null };
-        const iso = [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
-        const puzzle = (preview2 || iso <= todayET2) ? (byDate.get(iso) || null) : null;
+        const iso = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+        const puzzle = (preview || iso <= todayET) ? byDate.get(iso) || null : null;
         return { date: d, puzzle };
       });
       return { year, month, cells };
     });
 
-    return { months: monthData, minDate, maxDate, minYM: months[0], maxYM: months[months.length - 1], quickByDate: quickMap };
+    return { months: monthData, minDate, maxDate, minYM: monthsList[0], maxYM: monthsList[monthsList.length - 1], quickByDate: quickMap };
   }, [manifest, quickManifest]);
 
-  // Build a parallel Quick calendar by reusing the same dates but linking to /quick/:id
-  const miniMonths = months; // structure reused for layout
-
-  // Initialize current to latest month once months are available
   useEffect(() => {
-    if (months.length) {
-      if (current.year === 0) {
-        const latest = months[months.length - 1];
-        setCurrent({ year: latest.year, month: latest.month });
-      }
+    if (months.length && current.year === 0) {
+      const latest = months[months.length - 1];
+      setCurrent({ year: latest.year, month: latest.month });
     }
   }, [months.length]);
 
-  // Persist current archive view
   useEffect(() => {
-    try { localStorage.setItem('stepwords-archives-current', JSON.stringify(current)); } catch {}
+    try { localStorage.setItem("stepwords-archives-current", JSON.stringify(current)); } catch {}
   }, [current]);
-
-  const years = useMemo(() => {
-    if (!minDate || !maxDate) return [];
-    const ys = [];
-    for (let y = minDate.getFullYear(); y <= maxDate.getFullYear(); y++) ys.push(y);
-    return ys;
-  }, [minDate, maxDate]);
 
   const allowedMonthsForYear = (y) => {
     if (!minDate || !maxDate) return [...Array(12).keys()];
-    const minY = minDate.getFullYear();
-    const maxY = maxDate.getFullYear();
     let start = 0, end = 11;
-    if (y === minY) start = minDate.getMonth();
-    if (y === maxY) end = maxDate.getMonth();
+    if (y === minDate.getFullYear()) start = minDate.getMonth();
+    if (y === maxDate.getFullYear()) end = maxDate.getMonth();
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   };
 
@@ -142,7 +110,6 @@ export default function Archives() {
   const canNext = months.length && (current.year < (maxYM?.year ?? 0) || (current.year === (maxYM?.year ?? 0) && current.month < (maxYM?.month ?? 0)));
 
   const ensureInRange = (y, m) => {
-    // Clamp year and month to available range
     let year = y, month = m;
     if (minDate && year < minDate.getFullYear()) year = minDate.getFullYear();
     if (maxDate && year > maxDate.getFullYear()) year = maxDate.getFullYear();
@@ -154,258 +121,179 @@ export default function Archives() {
     return { year, month };
   };
 
-  const goPrev = () => {
-    if (!canPrev) return;
-    let y = current.year, m = current.month - 1;
-    if (m < 0) { m = 11; y -= 1; }
-    setCurrent(ensureInRange(y, m));
-  };
-  const goNext = () => {
-    if (!canNext) return;
-    let y = current.year, m = current.month + 1;
-    if (m > 11) { m = 0; y += 1; }
-    setCurrent(ensureInRange(y, m));
-  };
+  const goPrev = () => { if (!canPrev) return; let y = current.year, m = current.month - 1; if (m < 0) { m = 11; y -= 1; } setCurrent(ensureInRange(y, m)); };
+  const goNext = () => { if (!canNext) return; let y = current.year, m = current.month + 1; if (m > 11) { m = 0; y += 1; } setCurrent(ensureInRange(y, m)); };
 
-  const goRandomMain = () => {
-    if (!manifest || !manifest.length) return;
-    try {
-      const today = getTodayIsoInET();
-      const preview = isPreviewEnabled();
-      const eligible = manifest.filter(p => (preview || p.date <= today));
-      const unsolved = eligible.filter(p => !completedIds.has(p.id));
-      const pool = (unsolved.length ? unsolved : eligible);
-      if (!pool.length) return;
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      if (pick && pick.id != null) navigate(`/${pick.id}`);
-    } catch {}
-  };
-
-  const goRandomQuick = () => {
-    if (!quickManifest || !quickManifest.length) return;
-    try {
-      const today = getTodayIsoInET();
-      const preview = isPreviewEnabled();
-      const eligible = quickManifest.filter(p => (preview || p.date <= today));
-      const unsolved = eligible.filter(p => !quickCompletedIds.has(p.id));
-      const pool = (unsolved.length ? unsolved : eligible);
-      if (!pool.length) return;
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      if (pick && pick.id != null) navigate(`/quick/${pick.id}`);
-    } catch {}
-  };
-
-  const onYearChange = (e) => {
-    const y = parseInt(e.target.value, 10);
-    setCurrent((cur) => ensureInRange(y, cur.month));
-  };
-  const onMonthChange = (e) => {
-    const m = parseInt(e.target.value, 10);
-    setCurrent((cur) => ensureInRange(cur.year, m));
+  const goRandom = (list, completed, prefix) => {
+    if (!list?.length) return;
+    const today = getTodayIsoInET();
+    const preview = isPreviewEnabled();
+    const eligible = list.filter((p) => preview || p.date <= today);
+    const unsolved = eligible.filter((p) => !completed.has(p.id));
+    const pool = unsolved.length ? unsolved : eligible;
+    if (!pool.length) return;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    if (pick?.id != null) navigate(`${prefix}${pick.id}`);
   };
 
   const currentMonthData = months.find((mm) => mm.year === current.year && mm.month === current.month);
 
-  // const monthName = (y, m) => new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date(y, m, 1));
+  // ---- shared styles ----
+  const pill = lightMode
+    ? "border-parchment-300 bg-parchment-50 text-navyink-700 hover:bg-parchment-100"
+    : "border-navyink-700 bg-navyink-800 text-parchment-200 hover:bg-navyink-700";
+  const muted = lightMode ? "text-navyink-700/55" : "text-parchment-200/50";
+
+  const minYear = minDate?.getFullYear() ?? 0;
+  const maxYear = maxDate?.getFullYear() ?? 0;
+  const monthLabel = months.length
+    ? `${new Intl.DateTimeFormat("en-US", { month: "long" }).format(new Date(current.year, current.month, 1))} ${current.year}`
+    : "";
+  const openPicker = () => { setPickerYear(current.year); setPickerOpen((o) => !o); };
+  const pickMonth = (m) => { setCurrent(ensureInRange(pickerYear, m)); setPickerOpen(false); };
+
+  const Calendar = ({ accent, label, getCell }) => (
+    <div className={`rounded-3xl border p-4 ${lightMode ? "border-parchment-200 bg-parchment-50 shadow-card" : "border-navyink-700 bg-navyink-800 shadow-card-dark"}`}>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="h-2.5 w-2.5 rounded-full" style={{ background: accent }} />
+        <div className="font-serif text-base font-bold">{label}</div>
+      </div>
+      <div className={`mb-1.5 grid grid-cols-7 gap-1.5 text-center text-[11px] font-medium ${muted}`}>
+        {WEEKDAYS.map((d) => <div key={d}>{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1.5">
+        {currentMonthData.cells.map((cell, idx) => {
+          if (cell === null) return <div key={idx} className="aspect-square" />;
+          const dayNum = cell.date.getDate();
+          const iso = [cell.date.getFullYear(), String(cell.date.getMonth() + 1).padStart(2, "0"), String(cell.date.getDate()).padStart(2, "0")].join("-");
+          const { puzzle, status } = getCell(cell, iso);
+          if (!puzzle) {
+            return (
+              <div key={idx} className={`flex aspect-square items-center justify-center rounded-xl text-xs ${lightMode ? "bg-parchment-100 text-navyink-700/35" : "bg-navyink-850 text-parchment-200/25"}`}>
+                {dayNum}
+              </div>
+            );
+          }
+          const stateCls = status.failed
+            ? (lightMode ? "bg-red-50 border-red-300 hover:border-red-400" : "bg-red-900/25 border-red-800 hover:border-red-600")
+            : status.solved
+              ? (lightMode ? "bg-emerald-50 border-emerald-300 hover:border-emerald-400" : "bg-emerald-900/25 border-emerald-700 hover:border-emerald-500")
+              : (lightMode ? "bg-white border-parchment-300 hover:border-parchment-400" : "bg-navyink-850 border-navyink-700 hover:border-navyink-600");
+          return (
+            <Link
+              key={idx}
+              to={getCell.to(puzzle)}
+              className={`press relative flex aspect-square flex-col items-center justify-center rounded-xl border transition-colors ${stateCls}`}
+            >
+              <span className={`text-[11px] leading-none ${lightMode ? "text-navyink-700/70" : "text-parchment-200/65"}`}>{dayNum}</span>
+              {status.icon && <span className="mt-0.5 text-sm leading-none">{status.icon}</span>}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="px-3 py-3 flex justify-center">
-      <div className="w-full max-w-[420px]">
-        {/* Top row with Random button above date selector */}
-        {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
-        <div className="mb-2 flex items-center justify-end gap-2">
-          <span className={`text-sm md:text-base ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>Play random:</span>
-          <button onClick={goRandomMain} className={`px-2 py-1 text-sm md:text-base rounded border ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>Main</button>
-          <button onClick={goRandomQuick} className={`px-2 py-1 text-sm md:text-base rounded border ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>Quick</button>
-        </div>
-        )})()}
-        <div className="mb-2 flex items-center justify-between gap-2">
-          {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
-          <>
-          <button onClick={goPrev} disabled={!canPrev} className={`px-2 py-1 text-sm md:text-base rounded border disabled:opacity-40 ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>◀</button>
-          <div className="flex items-center gap-2">
-            <select value={current.year} onChange={onYearChange} className={`rounded px-2 py-1 text-sm md:text-base border ${lightMode ? 'bg-white border-gray-300 text-gray-800' : 'bg-black border-gray-800'}`}>
-              {years.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-            <select value={current.month} onChange={onMonthChange} className={`rounded px-2 py-1 text-sm md:text-base border ${lightMode ? 'bg-white border-gray-300 text-gray-800' : 'bg-black border-gray-800'}`}>
-              {allowedMonthsForYear(current.year).map((m) => (
-                <option key={m} value={m}>{new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(current.year, m, 1))}</option>
-              ))}
-            </select>
+    <div className={`px-4 py-5 ${lightMode ? "text-navyink-900" : "text-parchment-50"}`}>
+      <div className="mx-auto w-full max-w-[460px]">
+        {/* Title + Play random */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <h1 className="font-serif text-3xl font-bold">Archives</h1>
+          <div className="flex items-center gap-2 text-sm">
+            <span className={muted}>Play random:</span>
+            <button onClick={() => goRandom(manifest, completedIds, "/")} className={`press rounded-full border px-3 py-1 ${pill}`}>Main</button>
+            <button onClick={() => goRandom(quickManifest, quickCompletedIds, "/quick/")} className={`press rounded-full border px-3 py-1 ${pill}`}>Quick</button>
           </div>
-          <button onClick={goNext} disabled={!canNext} className={`px-2 py-1 text-sm md:text-base rounded border disabled:opacity-40 ${lightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-100' : 'border-gray-800'}`}>▶</button>
-          </>
-          )})()}
         </div>
-      {err && <div className="text-sm md:text-base text-red-400 mb-2">{err}</div>}
 
-      {!months.length && !err && (
-        <div className="text-sm md:text-base text-gray-400 mt-4">No puzzles found.</div>
-      )}
+        {/* Month navigation */}
+        <div className="relative mb-4">
+          <div className="flex items-center justify-between gap-2">
+            <button onClick={goPrev} disabled={!canPrev} aria-label="Previous month" className={`press rounded-full border px-3 py-1.5 text-sm disabled:opacity-40 ${pill}`}>◀</button>
+            <button onClick={openPicker} className={`press flex items-center gap-2 rounded-full border px-4 py-1.5 ${pill}`}>
+              <span className="font-serif text-base font-bold">{monthLabel}</span>
+              <span className={`text-[10px] transition-transform ${pickerOpen ? "rotate-180" : ""}`}>▼</span>
+            </button>
+            <button onClick={goNext} disabled={!canNext} aria-label="Next month" className={`press rounded-full border px-3 py-1.5 text-sm disabled:opacity-40 ${pill}`}>▶</button>
+          </div>
+
+          {pickerOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} />
+              <div className={`absolute left-1/2 top-full z-20 mt-2 w-[280px] -translate-x-1/2 rounded-2xl border p-3 ${lightMode ? "border-parchment-200 bg-parchment-50 shadow-card" : "border-navyink-700 bg-navyink-850 shadow-card-dark"}`}>
+                <div className="mb-3 flex items-center justify-between">
+                  <button onClick={() => setPickerYear((y) => Math.max(minYear, y - 1))} disabled={pickerYear <= minYear} aria-label="Previous year" className={`press rounded-full border px-2.5 py-1 text-sm disabled:opacity-30 ${pill}`}>◀</button>
+                  <span className="font-serif text-lg font-bold">{pickerYear}</span>
+                  <button onClick={() => setPickerYear((y) => Math.min(maxYear, y + 1))} disabled={pickerYear >= maxYear} aria-label="Next year" className={`press rounded-full border px-2.5 py-1 text-sm disabled:opacity-30 ${pill}`}>▶</button>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {MONTHS_SHORT.map((name, m) => {
+                    const available = allowedMonthsForYear(pickerYear).includes(m);
+                    const selected = pickerYear === current.year && m === current.month;
+                    return (
+                      <button
+                        key={m}
+                        disabled={!available}
+                        onClick={() => pickMonth(m)}
+                        className={`press rounded-xl px-2 py-2 text-sm font-medium transition-colors ${
+                          selected
+                            ? "bg-brand-600 text-white"
+                            : available
+                              ? (lightMode ? "text-navyink-800 hover:bg-parchment-100" : "text-parchment-200 hover:bg-navyink-700")
+                              : (lightMode ? "cursor-default text-navyink-700/25" : "cursor-default text-parchment-200/20")
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {err && <div className="mb-2 text-sm text-red-400">{err}</div>}
+        {!months.length && !err && <div className={`mt-4 text-sm ${muted}`}>No puzzles found.</div>}
 
         {currentMonthData && (
-          <div>
-            {/* Main Stepwords Calendar */}
-            {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
-            <div className={`rounded-lg border-2 p-3 mb-6 ${lightMode ? 'border-blue-300 bg-blue-50/30' : 'border-blue-800 bg-blue-900/20'}`}>
-              <div className={`text-sm md:text-base font-semibold mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Main Stepword Puzzles</div>
-              <div className="grid grid-cols-7 gap-1 text-center text-xs md:text-sm text-gray-500 mb-1">
-                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
-                  <div key={d}>{d}</div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-              {currentMonthData.cells.map((cell, idx) => {
-                if (cell === null) {
-                  return <div key={idx} className="h-8" />;
-                }
-                const dayNum = cell.date.getDate();
-                const puzzle = cell.puzzle;
-                if (!puzzle) {
-                  return (
-                    <div key={idx} className={`h-8 rounded border flex items-center justify-center ${lightMode ? 'border-gray-300 bg-gray-100 text-gray-500' : 'border-gray-800 bg-gray-900/40 text-gray-600'}`}>
-                      {dayNum}
-                    </div>
-                  );
-                }
-                const solved = completedIds.has(puzzle.id);
-                const perfectSet = (() => {
-                  try { return new Set(JSON.parse(localStorage.getItem('stepwords-perfect') || '[]')); } catch { return new Set(); }
-                })();
-                const isPerfect = solved && perfectSet.has(puzzle.id);
-                const hasProgress = (() => {
-                  try {
-                    const raw = localStorage.getItem(`stepwords-${puzzle.id}`);
-                    if (!raw) return false;
-                    const s = JSON.parse(raw);
-                    // Consider it "started" only if there is meaningful progress
-                    if (s?.guessCount > 0 || s?.hintCount > 0 || s?.wrongGuessCount > 0) return true;
-                    if (Array.isArray(s?.guesses) && s.guesses.some(g => (g || '').trim().length > 0)) return true;
-                    if (Array.isArray(s?.lockColors) && s.lockColors.some(row => Array.isArray(row) && row.some(c => c))) return true;
-                    if (typeof s?.level === 'number' && s.level > 0) return true;
-                    return false;
-                  } catch { return false; }
-                })();
-                // Stars override; use special icon and color per score
-                const starsMap = (() => { try { return JSON.parse(localStorage.getItem('stepwords-stars') || '{}'); } catch { return {}; } })();
-                const starScore = starsMap[puzzle.id];
-                const isPerfectNow = (() => { try { return new Set(JSON.parse(localStorage.getItem('stepwords-perfect') || '[]')).has(puzzle.id); } catch { return false; } })();
-                const failed = Number.isFinite(starScore) && starScore === 0 && !solved;
-                const icon = failed
-                  ? '❌'
-                  : (Number.isFinite(starScore)
-                    ? (isPerfectNow ? '🤩' : (starScore === 3 ? '🌟' : (starScore === 2 ? '⭐️' : (starScore === 1 ? '💫' : '☆'))))
-                    : (isPerfect ? '🤩' : (solved ? '⭐️' : (hasProgress ? '👟' : '🪜'))));
-                const color = failed
-                  ? 'text-red-400'
-                  : (Number.isFinite(starScore)
-                    ? 'text-yellow-300'
-                    : (isPerfect ? 'text-yellow-300' : (solved ? 'text-yellow-300' : hasProgress ? 'text-yellow-300' : 'text-gray-300')));
-                const bg = lightMode ? (solved ? 'bg-green-200' : 'bg-gray-100') : (solved ? 'bg-green-900/60' : 'bg-gray-900/40');
-                const borderColor = lightMode ? (solved ? 'border-green-300 hover:border-green-400' : 'border-gray-300 hover:border-gray-400') : (solved ? 'border-green-800 hover:border-green-600' : 'border-gray-800 hover:border-gray-600');
-                return (
-                  <Link key={idx} to={`/${puzzle.id}`} className={`h-8 rounded border ${borderColor} ${bg} flex items-center justify-center gap-1`}>
-                    <span className={`text-xs md:text-sm ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
-                    <span className={`${color} text-sm md:text-base leading-none`}>{icon}</span>
-                  </Link>
-                );
-              })}
-              </div>
-            </div>
-            )})()}
-            
-            {/* Quick Stepword calendar */}
-            {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
-            <div className={`rounded-lg border-2 p-3 ${lightMode ? 'border-orange-300 bg-orange-50/30' : 'border-orange-800 bg-orange-900/20'}`}>
-              <div className={`text-sm md:text-base font-semibold mb-2 ${lightMode ? 'text-gray-700' : 'text-gray-300'}`}>Quick Stepword Puzzles</div>
-              <div className="grid grid-cols-7 gap-1 text-center text-xs md:text-sm text-gray-500 mb-1">
-                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
-                  <div key={d}>{d}</div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {currentMonthData.cells.map((cell, idx) => {
-                  if (cell === null) {
-                    return <div key={idx} className="h-8" />;
-                  }
-                  const dayNum = cell.date.getDate();
-                  const iso = [cell.date.getFullYear(), String(cell.date.getMonth()+1).padStart(2,'0'), String(cell.date.getDate()).padStart(2,'0')].join('-');
-                  const todayET2 = getTodayIsoInET();
-                  const preview2 = isPreviewEnabled();
-                  const puzzle = (preview2 || iso <= todayET2) ? (quickByDate.get(iso) || null) : null;
-                  if (!puzzle) {
-                    return (
-                      <div key={idx} className={`h-8 rounded border flex items-center justify-center ${lightMode ? 'border-gray-300 bg-gray-100 text-gray-500' : 'border-gray-800 bg-gray-900/40 text-gray-600'}`}>
-                        {dayNum}
-                      </div>
-                    );
-                  }
-                  // Status for quick puzzles (use same icons)
-                  const qSolved = quickCompletedIds.has(puzzle.id);
-                  const qPerfectSet = (() => {
-                    try { return new Set(JSON.parse(localStorage.getItem('quickstep-perfect') || '[]')); } catch { return new Set(); }
-                  })();
-                  const qIsPerfect = qSolved && qPerfectSet.has(puzzle.id);
-                  const qHasProgress = (() => {
-                    try {
-                      const raw = localStorage.getItem(`quickstep-${puzzle.id}`);
-                      if (!raw) return false;
-                      const s = JSON.parse(raw);
-                      if (s?.guessCount > 0 || s?.hintCount > 0 || s?.wrongGuessCount > 0) return true;
-                      if (Array.isArray(s?.guesses) && s.guesses.some(g => (g || '').trim().length > 0)) return true;
-                      if (Array.isArray(s?.lockColors) && s.lockColors.some(row => Array.isArray(row) && row.some(c => c))) return true;
-                      if (typeof s?.level === 'number' && s.level > 0) return true;
-                      return false;
-                    } catch { return false; }
-                  })();
-                  const qStarsMap = (() => { try { return JSON.parse(localStorage.getItem('quickstep-stars') || '{}'); } catch { return {}; } })();
-                  const qStarScore = qStarsMap[puzzle.id];
-                  const qIsPerfectNow = (() => { try { return new Set(JSON.parse(localStorage.getItem('quickstep-perfect') || '[]')).has(puzzle.id); } catch { return false; } })();
-                  const qFailed = Number.isFinite(qStarScore) && qStarScore === 0 && !qSolved;
-                  const qIcon = qFailed
-                    ? '❌'
-                    : (Number.isFinite(qStarScore)
-                      ? (qIsPerfectNow ? '🤩' : (qStarScore === 3 ? '🌟' : (qStarScore === 2 ? '⭐️' : (qStarScore === 1 ? '💫' : '☆'))))
-                      : (qIsPerfect ? '🤩' : (qSolved ? '⭐️' : (qHasProgress ? '👟' : '🪜'))));
-                  const qColor = qFailed
-                    ? 'text-red-400'
-                    : (Number.isFinite(qStarScore)
-                      ? 'text-yellow-300'
-                      : (qIsPerfect ? 'text-yellow-300' : (qSolved ? 'text-yellow-300' : qHasProgress ? 'text-yellow-300' : 'text-gray-300')));
-                  const qBg = lightMode ? (qSolved ? 'bg-green-200' : 'bg-gray-100') : (qSolved ? 'bg-green-900/60' : 'bg-gray-900/40');
-                  const qBorderColor = lightMode ? (qSolved ? 'border-green-300 hover:border-green-400' : 'border-gray-300 hover:border-gray-400') : (qSolved ? 'border-green-800 hover:border-green-600' : 'border-gray-800 hover:border-gray-600');
-                  return (
-                    <Link key={idx} to={`/quick/${puzzle.id}`} className={`h-8 rounded border ${qBorderColor} ${qBg} flex items-center justify-center gap-1`}>
-                      <span className={`text-xs md:text-sm ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>{dayNum}</span>
-                      <span className={`${qColor} text-sm md:text-base leading-none`}>{qIcon}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-            )})()}
+          <div className="space-y-4">
+            <Calendar
+              accent="#2b4d72"
+              label="Main Stepword Puzzles"
+              getCell={Object.assign(
+                (cell) => {
+                  const puzzle = cell.puzzle;
+                  return { puzzle, status: puzzle ? cellStatus("stepwords", puzzle.id, completedIds, mainStars, mainPerfect) : {} };
+                },
+                { to: (p) => `/${p.id}` }
+              )}
+            />
+            <Calendar
+              accent="#c79a2e"
+              label="Quick Stepword Puzzles"
+              getCell={Object.assign(
+                (cell, iso) => {
+                  const todayET = getTodayIsoInET();
+                  const preview = isPreviewEnabled();
+                  const puzzle = (preview || iso <= todayET) ? quickByDate.get(iso) || null : null;
+                  return { puzzle, status: puzzle ? cellStatus("quickstep", puzzle.id, quickCompletedIds, quickStars, quickPerfect) : {} };
+                },
+                { to: (p) => `/quick/${p.id}` }
+              )}
+            />
+
             {/* Legend */}
-            {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
-            <div className={`mt-3 flex flex-wrap items-center justify-center gap-4 text-xs md:text-sm ${lightMode ? 'text-gray-600' : 'text-gray-400'}`}>
-              <span className="flex items-center gap-1"><span className="text-yellow-400">🤩</span> Perfect</span>
-              <span className="flex items-center gap-1"><span className="text-yellow-300">🌟</span> 3 stars</span>
-              <span className="flex items-center gap-1"><span className="text-yellow-300">⭐️</span> 2 stars</span>
-              <span className="flex items-center gap-1"><span className="text-yellow-300">💫</span> 1 star</span>
-              <span className="flex items-center gap-1"><span className="text-yellow-300">☆</span> 0 stars</span>
-              <span className="flex items-center gap-1"><span className="text-red-400">❌</span> Failed</span>
-              <span className="flex items-center gap-1"><span className="text-yellow-300">👟</span> In progress</span>
-              <span className="flex items-center gap-1"><span className={`${lightMode ? 'text-gray-500' : 'text-gray-300'}`}>🪜</span> Not started</span>
+            <div className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs ${muted}`}>
+              <span>🤩 Perfect</span>
+              <span>🌟 3 stars</span>
+              <span>⭐️ 2 stars</span>
+              <span>💫 1 star</span>
+              <span>☆ 0 stars</span>
+              <span>❌ Failed</span>
+              <span>👟 In progress</span>
             </div>
-            )})()}
-            {/* Badges */}
-            {(() => { const lightMode = (()=>{ try { const s=JSON.parse(localStorage.getItem('stepwords-settings')||'{}'); return s.lightMode===true; } catch { return false; } })(); return (
-            <div className={`mt-4 pt-4 border-t rounded-lg p-3 ${lightMode ? 'border-slate-200 bg-slate-100' : 'border-slate-700 bg-slate-800/50'}`}>
-              <div className={`text-sm md:text-base font-semibold mb-2 ${lightMode ? 'text-slate-800' : 'text-slate-200'}`}>Badges</div>
-              <BadgesDisplay lightMode={lightMode} compact />
-            </div>
-            )})()}
           </div>
         )}
       </div>
