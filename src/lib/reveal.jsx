@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { shouldSendAnalytics } from './autosolveUtils.js';
 import { playCompletionSoundOnce } from './solveSound.js';
-import { updateStreak } from './streak.js';
-import { isPuzzleIdInList } from './puzzleStatus.js';
+import { completePuzzleAndUpdateStreak, getStreak } from './streak.js';
 import { checkMilestones } from './milestones.js';
 
 /**
@@ -64,13 +63,14 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
           localStorage.setItem(key, JSON.stringify(map));
         } catch {}
         
-        // Mark puzzle as completed
+        // Mark completed and update streak together
         try {
-          const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-          if (!isPuzzleIdInList(completedPuzzles, puzzle.id)) {
-            completedPuzzles.push(String(puzzle.id));
-            localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
-          }
+          completePuzzleAndUpdateStreak({
+            puzzleDate: puzzle.date,
+            puzzleId: puzzle.id,
+            namespace: puzzleNamespace,
+            isQuick,
+          });
         } catch {}
         
         // Save completion time
@@ -83,8 +83,7 @@ export function useReveal(rows, guesses, setGuesses, lockColors, setLockColors, 
         
         setShowShare(true);
         
-        // Update streak (only if this is today's puzzle)
-        const streakData = updateStreak(puzzle.date, isQuick);
+        const streakData = getStreak(isQuick);
         
         // Check badges and notify (only on puzzle complete)
         try {

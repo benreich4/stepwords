@@ -14,7 +14,7 @@ import { buildEmojiShareGridFrom, computeStepIndices, isPuzzleSolved } from "./l
 import { useLifelines, LifelineMenu } from "./lib/lifelines.jsx";
 import { useReveal, RevealConfirmModal } from "./lib/reveal.jsx";
 import { usePuzzleTimer } from "./lib/timer.js";
-import { updateStreak, getStreak } from "./lib/streak.js";
+import { completePuzzleAndUpdateStreak, getStreak } from "./lib/streak.js";
 import { saveLightModePreference, readHeaderCollapsed, saveHeaderCollapsed } from "./lib/theme.js";
 import { checkMilestones, checkPerfectSolve } from "./lib/milestones.js";
 import { playCompletionSoundOnce } from "./lib/solveSound.js";
@@ -1257,8 +1257,13 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           if (effectiveSettings.soundsEnabled) stepSoundDone.then(() => playCompletionSoundOnce(puzzle.id, puzzleNamespace, isPerfect, true));
         }
 
-        // Update streak (only if this is today's puzzle)
-        const newStreak = updateStreak(puzzle.date, isQuick);
+        // Mark completed first, then update streak (keeps last-play-date in sync)
+        const { streak: newStreak } = completePuzzleAndUpdateStreak({
+          puzzleDate: puzzle.date,
+          puzzleId: puzzle.id,
+          namespace: puzzleNamespace,
+          isQuick,
+        });
         setStreak(newStreak);
 
         let perfectWeekResult = null;
@@ -1266,15 +1271,6 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
           perfectWeekResult = recordMainDailyStars(puzzle.date, awarded);
         }
         setWinExtras({ personalBestHighlights, streak: newStreak, perfectWeek: perfectWeekResult });
-        
-        // Mark puzzle as completed first (needed for milestone check)
-        try {
-          const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-          if (!isPuzzleIdInList(completedPuzzles, puzzle.id)) {
-            completedPuzzles.push(String(puzzle.id));
-            localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
-          }
-        } catch {}
         
         // Check for milestones (after marking as completed)
         try {
@@ -1752,8 +1748,12 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
         playCompletionSoundOnce(puzzle.id, puzzleNamespace, isPerfectAuto, true);
       }
 
-      // Update streak (only if this is today's puzzle)
-      const streakData = updateStreak(puzzle.date, isQuick);
+      const { streak: streakData } = completePuzzleAndUpdateStreak({
+        puzzleDate: puzzle.date,
+        puzzleId: puzzle.id,
+        namespace: puzzleNamespace,
+        isQuick,
+      });
       setStreak(streakData);
 
       // Analytics
@@ -1777,15 +1777,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
       // Clear saved state and mark completed
       try { localStorage.removeItem(puzzleKey); } catch {}
       try {
-        const completedPuzzles = JSON.parse(localStorage.getItem(`${puzzleNamespace}-completed`) || '[]');
-        if (!isPuzzleIdInList(completedPuzzles, puzzle.id)) {
-          completedPuzzles.push(String(puzzle.id));
-          localStorage.setItem(`${puzzleNamespace}-completed`, JSON.stringify(completedPuzzles));
-        }
-        // Dispatch event to notify App.jsx of completion
-        try {
-          document.dispatchEvent(new CustomEvent('stepwords-puzzle-completed'));
-        } catch {}
+        document.dispatchEvent(new CustomEvent('stepwords-puzzle-completed'));
       } catch {}
 
       autoSubmitDoneRef.current = true;
