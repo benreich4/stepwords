@@ -928,34 +928,43 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
   }, [clue, rows.length]);
 
   function renderClueText(text) {
-    // Only single-number references like [4] are recognized.
+    // [4] row references; 2+ underscores render in sans (pre-Lora clue font).
     const nodes = [];
-    const regex = /\[(\d+)\]/g;
-    let last = 0; let m;
+    const regex = /\[(\d+)\]|(_{2,})/g;
+    let last = 0;
+    let m;
     while ((m = regex.exec(text)) !== null) {
       if (m.index > last) nodes.push(text.slice(last, m.index));
-      const n = parseInt(m[1], 10);
-      if (Number.isFinite(n) && n >= 1 && n <= rows.length) {
-        const jumpIndex = n - 1;
+      if (m[1]) {
+        const n = parseInt(m[1], 10);
+        if (Number.isFinite(n) && n >= 1 && n <= rows.length) {
+          const jumpIndex = n - 1;
+          nodes.push(
+            <button
+              key={`ref-${m.index}`}
+              type="button"
+              className={`inline-flex items-center justify-center w-5 h-5 rounded border text-[9px] leading-none align-middle -translate-y-[1px] ${effectiveSettings.lightMode ? 'bg-yellow-100 border-yellow-400 text-yellow-800 hover:bg-yellow-200' : 'bg-yellow-700/30 border-yellow-400 text-yellow-200 hover:bg-yellow-700/40'}`}
+              onClick={printMode ? undefined : () => {
+                if (jumpIndex !== getFirstUnsolvedRow()) hasJumpedAheadRef.current = true;
+                setLevel(jumpIndex);
+                const firstOpen = nearestUnlockedInRow(jumpIndex, 0);
+                setCursor(firstOpen === -1 ? 0 : firstOpen);
+                if (!isMobile) inputRef.current?.focus();
+              }}
+              aria-label={`Jump to row ${n}`}
+            >
+              {String(n)}
+            </button>
+          );
+        } else {
+          nodes.push(text.slice(m.index, regex.lastIndex));
+        }
+      } else if (m[2]) {
         nodes.push(
-          <button
-            key={`ref-${m.index}`}
-            type="button"
-            className={`inline-flex items-center justify-center w-5 h-5 rounded border text-[9px] leading-none align-middle -translate-y-[1px] ${effectiveSettings.lightMode ? 'bg-yellow-100 border-yellow-400 text-yellow-800 hover:bg-yellow-200' : 'bg-yellow-700/30 border-yellow-400 text-yellow-200 hover:bg-yellow-700/40'}`}
-            onClick={printMode ? undefined : () => {
-              if (jumpIndex !== getFirstUnsolvedRow()) hasJumpedAheadRef.current = true;
-              setLevel(jumpIndex);
-              const firstOpen = nearestUnlockedInRow(jumpIndex, 0);
-        setCursor(firstOpen === -1 ? 0 : firstOpen);
-              if (!isMobile) inputRef.current?.focus();
-            }}
-            aria-label={`Jump to row ${n}`}
-          >
-            {String(n)}
-          </button>
+          <span key={`blank-${m.index}`} className="font-sans">
+            {m[2]}
+          </span>
         );
-      } else {
-        nodes.push(text.slice(m.index, regex.lastIndex));
       }
       last = regex.lastIndex;
     }
