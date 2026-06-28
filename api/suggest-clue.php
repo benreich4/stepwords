@@ -110,7 +110,7 @@ if (!is_array($config)) {
 }
 
 $apiKey = isset($config['api_key']) ? trim((string) $config['api_key']) : '';
-$model = isset($config['model']) ? trim((string) $config['model']) : 'gpt-4o-mini';
+$model = isset($config['model']) ? trim((string) $config['model']) : 'gpt-5.5';
 
 if ($apiKey === '' || $apiKey === 'sk-your-openai-api-key-here') {
     http_response_code(503);

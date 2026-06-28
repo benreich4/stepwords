@@ -7,6 +7,6 @@
  */
 return [
     'api_key' => 'sk-your-openai-api-key-here',
-    // Optional override
-    'model' => 'gpt-4o-mini',
+    // Optional override (gpt-5.5 for best quality; gpt-4o-mini for cheaper/faster)
+    'model' => 'gpt-5.5',
 ];
