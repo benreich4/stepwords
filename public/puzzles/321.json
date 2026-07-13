@@ -1,0 +1,33 @@
+{
+  "id": "321",
+  "rows": [
+    {
+      "answer": "std",
+      "clue": "Viral concern, briefly (3)"
+    },
+    {
+      "answer": "etds",
+      "clue": "Flight-tracking data, briefly (4)"
+    },
+    {
+      "answer": "dates",
+      "clue": "Calendar entries (5)"
+    },
+    {
+      "answer": "stated",
+      "clue": "Expressed (6)"
+    },
+    {
+      "answer": "attends",
+      "clue": "Goes to (7)"
+    },
+    {
+      "answer": "dnatests",
+      "clue": "Forensic procedures (3,5)"
+    },
+    {
+      "answer": "astudents",
+      "clue": "Honor roll types (1,8)"
+    }
+  ]
+}
