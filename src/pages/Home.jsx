@@ -11,8 +11,10 @@ import SettingsModal from "../components/SettingsModal.jsx";
 
 function pickToday(manifest) {
   const today = getTodayIsoInET();
-  const preview = isPreviewEnabled();
-  const available = manifest.filter((p) => preview || p.date <= today);
+  // The Daily/Quick buttons always target today's puzzle (or the most recent
+  // one on or before today), even when preview mode is on. Preview only affects
+  // the archive/"Last 7 days" views, not what "today" resolves to.
+  const available = manifest.filter((p) => p.date <= today);
   if (available.length === 0) return null;
   return available.sort((a, b) => a.date.localeCompare(b.date)).slice(-1)[0];
 }
@@ -199,6 +201,17 @@ function StatsIcon({ light }) {
       <rect x="3" y="13" width="4" height="7" rx="1" fill={c} />
       <rect x="10" y="8" width="4" height="12" rx="1" fill={c} />
       <rect x="17" y="4" width="4" height="16" rx="1" fill={c} />
+    </svg>
+  );
+}
+
+function ArchivesIcon({ light }) {
+  const c = light ? "#2b4d72" : "#7fa0c2";
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 7h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z" />
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M10 12h4" />
     </svg>
   );
 }
@@ -574,6 +587,13 @@ export default function Home() {
             />
           )}
         </div>
+
+        {/* Archives */}
+        <RowCard light={light} card={card} muted={muted} onClick={() => navigate("/archives")} className={`mt-3 rounded-2xl ${borderedCardHoverCls(light)}`}
+          icon={<span className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ${light ? "bg-parchment-100" : "bg-navyink-700"}`}><ArchivesIcon light={light} /></span>}
+          title="Archives"
+          subtitle="Browse past puzzles"
+        />
 
         {/* Stats */}
         <RowCard light={light} card={card} muted={muted} onClick={() => navigate("/stats")} className={`mt-3 rounded-2xl ${borderedCardHoverCls(light)}`}
