@@ -347,7 +347,7 @@ export default function App() {
   }, [isPuzzlePlay, printMode]);
 
   return (
-    <div className={`w-screen ${isPuzzlePlay ? 'flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden' : 'min-h-screen'} ${lightMode ? 'bg-parchment-100 text-navyink-900' : 'bg-navyink-900 text-parchment-50'}`}>
+    <div className={`w-screen ${isPuzzlePlay ? 'flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden' : 'min-h-screen'} ${printMode ? 'bg-white text-navyink-900' : lightMode ? 'bg-parchment-100 text-navyink-900' : 'bg-navyink-900 text-parchment-50'}`}>
       {!printMode && !isPromo && !isHome && (
         <header
           className={`app-header w-full px-2 py-1.5 md:px-3 md:py-2 border-b ${lightMode ? 'bg-parchment-50 border-parchment-200' : 'bg-navyink-850 border-navyink-700'}`}

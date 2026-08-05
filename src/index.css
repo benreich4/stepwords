@@ -180,6 +180,14 @@
   100% { transform: translateX(100%); }
 }
 
+/* On-screen print mode (?print=1): empty white tiles with thin black borders */
+.print-puzzle-fit .letter-box {
+  background: white !important;
+  border-width: 1px !important;
+  border-color: #000 !important;
+  color: #000 !important;
+}
+
 /* Print mode styles */
 @media print {
   @page {

@@ -1885,7 +1885,7 @@ export default function Game({ puzzle, isQuick = false, prevId = null, nextId = 
     <>
     <div 
       ref={gameContainerRef}
-      className={`w-full flex-1 min-h-0 flex flex-col overflow-hidden ${printMode ? 'print-puzzle-fit items-center h-auto overflow-visible' : ''} ${effectiveSettings.lightMode ? 'bg-parchment-100 text-navyink-900' : 'bg-navyink-900 text-parchment-50'}`}
+      className={`w-full flex-1 min-h-0 flex flex-col overflow-hidden ${printMode ? 'print-puzzle-fit items-center h-auto overflow-visible bg-white text-navyink-900' : effectiveSettings.lightMode ? 'bg-parchment-100 text-navyink-900' : 'bg-navyink-900 text-parchment-50'}`}
     >
       {/* Print Mode Header - outside scaled area so it spans full page */}
       {printMode && (
